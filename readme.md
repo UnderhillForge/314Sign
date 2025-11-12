@@ -1,7 +1,5 @@
 # PiSign — The Dead-Simple Digital Menu Board
 
-![PiSign Kiosk Preview](screenshots/kiosk-preview.jpg)
-
 > **No apps. No logins. No tech skills.**  
 > Just point a mobile browser at edit.html, make changes, and **watch it update instantly** on screen.
 
