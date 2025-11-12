@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Edit Daily Specials</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f4f4f4;
+      overscroll-behavior: none;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 1rem;
+      gap: 1rem;
+      /* Support iPhone notch & home bar */
+      padding-top: max(1rem, env(safe-area-inset-top));
+      padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    }
+    h2 {
+      font-size: 1.5rem;
+      color: #333;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    textarea {
+      flex: 1;
+      width: 100%;
+      padding: 1rem;
+      font-size: 1.1rem;
+      line-height: 1.6;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      resize: none;
+      background: white;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .actions {
+      display: flex;
+      gap: 1rem;
+      flex-shrink: 0;
+    }
+    button {
+      flex: 1;
+      padding: 1rem;
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: white;
+      background: #007bff;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:active { background: #0056b3; }
+    button.secondary {
+      background: #6c757d;
+    }
+    button.secondary:active { background: #5a6268; }
+    .status {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #666;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Daily Specials</h2>
+    <textarea id="content" placeholder="Loading..."></textarea>
+    <div class="actions">
+      <button onclick="save()">Save & Refresh Kiosk</button>
+      <button class="secondary" onclick="location.reload()">Cancel</button>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <script>
+    const fileUrl = '/specials.txt';
+    const textarea = document.getElementById('content');
+    const status = document.getElementById('status');
+
+    // Load current specials.txt
+    fetch(fileUrl)
+      .then(r => {
+        if (!r.ok) throw new Error('File not found');
+        return r.text();
+      })
+      .then(text => {
+        textarea.value = text;
+        textarea.placeholder = "Start typing...";
+      })
+      .catch(() => {
+        textarea.value = '';
+        textarea.placeholder = "File not found. Will create on save.";
+      });
+
+    // Save with PUT
+    function save() {
+      const data = textarea.value;
+      status.textContent = 'Saving...';
+
+      fetch(fileUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'text/plain' },
+        body: data
+      })
+      .then(r => {
+        if (r.ok) {
+          status.textContent = 'Saved! Kiosk will refresh...';
+          try { parent.location.reload(); } catch(e) {}
+          setTimeout(() => status.textContent = '', 3000);
+        } else {
+          throw new Error('HTTP ' + r.status);
+        }
+      })
+      .catch(err => {
+        status.textContent = 'Save failed: ' + err.message;
+      });
+    }
+
+    // Ctrl+S to save (works on phone too if using keyboard)
+    document.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        save();
+      }
+    });
+
+    // Fix 100vh on mobile (keyboard resize issue)
+    function fixHeight() {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+    window.addEventListener('resize', fixHeight);
+    fixHeight();
+  </script>
+</body>
+</html>

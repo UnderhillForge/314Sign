@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Daily Specials</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body, html { height:100%; overflow:hidden; }
+    body {
+      background: url('bg1.jpg') center/cover no-repeat;
+      font-family: 'Comic Sans MS', cursive;
+      color: white;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: rgba(0,0,0,0.5);
+      padding: 1rem;
+      text-align: center;
+      font-size: 2.5rem;
+      font-weight: bold;
+    }
+    #specials {
+      flex: 1;
+      padding: 2rem;
+      font-size: 1.8rem;
+      line-height: 1.6;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <header>Specials</header>
+  <div id="specials"></div>
+  <script>
+const specialsDiv = document.getElementById('specials');
+    let currentEtag = null;
+
+    // Load config (background + font)
+    fetch('config.json?' + Date.now())
+      .then(r => r.json())
+      .then(cfg => {
+        if (cfg.bg) {
+          document.body.style.backgroundImage = `url('bg/${cfg.bg}')`;
+        }
+        if (cfg.font) {
+          document.body.style.fontFamily = cfg.font;
+        }
+        loadSpecials(); // Start polling after config
+      })
+      .catch(() => loadSpecials());
+
+    // === Auto-update specials.txt every 3 seconds ===
+    function loadSpecials() {
+      fetch('specials.txt?' + Date.now(), { cache: 'no-store' })
+        .then(r => {
+          const etag = r.headers.get('ETag');
+          if (etag && etag === currentEtag) {
+            // No change
+            setTimeout(loadSpecials, 30000);
+            return;
+          }
+          currentEtag = etag;
+          return r.text();
+        })
+        .then(text => {
+          if (text !== undefined) {
+            specialsDiv.textContent = text;
+          }
+        })
+        .catch(() => {
+          specialsDiv.textContent = 'Error loading specials.';
+        })
+        .finally(() => {
+          setTimeout(loadSpecials, 30000); // Poll every 3s
+        });
+    }
+  </script>
+</body>
+</html>

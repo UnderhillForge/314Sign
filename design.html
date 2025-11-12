@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Design Kiosk Page</title>
+  <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&family=Permanent+Marker&family=Caveat&family=Dancing+Script&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { height:100%; font-family: -apple-system, sans-serif; background:#f8f9fa; }
+    .container {
+      display:flex; flex-direction:column; height:100vh;
+      padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
+      gap:1rem;
+    }
+    h1 { font-size:1.6rem; text-align:center; color:#333; }
+    .section {
+      background:white; padding:1rem; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1);
+    }
+    label { display:block; margin:0.5rem 0 0.3rem; font-weight:600; color:#444; }
+    select, input[type="file"] {
+      width:100%; padding:0.8rem; font-size:1rem; border:2px solid #ddd; border-radius:8px;
+    }
+    .bg-grid {
+      display:grid; grid-template-columns:repeat(3,1fr); gap:0.5rem; margin-top:0.5rem;
+    }
+    .bg-thumb {
+      width:100%; height:80px; object-fit:cover; border-radius:8px; cursor:pointer;
+      border:3px solid transparent; transition:border 0.2s;
+    }
+    .bg-thumb.selected { border-color:#007bff; }
+    .preview-img {
+      width:100%; height:180px; object-fit:cover; border-radius:8px; margin-top:0.5rem;
+      border:2px dashed #ccc; display:none;
+    }
+    .actions { display:flex; gap:1rem; }
+    button {
+      flex:1; padding:1rem; font-size:1.1rem; font-weight:600; color:white;
+      background:#007bff; border:none; border-radius:12px; cursor:pointer;
+    }
+    button:active { background:#0056b3; }
+    button.secondary { background:#6c757d; }
+    button.secondary:active { background:#5a6268; }
+    .status { text-align:center; font-size:0.9rem; color:#666; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Design Kiosk Page</h1>
+
+    <div class="section">
+      <label>1. Background Image</label>
+      <div id="bg-grid" class="bg-grid"></div>
+      <label style="margin-top:1rem">Or Upload New Image:</label>
+      <input type="file" id="upload" accept="image/*" />
+      <img id="preview" class="preview-img" src="" />
+    </div>
+
+    <div class="section">
+      <label>2. Font Style</label>
+      <select id="font">
+        <option value="'Comic Sans MS', cursive">Comic Sans</option>
+        <option value="'Indie Flower', cursive">Handwriting (Indie Flower)</option>
+        <option value="'Permanent Marker', cursive">Marker</option>
+        <option value="'Caveat', cursive">Casual Handwriting</option>
+        <option value="'Dancing Script', cursive">Elegant Script</option>
+        <option value="Arial, sans-serif">Clean (Arial)</option>
+        <option value="Georgia, serif">Classic (Georgia)</option>
+      </select>
+    </div>
+
+    <div class="actions">
+      <button onclick="saveDesign()">Save & Update Kiosk</button>
+      <button class="secondary" onclick="location.reload()">Cancel</button>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <script>
+    const bgGrid = document.getElementById('bg-grid');
+    const upload = document.getElementById('upload');
+    const preview = document.getElementById('preview');
+    const fontSelect = document.getElementById('font');
+    const status = document.getElementById('status');
+
+    let backgrounds = [];        // Filled from server
+    let selectedBg = null;       // Filename or 'uploaded'
+    let uploadedDataUrl = null;
+
+    // === 1. Load existing images from /bg/ ===
+    function loadBackgrounds() {
+      fetch('bg/index.php')
+        .then(r => r.json())
+        .then(files => {
+          backgrounds = files;
+          renderThumbs();
+          loadConfig();
+        })
+        .catch(err => {
+          console.error(err);
+          status.textContent = 'Warning: Could not load backgrounds.';
+          backgrounds = [];
+          renderThumbs();
+          loadConfig();
+        });
+    }
+
+    // === 2. Render thumbnails ===
+    function renderThumbs() {
+      bgGrid.innerHTML = '';
+      backgrounds.forEach(file => {
+        const img = document.createElement('img');
+        img.src = 'bg/' + file;
+        img.className = 'bg-thumb';
+        img.dataset.file = file;
+        if (file === selectedBg) img.classList.add('selected');
+        img.onclick = () => selectBg(file, img);
+        bgGrid.appendChild(img);
+      });
+    }
+
+    function selectBg(file, thumb) {
+      selectedBg = file;
+      uploadedDataUrl = null;
+      preview.style.display = 'none';
+      document.querySelectorAll('.bg-thumb').forEach(t => t.classList.remove('selected'));
+      thumb.classList.add('selected');
+    }
+
+    // === 3. Handle file upload (preview only) ===
+    upload.onchange = () => {
+      const file = upload.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        uploadedDataUrl = e.target.result;
+        preview.src = uploadedDataUrl;
+        preview.style.display = 'block';
+        selectedBg = 'uploaded';
+        document.querySelectorAll('.bg-thumb').forEach(t => t.classList.remove('selected'));
+      };
+      reader.readAsDataURL(file);
+    };
+
+    // === 4. Load saved config ===
+    function loadConfig() {
+      fetch('config.json')
+        .then(r => r.ok ? r.json() : {})
+        .then(cfg => {
+          if (cfg.bg) {
+            if (cfg.bg.startsWith('data:')) {
+              // Uploaded image
+              selectedBg = 'uploaded';
+              uploadedDataUrl = cfg.bg;
+              preview.src = uploadedDataUrl;
+              preview.style.display = 'block';
+            } else {
+              selectedBg = cfg.bg;
+              const thumb = document.querySelector(`.bg-thumb[data-file="${cfg.bg}"]`);
+              if (thumb) thumb.classList.add('selected');
+            }
+          }
+          if (cfg.font) fontSelect.value = cfg.font;
+        });
+    }
+
+    // === 5. Save design ===
+    function saveDesign() {
+      if (!selectedBg) {
+        status.textContent = 'Please select a background.';
+        return;
+      }
+
+      status.textContent = 'Saving...';
+
+      const config = {
+        bg: selectedBg === 'uploaded' ? uploadedDataUrl : selectedBg,
+        font: fontSelect.value
+      };
+
+      // Save config.json
+      fetch('config.json', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config)
+      })
+      .then(r => r.ok ? uploadImageIfNeeded() : Promise.reject('Config failed'))
+      .then(() => generateIndexHTML())
+      .then(() => {
+        status.textContent = 'Saved! Kiosk updated.';
+        setTimeout(() => status.textContent = '', 3000);
+      })
+      .catch(err => status.textContent = 'Error: ' + err);
+    }
+
+    // === 6. Upload new image via PHP ===
+    function uploadImageIfNeeded() {
+      if (selectedBg !== 'uploaded' || !uploadedDataUrl) return Promise.resolve();
+
+      return fetch(uploadedDataUrl)
+        .then(r => r.blob())
+        .then(blob => {
+          const form = new FormData();
+          form.append('image', blob, 'upload.jpg');
+
+          return fetch('upload-bg.php', {
+            method: 'POST',
+            body: form
+          });
+        })
+        .then(r => r.json())
+        .then(data => {
+          if (data.filename) {
+            selectedBg = data.filename;
+            backgrounds.push(data.filename);
+            renderThumbs();
+            const thumb = document.querySelector(`.bg-thumb[data-file="${data.filename}"]`);
+            if (thumb) thumb.classList.add('selected');
+            return updateConfigWithNewFilename(data.filename);
+          }
+          throw 'Upload failed';
+        });
+    }
+
+    function updateConfigWithNewFilename(filename) {
+      return fetch('config.json')
+        .then(r => r.json())
+        .then(cfg => {
+          cfg.bg = filename;
+          return fetch('config.json', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cfg)
+          });
+        });
+    }
+
+    function dataURLtoBlob(dataurl) {
+      const [meta, base64] = dataurl.split(',');
+      const mime = meta.match(/:(.*?);/)[1];
+      const bstr = atob(base64);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) u8arr[n] = bstr.charCodeAt(n);
+      return new Blob([u8arr], { type: mime });
+    }
+
+    // === 7. Generate index.html ===
+    function generateIndexHTML() {
+      const bgUrl = selectedBg === 'uploaded' ? uploadedDataUrl : 'bg/' + selectedBg;
+      const font = fontSelect.value;
+
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Daily Specials</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body, html { height:100%; overflow:hidden; }
+    body {
+      background: url('${bgUrl}') center/cover no-repeat;
+      font-family: ${font};
+      color: white;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: rgba(0,0,0,0.5);
+      padding: 1rem;
+      text-align: center;
+      font-size: 2.5rem;
+      font-weight: bold;
+    }
+    #specials {
+      flex: 1;
+      padding: 2rem;
+      font-size: 1.8rem;
+      line-height: 1.6;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <header>Specials</header>
+  <div id="specials"></div>
+  <script>
+    fetch('specials.txt?' + Date.now())
+      .then(r => r.text())
+      .then(t => document.getElementById('specials').textContent = t);
+    setInterval(() => location.reload(), 10000);
+  </script>
+</body>
+</html>`;
+
+      return fetch('index.html', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'text/html' },
+        body: html
+      });
+    }
+
+    // === Start ===
+    loadBackgrounds();
+  </script>
+</body>
+</html>
