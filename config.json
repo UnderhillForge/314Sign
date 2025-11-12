@@ -1,4 +1,5 @@
 {
   "bg": "bg1.jpg",
-  "font": "'Comic Sans MS', cursive"
+  "font": "'Comic Sans MS', cursive",
+  "pollIntervalSeconds": 3
 }

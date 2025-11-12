@@ -74,6 +74,8 @@
       <button class="secondary" onclick="location.reload()">Cancel</button>
     </div>
     <div class="status" id="status"></div>
+    <!-- Toast notification (mobile friendly) -->
+    <div id="toast" class="toast" aria-live="polite" role="status" style="display:none"></div>
   </div>
 
   <script>
@@ -83,9 +85,10 @@
     const fontSelect = document.getElementById('font');
     const status = document.getElementById('status');
 
-    let backgrounds = [];        // Filled from server
-    let selectedBg = null;       // Filename or 'uploaded'
-    let uploadedDataUrl = null;
+  let backgrounds = [];        // Filled from server
+  let selectedBg = null;       // Filename or 'uploaded'
+  let uploadedDataUrl = null;
+  let uploadedFileName = null; // original filename from file input
 
     // === 1. Load existing images from /bg/ ===
     function loadBackgrounds() {
@@ -131,6 +134,7 @@
     upload.onchange = () => {
       const file = upload.files[0];
       if (!file) return;
+      uploadedFileName = file.name || 'upload.jpg';
       const reader = new FileReader();
       reader.onload = e => {
         uploadedDataUrl = e.target.result;
@@ -171,6 +175,12 @@
         return;
       }
 
+      // Disable actions while saving
+      const saveBtn = document.querySelector('.actions button');
+      const cancelBtn = document.querySelector('.actions button.secondary');
+      if (saveBtn) saveBtn.disabled = true;
+      if (cancelBtn) cancelBtn.disabled = true;
+
       status.textContent = 'Saving...';
 
       const config = {
@@ -184,53 +194,87 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config)
       })
-      .then(r => r.ok ? uploadImageIfNeeded() : Promise.reject('Config failed'))
+      .then(r => {
+        if (!r.ok) return r.text().then(t => Promise.reject('Config save failed: ' + (t || r.statusText)));
+        return uploadImageIfNeeded();
+      })
       .then(() => generateIndexHTML())
       .then(() => {
         status.textContent = 'Saved! Kiosk updated.';
+        // Show mobile-friendly toast as confirmation
+        if (window.showToast) showToast('Saved — kiosk updated');
         setTimeout(() => status.textContent = '', 3000);
       })
-      .catch(err => status.textContent = 'Error: ' + err);
+      .catch(err => {
+        console.error('Save error:', err);
+        status.textContent = 'Error: ' + (err && err.message ? err.message : err);
+      })
+      .finally(() => {
+        if (saveBtn) saveBtn.disabled = false;
+        if (cancelBtn) cancelBtn.disabled = false;
+      });
     }
 
     // === 6. Upload new image via PHP ===
     function uploadImageIfNeeded() {
       if (selectedBg !== 'uploaded' || !uploadedDataUrl) return Promise.resolve();
 
-      return fetch(uploadedDataUrl)
-        .then(r => r.blob())
-        .then(blob => {
-          const form = new FormData();
-          form.append('image', blob, 'upload.jpg');
+      // Convert dataURL to Blob (use helper) to preserve MIME and avoid
+      // potential CORS issues fetching data: URLs.
+      const blob = dataURLtoBlob(uploadedDataUrl);
+      const form = new FormData();
+      // Use original filename when available
+      const name = uploadedFileName || 'upload.jpg';
+      form.append('image', blob, name);
 
-          return fetch('upload-bg.php', {
-            method: 'POST',
-            body: form
-          });
-        })
-        .then(r => r.json())
-        .then(data => {
-          if (data.filename) {
-            selectedBg = data.filename;
-            backgrounds.push(data.filename);
-            renderThumbs();
-            const thumb = document.querySelector(`.bg-thumb[data-file="${data.filename}"]`);
-            if (thumb) thumb.classList.add('selected');
-            return updateConfigWithNewFilename(data.filename);
+      return fetch('upload-bg.php', {
+        method: 'POST',
+        body: form
+      })
+      .then(r => {
+        // Try to parse JSON even on non-OK to surface server-side messages
+        return r.text().then(text => {
+          let data = null;
+          try { data = text ? JSON.parse(text) : null; } catch(e) { /* ignore */ }
+          if (!r.ok) {
+            const errMsg = data && (data.error || data.detail) ? (data.error + (data.detail ? (': ' + data.detail) : '')) : (text || r.statusText);
+            return Promise.reject(errMsg);
           }
-          throw 'Upload failed';
+          return data;
         });
+      })
+      .then(data => {
+        if (data && data.filename) {
+          selectedBg = data.filename;
+          backgrounds.push(data.filename);
+          renderThumbs();
+          const thumb = document.querySelector(`.bg-thumb[data-file="${data.filename}"]`);
+          if (thumb) thumb.classList.add('selected');
+          return updateConfigWithNewFilename(data.filename);
+        }
+        const err = data && (data.error || data.detail) ? (data.error + (data.detail ? (': ' + data.detail) : '')) : 'Upload failed (no filename returned)';
+        return Promise.reject(err);
+      })
+      .catch(err => {
+        console.error('Upload error:', err);
+        // Surface server-side error to user
+        status.textContent = 'Upload error: ' + (err && err.message ? err.message : err);
+        return Promise.reject(err);
+      });
     }
 
     function updateConfigWithNewFilename(filename) {
       return fetch('config.json')
-        .then(r => r.json())
+        .then(r => r.ok ? r.json() : {})
         .then(cfg => {
           cfg.bg = filename;
           return fetch('config.json', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(cfg)
+          }).then(r => {
+            if (!r.ok) return Promise.reject('Failed to update config with filename');
+            return r;
           });
         });
     }
@@ -250,51 +294,55 @@
       const bgUrl = selectedBg === 'uploaded' ? uploadedDataUrl : 'bg/' + selectedBg;
       const font = fontSelect.value;
 
-      const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Daily Specials</title>
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body, html { height:100%; overflow:hidden; }
-    body {
-      background: url('${bgUrl}') center/cover no-repeat;
-      font-family: ${font};
-      color: white;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
-      display: flex;
-      flex-direction: column;
-    }
-    header {
-      background: rgba(0,0,0,0.5);
-      padding: 1rem;
-      text-align: center;
-      font-size: 2.5rem;
-      font-weight: bold;
-    }
-    #specials {
-      flex: 1;
-      padding: 2rem;
-      font-size: 1.8rem;
-      line-height: 1.6;
-      overflow-y: auto;
-      white-space: pre-wrap;
-    }
-  </style>
-</head>
-<body>
-  <header>Specials</header>
-  <div id="specials"></div>
-  <script>
-    fetch('specials.txt?' + Date.now())
-      .then(r => r.text())
-      .then(t => document.getElementById('specials').textContent = t);
-    setInterval(() => location.reload(), 10000);
-  </script>
-</body>
-</html>`;
+      // Escape double quotes in bgUrl for safe insertion into url("...")
+      const safeBg = String(bgUrl).replace(/"/g, '\\"');
+
+      var html = '';
+      html += '<!DOCTYPE html>\n';
+      html += '<html lang="en">\n';
+      html += '<head>\n';
+      html += '  <meta charset="UTF-8" />\n';
+      html += '  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>\n';
+      html += '  <title>Daily Specials</title>\n';
+      html += '  <style>\n';
+      html += '    * { margin:0; padding:0; box-sizing:border-box; }\n';
+      html += '    body, html { height:100%; overflow:hidden; }\n';
+      html += '    body {\n';
+      html += '      background: url("' + safeBg + '") center/cover no-repeat;\n';
+      html += '      font-family: ' + font + ';\n';
+      html += '      color: white;\n';
+      html += '      text-shadow: 2px 2px 4px rgba(0,0,0,0.7);\n';
+      html += '      display: flex;\n';
+      html += '      flex-direction: column;\n';
+      html += '    }\n';
+      html += '    header {\n';
+      html += '      background: rgba(0,0,0,0.5);\n';
+      html += '      padding: 1rem;\n';
+      html += '      text-align: center;\n';
+      html += '      font-size: 2.5rem;\n';
+      html += '      font-weight: bold;\n';
+      html += '    }\n';
+      html += '    #specials {\n';
+      html += '      flex: 1;\n';
+      html += '      padding: 2rem;\n';
+      html += '      font-size: 1.8rem;\n';
+      html += '      line-height: 1.6;\n';
+      html += '      overflow-y: auto;\n';
+      html += '      white-space: pre-wrap;\n';
+      html += '    }\n';
+      html += '  </style>\n';
+      html += '</head>\n';
+      html += '<body>\n';
+      html += '  <header>Specials</header>\n';
+      html += '  <div id="specials"></div>\n';
+      html += '  <script>\n';
+      html += '    fetch(\'specials.txt?\' + Date.now())\n';
+      html += '      .then(r => r.text())\n';
+      html += '      .then(t => document.getElementById(\'specials\').textContent = t);\n';
+      html += '    setInterval(() => location.reload(), 10000);\n';
+      html += '  <\/script>\n';
+      html += '</body>\n';
+      html += '</html>\n';
 
       return fetch('index.html', {
         method: 'PUT',
@@ -305,6 +353,50 @@
 
     // === Start ===
     loadBackgrounds();
+
+    // === Toast helper ===
+    (function(){
+      // Create styles for toast
+      const css = `
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: max(1.25rem, env(safe-area-inset-bottom));
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.85);
+        color: #fff;
+        padding: 0.75rem 1rem;
+        border-radius: 10px;
+        font-size: 1rem;
+        min-width: 160px;
+        max-width: 92%;
+        text-align: center;
+        z-index: 9999;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+        -webkit-backdrop-filter: blur(6px);
+        backdrop-filter: blur(6px);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .toast.show { animation: toast-in 240ms ease-out; }
+      }
+      @keyframes toast-in { from { transform: translateX(-50%) translateY(8px); opacity: 0 } to { transform: translateX(-50%) translateY(0); opacity: 1 }}
+      `;
+      const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
+
+      let toastTimer = null;
+      window.showToast = function(msg, ms=3000) {
+        const el = document.getElementById('toast');
+        if (!el) return;
+        el.textContent = msg;
+        el.style.display = 'block';
+        el.classList.add('show');
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          el.classList.remove('show');
+          el.style.display = 'none';
+        }, ms);
+      };
+    })();
   </script>
 </body>
 </html>

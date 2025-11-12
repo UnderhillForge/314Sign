@@ -6,11 +6,11 @@
   <title>Daily Specials</title>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
-    body, html { height:100%; overflow:hidden; }
+    html, body { height:100%; overflow:hidden; }
     body {
-      background: url('bg1.jpg') center/cover no-repeat;
+      background: url('bg/bg1.jpg') center/cover no-repeat;
       font-family: 'Comic Sans MS', cursive;
-      color: white;
+      color: #fff;
       text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
       display: flex;
       flex-direction: column;
@@ -29,55 +29,111 @@
       line-height: 1.6;
       overflow-y: auto;
       white-space: pre-wrap;
+      -webkit-overflow-scrolling: touch;
     }
   </style>
 </head>
 <body>
   <header>Specials</header>
-  <div id="specials"></div>
+  <div id="specials">Loading…</div>
+
   <script>
-const specialsDiv = document.getElementById('specials');
-    let currentEtag = null;
+  const specialsDiv = document.getElementById('specials');
+  let lastText = '';
+  let lastEtag = null;
 
-    // Load config (background + font)
+  // Poll interval in milliseconds. Default to 3000ms (3s).
+  // This value can be overridden from config.json using one of:
+  //  - pollIntervalMs: number (milliseconds)
+  //  - pollIntervalSeconds: number (seconds)
+  //  - pollInterval: number (seconds)  -- legacy/short key
+  let pollIntervalMs = 3000;
+
+    // --------------------------------------------------------------------
+    // 1. Load config.json (once)
+    // --------------------------------------------------------------------
     fetch('config.json?' + Date.now())
-      .then(r => r.json())
+      .then(r => r.ok ? r.json() : {})
       .then(cfg => {
-        if (cfg.bg) {
-          document.body.style.backgroundImage = `url('bg/${cfg.bg}')`;
-        }
-        if (cfg.font) {
-          document.body.style.fontFamily = cfg.font;
-        }
-        loadSpecials(); // Start polling after config
-      })
-      .catch(() => loadSpecials());
+        // Apply background/font from config if present
+        if (cfg.bg)   document.body.style.backgroundImage = `url('bg/${cfg.bg}')`;
+        if (cfg.font) document.body.style.fontFamily = cfg.font;
 
-    // === Auto-update specials.txt every 3 seconds ===
-    function loadSpecials() {
-      fetch('specials.txt?' + Date.now(), { cache: 'no-store' })
+        // Configure poll interval from config (supports multiple keys)
+        if (cfg && typeof cfg === 'object') {
+          // Prefer explicit milliseconds value if provided
+          if (Number.isFinite(cfg.pollIntervalMs)) {
+            pollIntervalMs = Number(cfg.pollIntervalMs);
+          } else if (Number.isFinite(cfg.pollIntervalSeconds)) {
+            pollIntervalMs = Number(cfg.pollIntervalSeconds) * 1000;
+          } else if (Number.isFinite(cfg.pollInterval)) {
+            // legacy shorthand interpreted as seconds
+            pollIntervalMs = Number(cfg.pollInterval) * 1000;
+          }
+
+          // Validate sensible range; fall back to default on invalid values
+          if (!Number.isFinite(pollIntervalMs) || pollIntervalMs <= 0) {
+            pollIntervalMs = 3000;
+          }
+        }
+      })
+      .catch(() => console.warn('config.json missing – using defaults'))
+      .finally(startPolling);
+
+    // --------------------------------------------------------------------
+    // 2. Poll specials.txt – ETag-aware, fallback to text compare
+    // --------------------------------------------------------------------
+    function startPolling() {
+      pollSpecials();
+    }
+
+    function pollSpecials() {
+      fetch('specials.txt?' + Date.now(), {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      })
         .then(r => {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+
           const etag = r.headers.get('ETag');
-          if (etag && etag === currentEtag) {
-            // No change
-            setTimeout(loadSpecials, 30000);
-            return;
+          const hasEtag = etag && etag !== lastEtag;
+
+          // If ETag changed → file changed → read text
+          if (hasEtag) {
+            lastEtag = etag;
+            return r.text();
           }
-          currentEtag = etag;
-          return r.text();
+
+          // No ETag or same ETag → read text anyway (safe fallback)
+          return r.text().then(text => {
+            if (text === lastText) {
+              // No change → skip DOM update
+              return null;
+            }
+            return text;
+          });
         })
-        .then(text => {
-          if (text !== undefined) {
-            specialsDiv.textContent = text;
+        .then(newText => {
+          if (newText !== null && newText !== undefined) {
+            lastText = newText;
+            specialsDiv.textContent = newText.trim() || 'No specials today.';
           }
         })
-        .catch(() => {
-          specialsDiv.textContent = 'Error loading specials.';
+        .catch(err => {
+          console.error('Specials load failed:', err);
+          specialsDiv.textContent = 'Error loading specials – retrying…';
         })
         .finally(() => {
-          setTimeout(loadSpecials, 30000); // Poll every 3s
+          // Use configured poll interval (ms). This keeps a single timeout
+          // chain to avoid overlapping polls.
+          setTimeout(pollSpecials, pollIntervalMs);
         });
     }
+
+    // --------------------------------------------------------------------
+    // 3. Full reload every 5 minutes (catches config/background changes)
+    // --------------------------------------------------------------------
+    setInterval(() => location.reload(), 5 * 60 * 1000);
   </script>
 </body>
 </html>
