@@ -28,6 +28,30 @@
       text-align: center;
       flex-shrink: 0;
     }
+    .controls {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .controls label {
+      font-weight: 600;
+      color: #333;
+      flex-shrink: 0;
+    }
+    .controls input[type="range"] {
+      flex: 1;
+      min-width: 120px;
+    }
+    .controls span {
+      min-width: 50px;
+      text-align: right;
+      font-weight: 600;
+      color: #007bff;
+    }
     textarea {
       flex: 1;
       width: 100%;
@@ -93,6 +117,11 @@
 <body>
   <div class="container">
     <h2>Daily Specials</h2>
+    <div class="controls">
+      <label for="fontScale">Font Size (% of screen):</label>
+      <input type="range" id="fontScale" min="1" max="10" value="3" step="0.5" />
+      <span id="fontScaleValue">3%</span>
+    </div>
     <textarea id="content" placeholder="Loading..."></textarea>
     <div class="actions">
       <button onclick="save()">Save & Refresh Kiosk</button>
@@ -106,6 +135,44 @@
     const fileUrl = '/specials.txt';
     const textarea = document.getElementById('content');
     const status = document.getElementById('status');
+    const fontScaleInput = document.getElementById('fontScale');
+    const fontScaleValue = document.getElementById('fontScaleValue');
+
+    // Load config and set initial font scale
+    // Note: Font selection is configured in design.html; this page only controls font size
+    function loadConfig() {
+      fetch('config.json')
+        .then(r => r.ok ? r.json() : {})
+        .then(cfg => {
+          if (cfg.fontScalePercent) {
+            fontScaleInput.value = cfg.fontScalePercent;
+            fontScaleValue.textContent = cfg.fontScalePercent + '%';
+          }
+        })
+        .catch(() => {
+          // Use default if config fails
+          fontScaleValue.textContent = fontScaleInput.value + '%';
+        });
+    }
+
+    // Update font scale display and save to config
+    fontScaleInput.addEventListener('input', () => {
+      const val = fontScaleInput.value;
+      fontScaleValue.textContent = val + '%';
+      
+      // Save font scale to config.json
+      fetch('config.json')
+        .then(r => r.ok ? r.json() : {})
+        .then(cfg => {
+          cfg.fontScalePercent = parseFloat(val);
+          return fetch('config.json', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cfg)
+          });
+        })
+        .catch(err => console.error('Failed to save font scale:', err));
+    });
 
     // Load current specials.txt
     fetch(fileUrl)
@@ -121,6 +188,9 @@
         textarea.value = '';
         textarea.placeholder = "File not found. Will create on save.";
       });
+
+    // Load config on page load
+    loadConfig();
 
     // Save with PUT
     function save() {

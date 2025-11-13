@@ -59,13 +59,7 @@
     <div class="section">
       <label>2. Font Style</label>
       <select id="font">
-        <option value="'Comic Sans MS', cursive">Comic Sans</option>
-        <option value="'Indie Flower', cursive">Handwriting (Indie Flower)</option>
-        <option value="'Permanent Marker', cursive">Marker</option>
-        <option value="'Caveat', cursive">Casual Handwriting</option>
-        <option value="'Dancing Script', cursive">Elegant Script</option>
-        <option value="Arial, sans-serif">Clean (Arial)</option>
-        <option value="Georgia, serif">Classic (Georgia)</option>
+        <!-- Populated dynamically from config.json availableFonts -->
       </select>
     </div>
 
@@ -146,11 +140,22 @@
       reader.readAsDataURL(file);
     };
 
-    // === 4. Load saved config ===
+    // === 4. Load saved config and populate fonts ===
     function loadConfig() {
       fetch('config.json')
         .then(r => r.ok ? r.json() : {})
         .then(cfg => {
+          // Populate font dropdown from config.availableFonts
+          if (cfg.availableFonts && typeof cfg.availableFonts === 'object') {
+            fontSelect.innerHTML = '';
+            Object.entries(cfg.availableFonts).forEach(([name, value]) => {
+              const option = document.createElement('option');
+              option.value = value;
+              option.textContent = name;
+              fontSelect.appendChild(option);
+            });
+          }
+          
           if (cfg.bg) {
             if (cfg.bg.startsWith('data:')) {
               // Uploaded image

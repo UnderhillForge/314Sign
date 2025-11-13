@@ -53,6 +53,10 @@
   //  - pollIntervalSeconds: number (seconds)
   //  - pollInterval: number (seconds)  -- legacy/short key
   let pollIntervalMs = 3000;
+  
+  // Font scale percentage. Default to 3% of viewport width.
+  // Can be overridden via fontScalePercent in config.json.
+  let fontScalePercent = 3;
 
     // --------------------------------------------------------------------
     // 1. Load config.json (once)
@@ -79,6 +83,19 @@
           // Validate sensible range; fall back to default on invalid values
           if (!Number.isFinite(pollIntervalMs) || pollIntervalMs <= 0) {
             pollIntervalMs = 3000;
+          }
+          
+          // Load font scale percentage from config if provided
+          if (Number.isFinite(cfg.fontScalePercent)) {
+            fontScalePercent = Number(cfg.fontScalePercent);
+          }
+          
+          // Apply font scale by updating CSS custom property
+          if (fontScalePercent > 0) {
+            const specials = document.getElementById('specials');
+            if (specials) {
+              specials.style.fontSize = 'clamp(1rem, ' + fontScalePercent + 'vw, 3rem)';
+            }
           }
         }
       })

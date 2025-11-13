@@ -1,5 +1,20 @@
 {
   "bg": "bg1.jpg",
   "font": "'Comic Sans MS', cursive",
-  "pollIntervalSeconds": 3
+  "pollIntervalSeconds": 3,
+  "fontScalePercent": 3,
+  "availableFonts": {
+    "Comic Sans": "'Comic Sans MS', cursive",
+    "Arial": "Arial, sans-serif",
+    "Helvetica": "'Helvetica Neue', Helvetica, sans-serif",
+    "Georgia": "Georgia, serif",
+    "Times New Roman": "'Times New Roman', Times, serif",
+    "Courier New": "'Courier New', monospace",
+    "Verdana": "Verdana, sans-serif",
+    "Trebuchet MS": "'Trebuchet MS', sans-serif",
+    "Lucida Console": "'Lucida Console', monospace",
+    "Impact": "Impact, fantasy",
+    "Palatino": "'Palatino Linotype', 'Book Antiqua', Palatino, serif",
+    "Garamond": "Garamond, serif"
+  }
 }
