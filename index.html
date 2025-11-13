@@ -19,13 +19,18 @@
       background: rgba(0,0,0,0.5);
       padding: 1rem;
       text-align: center;
-      font-size: 2.5rem;
+      /* Responsive header font: scales with viewport width (5vw) between 1.5rem-4rem */
+      /* Larger screens get proportionally larger text; clamp() prevents extremes */
+      font-size: clamp(1.5rem, 5vw, 4rem);
       font-weight: bold;
     }
     #specials {
       flex: 1;
-      padding: 2rem;
-      font-size: 1.8rem;
+      /* Responsive padding: scales with viewport width between 1rem-3rem */
+      padding: clamp(1rem, 2vw, 3rem);
+      /* Responsive specials text: scales with viewport width (3vw) between 1rem-3rem */
+      /* 3vw means 3% of screen width; larger TVs get bigger fonts automatically */
+      font-size: clamp(1rem, 3vw, 3rem);
       line-height: 1.6;
       overflow-y: auto;
       white-space: pre-wrap;
