@@ -1,4 +1,5 @@
 <?php
+error_reporting(E_ALL & ~E_WARNING);
 header('Content-Type: application/json');
 
 // --- simple JSON-line logger (logs/uploads.log) -----------------------

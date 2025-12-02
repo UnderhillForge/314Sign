@@ -1,4 +1,5 @@
 <?php
+error_reporting(E_ALL & ~E_WARNING);
 header('Content-Type: application/json');
 
 // Read directory safely and return only image filenames (sorted)
