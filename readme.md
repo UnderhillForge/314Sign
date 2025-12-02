@@ -1,9 +1,9 @@
-# PiSign — The Dead-Simple Digital Menu Board
+# 314Sign — The Dead-Simple Digital Menu Board
 
 > **No apps. No logins. No tech skills.**  
 > Just point a mobile browser at edit.html, make changes, and **watch it update instantly** on screen.
 
-PiSign turns any **Raspberry Pi 5 + fullpageOS** into a **beautiful, live-updating digital sign** — perfect for **restaurants, private clubs, cafés, or kitchens**.
+314Sign turns any **Raspberry Pi 5 + fullpageOS** into a **beautiful, live-updating digital sign** — perfect for **restaurants, private clubs, cafés, or kitchens**.
 
 ---
 
@@ -26,7 +26,7 @@ PiSign turns any **Raspberry Pi 5 + fullpageOS** into a **beautiful, live-updati
 # 1. Flash fullpageOS on your Pi 5
 # 2. Boot, enable SSH, connect to Wi-Fi
 # 3. Run the one-click setup:
-curl -sSL https://raw.githubusercontent.com/UnderhillForge/PiSign/main/setup-kiosk.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/setup-kiosk.sh | sudo bash
 
 # 4. Open in browser:
 http://raspberrypi.local

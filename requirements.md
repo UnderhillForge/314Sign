@@ -1,8 +1,8 @@
-# PiSign Requirements
+# 314Sign Requirements
 
-This document outlines the **hardware, software, and setup prerequisites** for running **PiSign** — the dead-simple digital signage kiosk for Raspberry Pi 5 + fullpageOS.
+This document outlines the **hardware, software, and setup prerequisites** for running **314Sign** — the dead-simple digital signage kiosk for Raspberry Pi 5 + fullpageOS.
 
-PiSign is designed to be **lightweight and dependency-minimal**, so you can get up and running in **under 5 minutes** with the one-click installer. No complex builds or external services required.
+314Sign is designed to be **lightweight and dependency-minimal**, so you can get up and running in **under 5 minutes** with the one-click installer. No complex builds or external services required.
 
 ---
 
@@ -87,7 +87,7 @@ Before running `setup-kiosk.sh`:
 
 4. **Run Installer**:
    ```bash
-   curl -sSL https://raw.githubusercontent.com/UnderhillForge/PiSign/main/setup-kiosk.sh | sudo bash
+   curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/setup-kiosk.sh | sudo bash
    ```
 
 > **Post-Install**: Point your kiosk browser to `http://raspberrypi.local/index.html`.
@@ -112,11 +112,11 @@ Before running `setup-kiosk.sh`:
 - **Kiosk not fullscreen**: In FullpageOS, edit `/etc/xdg/lxsession/LXDE-pi/autostart` → `@chromium --kiosk http://raspberrypi.local/index.html`.
 - **No mDNS**: Install Avahi and reboot.
 
-For more, see [CONTRIBUTING.md](CONTRIBUTING.md) or open an [issue](https://github.com/UnderhillForge/PiSign/issues).
+For more, see [CONTRIBUTING.md](CONTRIBUTING.md) or open an [issue](https://github.com/UnderhillForge/314Sign/issues).
 
 ---
 
-**PiSign: Minimal deps, maximum simplicity.**  
+**314Sign: Minimal deps, maximum simplicity.**  
 Questions? Ping us in Discussions.
 
 --- 

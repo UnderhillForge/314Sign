@@ -1,9 +1,9 @@
-# Contributing to PiSign
+# Contributing to 314Sign
 
-**Thank you** for your interest in making **PiSign** better!  
+**Thank you** for your interest in making **314Sign** better!  
 Whether you're a Raspberry Pi tinkerer, a kitchen staff hero, or a full-stack wizard — **your help is welcome**.
 
-PiSign is a **dead-simple digital signage system** for Raspberry Pi 5 + fullpageOS. It lets **non-tech staff edit daily specials from their phone**, with **zero apps**, **zero fuss**, and **instant updates**.
+314Sign is a **dead-simple digital signage system** for Raspberry Pi 5 + fullpageOS. It lets **non-tech staff edit daily specials from their phone**, with **zero apps**, **zero fuss**, and **instant updates**.
 
 We’re building something **practical, fun, and open** — and we’d love your help.
 
@@ -22,7 +22,7 @@ We’re building something **practical, fun, and open** — and we’d love your
 
 ### 1. **Report a Bug**
 Found a glitch?  
-→ [Open an Issue](https://github.com/UnderhillForge/PiSign/issues/new)
+→ [Open an Issue](https://github.com/UnderhillForge/314Sign/issues/new)
 
 Include:
 - What you did
@@ -34,7 +34,7 @@ Include:
 
 ### 2. **Suggest a Feature**
 Got an idea?  
-→ [Open a Feature Request](https://github.com/UnderhillForge/PiSign/issues/new)
+→ [Open a Feature Request](https://github.com/UnderhillForge/314Sign/issues/new)
 
 Ideas we love:
 - Auto-schedule specials (e.g., "Monday = Burger Day")
@@ -51,8 +51,8 @@ We **love pull requests**!
 #### Step-by-Step:
 ```bash
 # 1. Fork the repo
-git clone https://github.com/YOUR-USERNAME/PiSign.git
-cd PiSign
+git clone https://github.com/YOUR-USERNAME/314Sign.git
+cd 314Sign
 
 # 2. Create a branch
 git checkout -b feat/your-cool-idea

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e  # Exit on any error
 
-echo "Installing PiSign from GitHub..."
+echo "Installing 314Sign from GitHub..."
 
 # === 1. Install required packages ===
 sudo apt update
@@ -11,13 +11,13 @@ sudo apt install -y lighttpd php-cgi git qrencode inotify-tools xdotool
 sudo lighty-enable-mod fastcgi
 sudo lighty-enable-mod fastcgi-php
 
-# === 2. Clone PiSign from GitHub ===
+# === 2. Clone 314Sign from GitHub ===
 TEMP_DIR=$(mktemp -d)
-echo "Cloning PiSign into $TEMP_DIR..."
-git clone --depth 1 https://github.com/UnderhillForge/PiSign.git "$TEMP_DIR/PiSign"
+echo "Cloning 314Sign into $TEMP_DIR..."
+git clone --depth 1 https://github.com/UnderhillForge/314Sign.git "$TEMP_DIR/314Sign"
 
 # === 3. Copy files to web root ===
-sudo rsync -av --delete "$TEMP_DIR/PiSign/web/" /var/www/html/
+sudo rsync -av --delete "$TEMP_DIR/314Sign/web/" /var/www/html/
 
 # === 4. Set ownership & permissions ===
 sudo chown -R www-data:www-data /var/www/html
@@ -57,7 +57,7 @@ sudo systemctl restart lighttpd
 rm -rf "$TEMP_DIR"
 
 echo ""
-echo "PiSign installed successfully!"
+echo "314Sign installed successfully!"
 echo ""
 echo "Open in browser:"
 echo "   http://raspberrypi.local"
