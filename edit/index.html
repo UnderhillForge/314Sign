@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>Edit Daily Specials</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
@@ -28,6 +29,35 @@
       text-align: center;
       flex-shrink: 0;
     }
+    .menu-tabs {
+      display: flex;
+      gap: 0.5rem;
+      background: white;
+      padding: 0.5rem;
+      border-radius: 8px;
+      flex-shrink: 0;
+      overflow-x: auto;
+    }
+    .menu-tab {
+      flex: 1;
+      min-width: fit-content;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #666;
+      background: #f8f9fa;
+      border: 2px solid transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .menu-tab.active {
+      color: #007bff;
+      background: white;
+      border-color: #007bff;
+    }
+    .menu-tab:active { background: #e9ecef; }
     .controls {
       display: flex;
       gap: 1rem;
@@ -52,6 +82,46 @@
       font-weight: 600;
       color: #007bff;
     }
+    .toolbar {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      background: white;
+      padding: 0.75rem;
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .toolbar button {
+      flex: 0 0 auto;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #333;
+      background: #e9ecef;
+      border-radius: 6px;
+    }
+    .toolbar button:active { background: #dee2e6; }
+    .editor-panel {
+      flex: 1;
+      display: flex;
+      gap: 1rem;
+      min-height: 0;
+    }
+    @media (max-width: 768px) {
+      .editor-panel { flex-direction: column; }
+    }
+    .editor-section, .preview-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .section-label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #666;
+      margin-bottom: 0.5rem;
+    }
     textarea {
       flex: 1;
       width: 100%;
@@ -64,7 +134,24 @@
       background: white;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
+      font-family: 'Monaco', 'Courier New', monospace;
     }
+    #preview {
+      flex: 1;
+      padding: 1rem;
+      font-size: 1.1rem;
+      line-height: 1.6;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      background: white;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    #preview h1, #preview h2, #preview h3 { margin-top: 0.5em; margin-bottom: 0.5em; }
+    #preview ul, #preview ol { margin-left: 1.5em; }
+    #preview p { margin-bottom: 0.5em; }
+    #preview strong { font-weight: 700; }
+    #preview em { font-style: italic; }
     .actions {
       display: flex;
       gap: 1rem;
@@ -116,13 +203,35 @@
 </head>
 <body>
   <div class="container">
-    <h2>Daily Specials</h2>
+    <h2>Daily Specials Editor</h2>
+    <div class="menu-tabs">
+      <button class="menu-tab active" data-file="menus/breakfast.txt">🌅 Breakfast</button>
+      <button class="menu-tab" data-file="menus/lunch.txt">🌞 Lunch</button>
+      <button class="menu-tab" data-file="menus/dinner.txt">🌙 Dinner</button>
+      <button class="menu-tab" data-file="menus/closed.txt">🚫 Closed</button>
+    </div>
     <div class="controls">
       <label for="fontScale">Font Size (% of screen):</label>
       <input type="range" id="fontScale" min="1" max="10" value="3" step="0.5" />
       <span id="fontScaleValue">3%</span>
     </div>
-    <textarea id="content" placeholder="Loading..."></textarea>
+    <div class="toolbar">
+      <button onclick="insertMarkdown('**', '**')" title="Bold">B</button>
+      <button onclick="insertMarkdown('*', '*')" title="Italic">I</button>
+      <button onclick="insertMarkdown('## ', '')" title="Heading">H2</button>
+      <button onclick="insertMarkdown('- ', '')" title="Bullet list">• List</button>
+      <button onclick="insertMarkdown('---\n', '')" title="Horizontal line">—</button>
+    </div>
+    <div class="editor-panel">
+      <div class="editor-section">
+        <div class="section-label">Markdown Editor</div>
+        <textarea id="content" placeholder="Loading..."></textarea>
+      </div>
+      <div class="preview-section">
+        <div class="section-label">Preview</div>
+        <div id="preview"></div>
+      </div>
+    </div>
     <div class="actions">
       <button onclick="save()">Save & Refresh Kiosk</button>
       <button class="secondary" onclick="location.reload()">Cancel</button>
@@ -132,16 +241,81 @@
   </div>
 
   <script>
-    const fileUrl = '/specials.txt';
+    let currentFile = 'menus/breakfast.txt';
     const textarea = document.getElementById('content');
+    const preview = document.getElementById('preview');
     const status = document.getElementById('status');
     const fontScaleInput = document.getElementById('fontScale');
     const fontScaleValue = document.getElementById('fontScaleValue');
+    const menuTabs = document.querySelectorAll('.menu-tab');
+
+    // Update preview as user types
+    function updatePreview() {
+      const markdown = textarea.value || 'No specials yet...';
+      preview.innerHTML = marked.parse(markdown);
+    }
+
+    // Insert Markdown syntax at cursor position
+    function insertMarkdown(before, after) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selected = textarea.value.substring(start, end);
+      const replacement = before + selected + after;
+      textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
+      textarea.selectionStart = start + before.length;
+      textarea.selectionEnd = start + before.length + selected.length;
+      textarea.focus();
+      updatePreview();
+    }
+
+    // Switch between menu files
+    function switchMenu(filename) {
+      currentFile = filename;
+      
+      // Update tab styles
+      menuTabs.forEach(tab => {
+        if (tab.dataset.file === filename) {
+          tab.classList.add('active');
+        } else {
+          tab.classList.remove('active');
+        }
+      });
+      
+      // Load the selected file
+      loadFile(filename);
+    }
+
+    // Load file content
+    function loadFile(filename) {
+      fetch('../' + filename)
+        .then(r => {
+          if (!r.ok) throw new Error('File not found');
+          return r.text();
+        })
+        .then(text => {
+          textarea.value = text;
+          textarea.placeholder = "Start typing...";
+          updatePreview();
+        })
+        .catch(() => {
+          textarea.value = '';
+          textarea.placeholder = `File ${filename} not found. Will create on save.`;
+          updatePreview();
+        });
+    }
+
+    // Listen for input changes
+    textarea.addEventListener('input', updatePreview);
+
+    // Setup tab click handlers
+    menuTabs.forEach(tab => {
+      tab.addEventListener('click', () => switchMenu(tab.dataset.file));
+    });
 
     // Load config and set initial font scale
     // Note: Font selection is configured in design.html; this page only controls font size
     function loadConfig() {
-      fetch('config.json')
+      fetch('../config.json')
         .then(r => r.ok ? r.json() : {})
         .then(cfg => {
           if (cfg.fontScalePercent) {
@@ -161,11 +335,11 @@
       fontScaleValue.textContent = val + '%';
       
       // Save font scale to config.json
-      fetch('config.json')
+      fetch('../config.json')
         .then(r => r.ok ? r.json() : {})
         .then(cfg => {
           cfg.fontScalePercent = parseFloat(val);
-          return fetch('config.json', {
+          return fetch('../config.json', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(cfg)
@@ -174,20 +348,8 @@
         .catch(err => console.error('Failed to save font scale:', err));
     });
 
-    // Load current specials.txt
-    fetch(fileUrl)
-      .then(r => {
-        if (!r.ok) throw new Error('File not found');
-        return r.text();
-      })
-      .then(text => {
-        textarea.value = text;
-        textarea.placeholder = "Start typing...";
-      })
-      .catch(() => {
-        textarea.value = '';
-        textarea.placeholder = "File not found. Will create on save.";
-      });
+    // Load current file on startup
+    loadFile(currentFile);
 
     // Load config on page load
     loadConfig();
@@ -197,7 +359,7 @@
       const data = textarea.value;
       status.textContent = 'Saving...';
 
-      fetch(fileUrl, {
+      fetch('../' + currentFile, {
         method: 'PUT',
         headers: { 'Content-Type': 'text/plain' },
         body: data

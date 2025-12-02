@@ -2,7 +2,7 @@
 header('Content-Type: application/json');
 
 // --- simple JSON-line logger (logs/uploads.log) -----------------------
-$logDir = __DIR__ . '/logs';
+$logDir = dirname(__DIR__) . '/logs';
 if (!is_dir($logDir)) {
     @mkdir($logDir, 0755, true);
 }
@@ -88,7 +88,7 @@ if (!in_array($mime, $allowed_mimes, true)) {
 }
 
 // Ensure bg directory exists and is writable
-$bgDir = __DIR__ . '/bg';
+$bgDir = dirname(__DIR__) . '/bg';
 if (!is_dir($bgDir)) {
     if (!mkdir($bgDir, 0755, true)) {
         http_response_code(500);

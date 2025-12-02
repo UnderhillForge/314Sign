@@ -23,8 +23,8 @@ sudo rsync -av --delete "$TEMP_DIR/314Sign/web/" /var/www/html/
 sudo chown -R www-data:www-data /var/www/html
 sudo find /var/www/html -type d -exec chmod 755 {} \;
 sudo find /var/www/html -type f -exec chmod 644 {} \;
-sudo chmod 775 /var/www/html/bg
-sudo chmod 664 /var/www/html/specials.txt /var/www/html/config.json 2>/dev/null || true
+sudo chmod 775 /var/www/html/bg /var/www/html/menus
+sudo chmod 664 /var/www/html/menus/breakfast.txt /var/www/html/menus/lunch.txt /var/www/html/menus/dinner.txt /var/www/html/menus/closed.txt /var/www/html/config.json /var/www/html/rules.json 2>/dev/null || true
 
 # === 5. Configure lighttpd ===
 LIGHTTPD_CONF="/etc/lighttpd/lighttpd.conf"
@@ -39,7 +39,7 @@ fi
 sudo tee "$WEBDAV_CONF" > /dev/null << 'EOF'
 server.modules += ( "mod_webdav" )
 
-$HTTP["url"] =~ "^/(index\.html|config\.json|specials\.txt)$" {
+$HTTP["url"] =~ "^/(index\.html|config\.json|rules\.json|menus/breakfast\.txt|menus/lunch\.txt|menus/dinner\.txt|menus/closed\.txt|edit/index\.html|design/index\.html|rules/index\.html)$" {
     webdav.activate = "enable"
     webdav.is-readonly = "disable"
 }
@@ -47,8 +47,9 @@ EOF
 
 # === 6. Generate QR codes ===
 cd /var/www/html
-[ ! -f qr-edit.png ] && qrencode -o qr-edit.png -s 10 "http://raspberrypi.local/edit.html"
-[ ! -f qr-design.png ] && qrencode -o qr-design.png -s 10 "http://raspberrypi.local/design.html"
+[ ! -f qr-edit.png ] && qrencode -o qr-edit.png -s 10 "http://raspberrypi.local/edit/"
+[ ! -f qr-design.png ] && qrencode -o qr-design.png -s 10 "http://raspberrypi.local/design/"
+[ ! -f qr-rules.png ] && qrencode -o qr-rules.png -s 10 "http://raspberrypi.local/rules/"
 
 # === 7. Restart services ===
 sudo systemctl restart lighttpd
@@ -63,8 +64,9 @@ echo "Open in browser:"
 echo "   http://raspberrypi.local"
 echo ""
 echo "Staff Editors:"
-echo "   • Menu: http://raspberrypi.local/edit.html"
-echo "   • Design: http://raspberrypi.local/design.html"
+echo "   • Menu: http://raspberrypi.local/edit/"
+echo "   • Design: http://raspberrypi.local/design/"
+echo "   • Schedule: http://raspberrypi.local/rules/"
 echo ""
 echo "Print QR codes from /var/www/html/qr-*.png"
 echo ""

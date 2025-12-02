@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Daily Specials</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     html, body { height:100%; overflow:hidden; }
@@ -24,6 +25,31 @@
       font-size: clamp(1.5rem, 5vw, 4rem);
       font-weight: bold;
     }
+    .menu-selector {
+      background: rgba(0,0,0,0.6);
+      padding: 0.75rem;
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .menu-btn {
+      padding: 0.5rem 1rem;
+      font-size: clamp(0.9rem, 2vw, 1.2rem);
+      font-weight: 600;
+      color: rgba(255,255,255,0.7);
+      background: rgba(255,255,255,0.1);
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .menu-btn:hover { background: rgba(255,255,255,0.2); }
+    .menu-btn.active {
+      color: white;
+      background: rgba(255,255,255,0.3);
+      border-color: white;
+    }
     #specials {
       flex: 1;
       /* Responsive padding: scales with viewport width between 1rem-3rem */
@@ -40,12 +66,21 @@
 </head>
 <body>
   <header>Specials</header>
+  <div class="menu-selector">
+    <button class="menu-btn" data-menu="menus/breakfast.txt">🌅 Breakfast</button>
+    <button class="menu-btn" data-menu="menus/lunch.txt">🌞 Lunch</button>
+    <button class="menu-btn active" data-menu="menus/dinner.txt">🌙 Dinner</button>
+    <button class="menu-btn" data-menu="menus/closed.txt">🚫 Closed</button>
+  </div>
   <div id="specials">Loading…</div>
 
   <script>
   const specialsDiv = document.getElementById('specials');
+  const menuButtons = document.querySelectorAll('.menu-btn');
+  let currentMenu = localStorage.getItem('currentMenu') || 'menus/dinner.txt';
   let lastText = '';
   let lastEtag = null;
+  let rulesCheckInterval = null;
 
   // Poll interval in milliseconds. Default to 3000ms (3s).
   // This value can be overridden from config.json using one of:
@@ -57,6 +92,76 @@
   // Font scale percentage. Default to 3% of viewport width.
   // Can be overridden via fontScalePercent in config.json.
   let fontScalePercent = 3;
+
+    // Check schedule rules and auto-switch menu if enabled
+    function checkScheduleRules() {
+      fetch('rules.json?' + Date.now())
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (!data || !data.enabled || !data.rules) return;
+          
+          const now = new Date();
+          const currentDay = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][now.getDay()];
+          const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+          
+          // Find matching rule
+          for (const rule of data.rules) {
+            if (!rule.days.includes(currentDay)) continue;
+            
+            // Handle time ranges that cross midnight
+            const startTime = rule.startTime || '00:00';
+            const endTime = rule.endTime || '23:59';
+            
+            let matches = false;
+            if (startTime <= endTime) {
+              // Normal range (e.g., 09:00 - 17:00)
+              matches = currentTime >= startTime && currentTime < endTime;
+            } else {
+              // Crosses midnight (e.g., 22:00 - 07:00)
+              matches = currentTime >= startTime || currentTime < endTime;
+            }
+            
+            if (matches && rule.menu && rule.menu !== currentMenu) {
+              console.log('Auto-switching to', rule.menu, 'based on rule:', rule.name);
+              switchMenu(rule.menu);
+              break;
+            }
+          }
+        })
+        .catch(err => console.warn('Rules check failed:', err));
+    }
+
+    // Switch menu
+    function switchMenu(filename) {
+      currentMenu = filename;
+      localStorage.setItem('currentMenu', filename);
+      
+      // Update button styles
+      menuButtons.forEach(btn => {
+        if (btn.dataset.menu === filename) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      
+      // Reset state and poll immediately
+      lastText = '';
+      lastEtag = null;
+      pollSpecials();
+    }
+
+    // Setup menu button handlers
+    menuButtons.forEach(btn => {
+      btn.addEventListener('click', () => switchMenu(btn.dataset.menu));
+    });
+
+    // Set initial active button
+    menuButtons.forEach(btn => {
+      if (btn.dataset.menu === currentMenu) {
+        btn.classList.add('active');
+      }
+    });
 
     // --------------------------------------------------------------------
     // 1. Load config.json (once)
@@ -106,11 +211,15 @@
     // 2. Poll specials.txt – ETag-aware, fallback to text compare
     // --------------------------------------------------------------------
     function startPolling() {
+      // Check rules immediately and then every minute
+      checkScheduleRules();
+      rulesCheckInterval = setInterval(checkScheduleRules, 60000);
+      
       pollSpecials();
     }
 
     function pollSpecials() {
-      fetch('specials.txt?' + Date.now(), {
+      fetch(currentMenu + '?' + Date.now(), {
         cache: 'no-store',
         headers: { 'Cache-Control': 'no-cache' }
       })
@@ -138,7 +247,9 @@
         .then(newText => {
           if (newText !== null && newText !== undefined) {
             lastText = newText;
-            specialsDiv.textContent = newText.trim() || 'No specials today.';
+            // Parse Markdown and render as HTML
+            const trimmed = newText.trim() || 'No specials today.';
+            specialsDiv.innerHTML = marked.parse(trimmed);
           }
         })
         .catch(err => {

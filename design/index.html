@@ -86,7 +86,7 @@
 
     // === 1. Load existing images from /bg/ ===
     function loadBackgrounds() {
-      fetch('bg/index.php')
+      fetch('../bg/index.php')
         .then(r => r.json())
         .then(files => {
           backgrounds = files;
@@ -107,7 +107,7 @@
       bgGrid.innerHTML = '';
       backgrounds.forEach(file => {
         const img = document.createElement('img');
-        img.src = 'bg/' + file;
+        img.src = '../bg/' + file;
         img.className = 'bg-thumb';
         img.dataset.file = file;
         if (file === selectedBg) img.classList.add('selected');
@@ -142,7 +142,7 @@
 
     // === 4. Load saved config and populate fonts ===
     function loadConfig() {
-      fetch('config.json')
+      fetch('../config.json')
         .then(r => r.ok ? r.json() : {})
         .then(cfg => {
           // Populate font dropdown from config.availableFonts
@@ -209,7 +209,7 @@
       };
 
       // Save config.json
-      fetch('config.json', {
+      fetch('../config.json', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config)
@@ -284,11 +284,11 @@
     }
 
     function updateConfigWithNewFilename(filename) {
-      return fetch('config.json')
+      return fetch('../config.json')
         .then(r => r.ok ? r.json() : {})
         .then(cfg => {
           cfg.bg = filename;
-          return fetch('config.json', {
+          return fetch('../config.json', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(cfg)
@@ -324,6 +324,7 @@
       html += '  <meta charset="UTF-8" />\n';
       html += '  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>\n';
       html += '  <title>Daily Specials</title>\n';
+      html += '  <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"><\/script>\n';
       html += '  <style>\n';
       html += '    * { margin:0; padding:0; box-sizing:border-box; }\n';
       html += '    body, html { height:100%; overflow:hidden; }\n';
@@ -342,6 +343,31 @@
       html += '      font-size: 2.5rem;\n';
       html += '      font-weight: bold;\n';
       html += '    }\n';
+      html += '    .menu-selector {\n';
+      html += '      background: rgba(0,0,0,0.6);\n';
+      html += '      padding: 0.75rem;\n';
+      html += '      display: flex;\n';
+      html += '      justify-content: center;\n';
+      html += '      gap: 0.5rem;\n';
+      html += '      flex-wrap: wrap;\n';
+      html += '    }\n';
+      html += '    .menu-btn {\n';
+      html += '      padding: 0.5rem 1rem;\n';
+      html += '      font-size: 1.2rem;\n';
+      html += '      font-weight: 600;\n';
+      html += '      color: rgba(255,255,255,0.7);\n';
+      html += '      background: rgba(255,255,255,0.1);\n';
+      html += '      border: 2px solid rgba(255,255,255,0.3);\n';
+      html += '      border-radius: 8px;\n';
+      html += '      cursor: pointer;\n';
+      html += '      transition: all 0.3s;\n';
+      html += '    }\n';
+      html += '    .menu-btn:hover { background: rgba(255,255,255,0.2); }\n';
+      html += '    .menu-btn.active {\n';
+      html += '      color: white;\n';
+      html += '      background: rgba(255,255,255,0.3);\n';
+      html += '      border-color: white;\n';
+      html += '    }\n';
       html += '    #specials {\n';
       html += '      flex: 1;\n';
       html += '      padding: 2rem;\n';
@@ -354,17 +380,34 @@
       html += '</head>\n';
       html += '<body>\n';
       html += '  <header>Specials</header>\n';
+      html += '  <div class="menu-selector">\n';
+      html += '    <button class="menu-btn" data-menu="menus/breakfast.txt">🌅 Breakfast</button>\n';
+      html += '    <button class="menu-btn" data-menu="menus/lunch.txt">🌞 Lunch</button>\n';
+      html += '    <button class="menu-btn active" data-menu="menus/dinner.txt">🌙 Dinner</button>\n';
+      html += '    <button class="menu-btn" data-menu="menus/closed.txt">🚫 Closed</button>\n';
+      html += '  </div>\n';
       html += '  <div id="specials"></div>\n';
       html += '  <script>\n';
-      html += '    fetch(\'specials.txt?\' + Date.now())\n';
-      html += '      .then(r => r.text())\n';
-      html += '      .then(t => document.getElementById(\'specials\').textContent = t);\n';
+      html += '    const specialsDiv = document.getElementById("specials");\n';
+      html += '    const menuButtons = document.querySelectorAll(".menu-btn");\n';
+      html += '    let currentMenu = localStorage.getItem("currentMenu") || "menus/dinner.txt";\n';
+      html += '    function switchMenu(f) {\n';
+      html += '      currentMenu = f;\n';
+      html += '      localStorage.setItem("currentMenu", f);\n';
+      html += '      menuButtons.forEach(b => b.classList.toggle("active", b.dataset.menu === f));\n';
+      html += '      fetch(f + "?" + Date.now()).then(r => r.text()).then(t => specialsDiv.innerHTML = marked.parse(t));\n';
+      html += '    }\n';
+      html += '    menuButtons.forEach(b => {\n';
+      html += '      b.addEventListener("click", () => switchMenu(b.dataset.menu));\n';
+      html += '      if (b.dataset.menu === currentMenu) b.classList.add("active");\n';
+      html += '    });\n';
+      html += '    fetch(currentMenu + "?" + Date.now()).then(r => r.text()).then(t => specialsDiv.innerHTML = marked.parse(t));\n';
       html += '    setInterval(() => location.reload(), 10000);\n';
       html += '  <\/script>\n';
       html += '</body>\n';
       html += '</html>\n';
 
-      return fetch('index.html', {
+      return fetch('../index.html', {
         method: 'PUT',
         headers: { 'Content-Type': 'text/html' },
         body: html
@@ -377,7 +420,7 @@
     
     // Also load fonts immediately as a backup to ensure they're available
     setTimeout(() => {
-      fetch('config.json')
+      fetch('../config.json')
         .then(r => r.ok ? r.json() : {})
         .then(cfg => {
           if (cfg.availableFonts && fontSelect.children.length === 0) {

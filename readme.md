@@ -30,3 +30,4 @@ curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/setup-ki
 
 # 4. Open in browser:
 http://raspberrypi.local
+http://raspberrypi.local/edit/
