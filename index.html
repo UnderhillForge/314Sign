@@ -25,31 +25,6 @@
       font-size: clamp(1.5rem, 5vw, 4rem);
       font-weight: bold;
     }
-    .menu-selector {
-      background: rgba(0,0,0,0.6);
-      padding: 0.75rem;
-      display: flex;
-      justify-content: center;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-    }
-    .menu-btn {
-      padding: 0.5rem 1rem;
-      font-size: clamp(0.9rem, 2vw, 1.2rem);
-      font-weight: 600;
-      color: rgba(255,255,255,0.7);
-      background: rgba(255,255,255,0.1);
-      border: 2px solid rgba(255,255,255,0.3);
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-    .menu-btn:hover { background: rgba(255,255,255,0.2); }
-    .menu-btn.active {
-      color: white;
-      background: rgba(255,255,255,0.3);
-      border-color: white;
-    }
     #specials {
       flex: 1;
       /* Responsive padding: scales with viewport width between 1rem-3rem */
@@ -66,17 +41,10 @@
 </head>
 <body>
   <header>Specials</header>
-  <div class="menu-selector">
-    <button class="menu-btn" data-menu="menus/breakfast.txt">🌅 Breakfast</button>
-    <button class="menu-btn" data-menu="menus/lunch.txt">🌞 Lunch</button>
-    <button class="menu-btn active" data-menu="menus/dinner.txt">🌙 Dinner</button>
-    <button class="menu-btn" data-menu="menus/closed.txt">🚫 Closed</button>
-  </div>
   <div id="specials">Loading…</div>
 
   <script>
   const specialsDiv = document.getElementById('specials');
-  const menuButtons = document.querySelectorAll('.menu-btn');
   let currentMenu = localStorage.getItem('currentMenu') || 'menus/dinner.txt';
   let lastText = '';
   let lastEtag = null;
@@ -136,32 +104,11 @@
       currentMenu = filename;
       localStorage.setItem('currentMenu', filename);
       
-      // Update button styles
-      menuButtons.forEach(btn => {
-        if (btn.dataset.menu === filename) {
-          btn.classList.add('active');
-        } else {
-          btn.classList.remove('active');
-        }
-      });
-      
       // Reset state and poll immediately
       lastText = '';
       lastEtag = null;
       pollSpecials();
     }
-
-    // Setup menu button handlers
-    menuButtons.forEach(btn => {
-      btn.addEventListener('click', () => switchMenu(btn.dataset.menu));
-    });
-
-    // Set initial active button
-    menuButtons.forEach(btn => {
-      if (btn.dataset.menu === currentMenu) {
-        btn.classList.add('active');
-      }
-    });
 
     // --------------------------------------------------------------------
     // 1. Load config.json (once)

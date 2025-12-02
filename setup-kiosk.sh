@@ -3,13 +3,14 @@ set -e  # Exit on any error
 
 echo "Installing 314Sign from GitHub..."
 
-# === 1. Install required packages ===
+# === 2. Install required packages ===
 sudo apt update
 sudo apt install -y lighttpd php-cgi git qrencode inotify-tools xdotool
 
-# Enable PHP
+# Enable PHP and WebDAV
 sudo lighty-enable-mod fastcgi
 sudo lighty-enable-mod fastcgi-php
+sudo lighty-enable-mod webdav
 
 # === 2. Clone 314Sign from GitHub ===
 TEMP_DIR=$(mktemp -d)
@@ -39,7 +40,20 @@ fi
 sudo tee "$WEBDAV_CONF" > /dev/null << 'EOF'
 server.modules += ( "mod_webdav" )
 
-$HTTP["url"] =~ "^/(index\.html|config\.json|rules\.json|menus/breakfast\.txt|menus/lunch\.txt|menus/dinner\.txt|menus/closed\.txt|edit/index\.html|design/index\.html|rules/index\.html)$" {
+# Enable WebDAV for specific editable files
+$HTTP["url"] =~ "^/(index\.html|config\.json|rules\.json)$" {
+    webdav.activate = "enable"
+    webdav.is-readonly = "disable"
+}
+
+# Enable WebDAV for menu files
+$HTTP["url"] =~ "^/menus/(breakfast|lunch|dinner|closed)\.txt$" {
+    webdav.activate = "enable"
+    webdav.is-readonly = "disable"
+}
+
+# Enable WebDAV for editor pages
+$HTTP["url"] =~ "^/(edit|design|rules)/index\.html$" {
     webdav.activate = "enable"
     webdav.is-readonly = "disable"
 }
