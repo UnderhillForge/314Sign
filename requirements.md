@@ -29,8 +29,8 @@ This document outlines the **hardware, software, and setup prerequisites** for r
   - Download: Flash via Raspberry Pi Imager.
 - **Alternative**: Raspberry Pi OS Lite (64-bit) + minimal X11 kiosk setup
   - Lightweight kiosk mode without full desktop environment
-  - Install: `sudo apt install xserver-xorg xinit chromium-browser unclutter`
-  - Auto-start: Configure via `/etc/xdg/openbox/autostart` (see setup script)
+  - One-command setup: `curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/scripts/os-lite-kiosk.sh | sudo bash`
+  - See `scripts/os-lite-kiosk.sh` for details
 
 ### Server & Runtime
 - **Web Server**: lighttpd (1.4.50+)

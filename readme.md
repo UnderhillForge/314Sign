@@ -36,9 +36,14 @@ http://YOUR-HOSTNAME.local
 http://YOUR-HOSTNAME.local/edit/
 http://YOUR-HOSTNAME.local/design/
 http://YOUR-HOSTNAME.local/rules/
+```
 
-# 6. (Optional) For Pi OS Lite - Auto-boot to fullscreen kiosk:
-sudo /var/www/html/scripts/setup-kiosk-mode.sh
+### Pi OS Lite: Optional Kiosk Mode
+If using Raspberry Pi OS Lite and want the Pi to auto-boot to fullscreen display:
+
+```bash
+# Install minimal X11 + Chromium kiosk (after main setup)
+curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/scripts/os-lite-kiosk.sh | sudo bash
 sudo reboot
 ```
 

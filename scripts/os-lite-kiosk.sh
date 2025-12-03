@@ -1,6 +1,6 @@
 #!/bin/bash
 ###############################################################################
-# 314Sign Kiosk Mode Setup (Optional)
+# 314Sign Kiosk Mode Setup for Raspberry Pi OS Lite (Optional)
 # 
 # Sets up lightweight X11 + Chromium kiosk on Raspberry Pi OS Lite
 # Only needed if you want the Pi to auto-display the kiosk on boot
@@ -11,8 +11,11 @@
 #   - Chromium browser in kiosk mode
 #   - Auto-start configuration
 #
-# Usage:
-#   sudo /var/www/html/scripts/setup-kiosk-mode.sh
+# Usage (after running main setup-kiosk.sh):
+#   curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/scripts/os-lite-kiosk.sh | sudo bash
+#
+# Or if already cloned:
+#   sudo /var/www/html/scripts/os-lite-kiosk.sh
 #
 # After running, Pi will boot directly to fullscreen kiosk display
 ###############################################################################
