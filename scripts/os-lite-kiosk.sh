@@ -32,6 +32,25 @@ read
 HOSTNAME=$(hostname)
 KIOSK_URL="http://${HOSTNAME}.local/index.html"
 
+# Ask about screen rotation
+echo ""
+echo "Screen Orientation:"
+echo "  0 = Normal (landscape)"
+echo "  1 = 90° clockwise (portrait)"
+echo "  2 = 180° (upside down)"
+echo "  3 = 270° clockwise (portrait, other direction)"
+echo ""
+read -p "Enter rotation (0-3) [default: 0]: " ROTATION
+ROTATION=${ROTATION:-0}
+
+# Validate input
+if ! [[ "$ROTATION" =~ ^[0-3]$ ]]; then
+  echo "Invalid rotation. Using 0 (normal)."
+  ROTATION=0
+fi
+
+echo "Setting screen rotation to: $ROTATION"
+
 echo "Installing minimal X11 and web browser..."
 sudo apt update
 sudo apt install -y \
@@ -75,6 +94,9 @@ xset s off
 xset s noblank
 xset -dpms
 
+# Set screen rotation
+xrandr --output HDMI-1 --rotate $(case $ROTATION in 0) echo "normal";; 1) echo "right";; 2) echo "inverted";; 3) echo "left";; esac) 2>/dev/null || xrandr --output HDMI-2 --rotate $(case $ROTATION in 0) echo "normal";; 1) echo "right";; 2) echo "inverted";; 3) echo "left";; esac) 2>/dev/null || true
+
 # Hide mouse cursor after 1 second
 unclutter -idle 1 -root &
 
@@ -94,6 +116,21 @@ else
     --app=${KIOSK_URL}
 fi
 EOF
+
+echo "Configuring display rotation in boot config..."
+# Set display rotation in /boot/firmware/config.txt or /boot/config.txt
+BOOT_CONFIG="/boot/firmware/config.txt"
+[ ! -f "$BOOT_CONFIG" ] && BOOT_CONFIG="/boot/config.txt"
+
+if [ -f "$BOOT_CONFIG" ]; then
+  # Remove any existing display_rotate setting
+  sudo sed -i '/^display_rotate=/d' "$BOOT_CONFIG"
+  # Add new rotation setting
+  echo "display_rotate=$ROTATION" | sudo tee -a "$BOOT_CONFIG" > /dev/null
+  echo "Display rotation set in $BOOT_CONFIG"
+else
+  echo "Warning: Boot config not found, skipping console rotation"
+fi
 
 echo "Setting up X11 auto-start..."
 cat > ~/.bash_profile <<'EOF'
