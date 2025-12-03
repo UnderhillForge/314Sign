@@ -3,7 +3,7 @@ set -e  # Exit on any error
 
 echo "Installing 314Sign from GitHub..."
 
-# === 2. Install required packages ===
+# === 1. Install required packages ===
 sudo apt update
 sudo apt install -y lighttpd php-cgi git qrencode inotify-tools xdotool
 
@@ -18,16 +18,28 @@ echo "Cloning 314Sign into $TEMP_DIR..."
 git clone --depth 1 https://github.com/UnderhillForge/314Sign.git "$TEMP_DIR/314Sign"
 
 # === 3. Copy files to web root ===
-sudo rsync -av --delete "$TEMP_DIR/314Sign/web/" /var/www/html/
+echo "Copying files to /var/www/html..."
+sudo rsync -av --delete \
+  --exclude='.git' \
+  --exclude='*.md' \
+  --exclude='permissions.sh' \
+  --exclude='setup-kiosk.sh' \
+  "$TEMP_DIR/314Sign/" /var/www/html/
 
-# === 4. Set ownership & permissions ===
-sudo chown -R www-data:www-data /var/www/html
-sudo find /var/www/html -type d -exec chmod 755 {} \;
-sudo find /var/www/html -type f -exec chmod 644 {} \;
-sudo chmod 775 /var/www/html/bg /var/www/html/menus
-sudo chmod 664 /var/www/html/menus/breakfast.txt /var/www/html/menus/lunch.txt /var/www/html/menus/dinner.txt /var/www/html/menus/closed.txt /var/www/html/config.json /var/www/html/rules.json 2>/dev/null || true
+# === 4. Create required directories ===
+sudo mkdir -p /var/www/html/logs
+sudo mkdir -p /var/www/html/bg
+sudo mkdir -p /var/www/html/menus
 
-# === 5. Configure lighttpd ===
+# === 5. Set ownership & permissions ===
+echo "Setting permissions..."
+# Copy permissions script to temp location and run it
+cp "$TEMP_DIR/314Sign/permissions.sh" /tmp/314sign-permissions.sh
+chmod +x /tmp/314sign-permissions.sh
+/tmp/314sign-permissions.sh /var/www/html
+rm /tmp/314sign-permissions.sh
+
+# === 6. Configure lighttpd ===
 LIGHTTPD_CONF="/etc/lighttpd/lighttpd.conf"
 WEBDAV_CONF="/etc/lighttpd/conf-enabled/10-webdav.conf"
 
@@ -59,16 +71,16 @@ $HTTP["url"] =~ "^/(edit|design|rules)/index\.html$" {
 }
 EOF
 
-# === 6. Generate QR codes ===
+# === 7. Generate QR codes ===
 cd /var/www/html
 [ ! -f qr-edit.png ] && qrencode -o qr-edit.png -s 10 "http://raspberrypi.local/edit/"
 [ ! -f qr-design.png ] && qrencode -o qr-design.png -s 10 "http://raspberrypi.local/design/"
 [ ! -f qr-rules.png ] && qrencode -o qr-rules.png -s 10 "http://raspberrypi.local/rules/"
 
-# === 7. Restart services ===
+# === 8. Restart services ===
 sudo systemctl restart lighttpd
 
-# === 8. Cleanup ===
+# === 9. Cleanup ===
 rm -rf "$TEMP_DIR"
 
 echo ""
