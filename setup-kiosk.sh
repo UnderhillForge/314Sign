@@ -38,13 +38,13 @@ sudo lighty-enable-mod webdav
 # === 2. Clone 314Sign from GitHub ===
 TEMP_DIR=$(mktemp -d)
 echo "Cloning 314Sign into $TEMP_DIR..."
-if ! git clone --depth 1 https://github.com/UnderhillForge/PiSign.git "$TEMP_DIR/PiSign"; then
+if ! git clone --depth 1 https://github.com/UnderhillForge/314Sign.git "$TEMP_DIR/314Sign"; then
   echo "ERROR: Git clone failed!"
   exit 1
 fi
 
 echo "Clone successful. Checking contents..."
-ls -la "$TEMP_DIR/PiSign/" | head -20
+ls -la "$TEMP_DIR/314Sign/" | head -20
 
 # === 3. Copy files to web root ===
 echo "Copying files to /var/www/html..."
@@ -52,7 +52,7 @@ if ! sudo rsync -av \
   --exclude='.git' \
   --exclude='*.md' \
   --exclude='setup-kiosk.sh' \
-  "$TEMP_DIR/PiSign/" /var/www/html/; then
+  "$TEMP_DIR/314Sign/" /var/www/html/; then
   echo "ERROR: rsync failed!"
   exit 1
 fi
@@ -69,7 +69,7 @@ sudo mkdir -p /var/www/html/scripts
 # === 5. Set ownership & permissions ===
 echo "Setting permissions..."
 # Copy permissions script to temp location and run it
-cp "$TEMP_DIR/PiSign/scripts/permissions.sh" /tmp/314sign-permissions.sh
+cp "$TEMP_DIR/314Sign/scripts/permissions.sh" /tmp/314sign-permissions.sh
 chmod +x /tmp/314sign-permissions.sh
 /tmp/314sign-permissions.sh /var/www/html
 rm /tmp/314sign-permissions.sh
