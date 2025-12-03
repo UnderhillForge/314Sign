@@ -77,6 +77,22 @@ curl http://YOUR-HOSTNAME.local/status.php
 ### Auto-Schedule Menus
 Visit `http://YOUR-HOSTNAME.local/rules/` to configure time-based menu switching (e.g., breakfast 7-11am, lunch 11am-3pm, dinner 5-10pm).
 
+### Update from GitHub
+Keep your installation in sync with the latest version:
+```bash
+# Check what would be updated (safe - makes no changes)
+sudo /var/www/html/scripts/update-from-github.sh --dry-run
+
+# Update with automatic backup
+sudo /var/www/html/scripts/update-from-github.sh --backup
+
+# Quick update (no backup)
+sudo /var/www/html/scripts/update-from-github.sh
+```
+
+**What gets updated**: Core HTML/PHP files, scripts, default backgrounds  
+**What's preserved**: Your menus, config.json, rules.json, uploaded images
+
 ### Change Screen Rotation (Pi OS Lite)
 Re-run the kiosk script to update rotation without reinstalling:
 ```bash
