@@ -405,6 +405,9 @@
     const menuTabs = document.querySelectorAll('.menu-tab');
     const viewButtons = document.querySelectorAll('.view-btn');
 
+    // Remember which menu was last edited
+    let currentFile = localStorage.getItem('editCurrentMenu') || 'menus/breakfast.txt';
+
     // View switching
     function switchView(viewName) {
       // Update buttons
@@ -466,6 +469,9 @@
     // Switch between menu files
     function switchMenu(filename) {
       currentFile = filename;
+      
+      // Save current menu selection to localStorage
+      localStorage.setItem('editCurrentMenu', filename);
       
       // Update tab styles
       menuTabs.forEach(tab => {
@@ -541,6 +547,15 @@
           });
         })
         .catch(err => console.error('Failed to save font scale:', err));
+    });
+
+    // Initialize: set active tab based on currentFile from localStorage
+    menuTabs.forEach(tab => {
+      if (tab.dataset.file === currentFile) {
+        tab.classList.add('active');
+      } else {
+        tab.classList.remove('active');
+      }
     });
 
     // Load current file on startup
