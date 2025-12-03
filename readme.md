@@ -5,7 +5,7 @@
 > **No apps. No logins. No tech skills.**  
 > Just point a mobile browser at edit.html, make changes, and **watch it update instantly** on screen.
 
-314Sign turns any **Raspberry Pi 5 + fullpageOS** into a **beautiful, live-updating digital sign** — perfect for **restaurants, private clubs, cafés, or kitchens**.
+314Sign turns any **Raspberry Pi** (with fullpageOS or Raspberry Pi OS Lite 64-bit) into a **beautiful, live-updating digital sign** — perfect for **restaurants, private clubs, cafés, or kitchens**.
 
 ---
 
@@ -25,14 +25,17 @@
 ## Quick Start (5 Minutes)
 
 ```bash
-# 1. Flash fullpageOS on your Pi 5
+# 1. Flash fullpageOS or Raspberry Pi OS Lite 64-bit
 # 2. Boot, enable SSH, connect to Wi-Fi
-# 3. Run the one-click setup:
+# 3. Set hostname (optional): sudo raspi-config -> System -> Hostname
+# 4. Run the one-click setup:
 curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/setup-kiosk.sh | sudo bash
 
-# 4. Open in browser:
-http://raspberrypi.local
-http://raspberrypi.local/edit/
+# 5. Open in browser (replace with your hostname):
+http://YOUR-HOSTNAME.local
+http://YOUR-HOSTNAME.local/edit/
+http://YOUR-HOSTNAME.local/design/
+http://YOUR-HOSTNAME.local/rules/
 ```
 
 ---
@@ -50,14 +53,14 @@ sudo /var/www/html/scripts/backup.sh /home/pi/backups
 
 ### Health Check
 ```bash
-# Check system status
-curl http://raspberrypi.local/status.php
+# Check system status (replace YOUR-HOSTNAME with your actual hostname)
+curl http://YOUR-HOSTNAME.local/status.php
 
 # Returns JSON with version, uptime, menu status, disk space
 ```
 
 ### Auto-Schedule Menus
-Visit `http://raspberrypi.local/rules/` to configure time-based menu switching (e.g., breakfast 7-11am, lunch 11am-3pm, dinner 5-10pm).
+Visit `http://YOUR-HOSTNAME.local/rules/` to configure time-based menu switching (e.g., breakfast 7-11am, lunch 11am-3pm, dinner 5-10pm).
 
 ---
 

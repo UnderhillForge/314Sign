@@ -1,13 +1,32 @@
 #!/bin/bash
+###############################################################################
+# 314Sign Installer
+# 
+# Compatible with:
+#   - fullpageOS (Raspberry Pi kiosk mode)
+#   - Raspberry Pi OS Lite 64-bit (manual kiosk setup required)
+#
+# Usage:
+#   curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/setup-kiosk.sh | sudo bash
+#
+# Or download and run:
+#   wget https://raw.githubusercontent.com/UnderhillForge/314Sign/main/setup-kiosk.sh
+#   chmod +x setup-kiosk.sh
+#   sudo ./setup-kiosk.sh
+###############################################################################
+
 set -e  # Exit on any error
 
-echo "Installing 314Sign from GitHub..."
+echo "=== 314Sign Installer ==="
+echo ""
 
 # === 1. Install required packages ===
+echo "Installing packages..."
 sudo apt update
 sudo apt install -y lighttpd php-cgi git qrencode inotify-tools xdotool
 
 # Enable PHP and WebDAV
+echo "Enabling lighttpd modules..."
 sudo lighty-enable-mod fastcgi
 sudo lighty-enable-mod fastcgi-php
 sudo lighty-enable-mod webdav
@@ -72,27 +91,34 @@ $HTTP["url"] =~ "^/(edit|design|rules)/index\.html$" {
 EOF
 
 # === 7. Generate QR codes ===
+echo "Generating QR codes..."
+HOSTNAME=$(hostname)
 cd /var/www/html
-[ ! -f qr-edit.png ] && qrencode -o qr-edit.png -s 10 "http://raspberrypi.local/edit/"
-[ ! -f qr-design.png ] && qrencode -o qr-design.png -s 10 "http://raspberrypi.local/design/"
-[ ! -f qr-rules.png ] && qrencode -o qr-rules.png -s 10 "http://raspberrypi.local/rules/"
+[ ! -f qr-edit.png ] && qrencode -o qr-edit.png -s 10 "http://${HOSTNAME}.local/edit/"
+[ ! -f qr-design.png ] && qrencode -o qr-design.png -s 10 "http://${HOSTNAME}.local/design/"
+[ ! -f qr-rules.png ] && qrencode -o qr-rules.png -s 10 "http://${HOSTNAME}.local/rules/"
 
 # === 8. Restart services ===
+echo "Restarting lighttpd..."
 sudo systemctl restart lighttpd
 
 # === 9. Cleanup ===
 rm -rf "$TEMP_DIR"
 
 echo ""
-echo "314Sign installed successfully!"
+echo "✅ 314Sign installed successfully!"
 echo ""
-echo "Open in browser:"
-echo "   http://raspberrypi.local"
+echo "📺 Kiosk Display:"
+echo "   http://${HOSTNAME}.local"
 echo ""
-echo "Staff Editors:"
-echo "   • Menu: http://raspberrypi.local/edit/"
-echo "   • Design: http://raspberrypi.local/design/"
-echo "   • Schedule: http://raspberrypi.local/rules/"
+echo "📱 Staff Editors:"
+echo "   • Menu Editor:   http://${HOSTNAME}.local/edit/"
+echo "   • Style Config:  http://${HOSTNAME}.local/design/"
+echo "   • Auto Schedule: http://${HOSTNAME}.local/rules/"
+echo ""
+echo "🔧 Monitoring:"
+echo "   • Health Check:  http://${HOSTNAME}.local/status.php"
+echo "   • Run Backup:    sudo /var/www/html/scripts/backup.sh"
 echo ""
 echo "Print QR codes from /var/www/html/qr-*.png"
 echo ""
