@@ -186,3 +186,27 @@ sudo chown www-data:www-data /var/www/html/bg/
 2. Check PHP errors in browser developer console
 3. Verify all file permissions: `ls -laR /var/www/html/`
 4. Test WebDAV manually with curl (see above)
+
+## Advanced Security (Optional)
+
+### Separate WebDAV User
+
+For enhanced security (typically only needed if exposing to internet - NOT recommended):
+
+```bash
+# Run the optional security enhancement script
+./create-webdav-user.sh
+```
+
+**When to use:**
+- You're exposing the kiosk to the internet (not recommended for other reasons)
+- You need additional security isolation
+- You want separate audit trails for web serving vs. file edits
+
+**When to skip (most cases):**
+- Local network only ✓ **Recommended for typical installations**
+- Small trusted staff group
+- Simplicity is preferred
+
+The default `www-data` user is perfectly fine for local network deployments.
+
