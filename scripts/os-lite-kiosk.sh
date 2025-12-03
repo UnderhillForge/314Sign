@@ -32,7 +32,7 @@ read
 HOSTNAME=$(hostname)
 KIOSK_URL="http://${HOSTNAME}.local/index.html"
 
-echo "Installing minimal X11 and Chromium..."
+echo "Installing minimal X11 and web browser..."
 sudo apt update
 sudo apt install -y \
   xserver-xorg \
@@ -40,17 +40,27 @@ sudo apt install -y \
   openbox \
   unclutter
 
-# Try chromium first (newer), fallback to chromium-browser (older)
-if sudo apt install -y chromium 2>/dev/null; then
-  echo "Installed: chromium"
+# Try different browser packages in order of preference
+CHROMIUM_CMD=""
+if apt-cache show chromium >/dev/null 2>&1; then
+  echo "Installing chromium..."
+  sudo apt install -y chromium
   CHROMIUM_CMD="chromium"
-elif sudo apt install -y chromium-browser 2>/dev/null; then
-  echo "Installed: chromium-browser"
+elif apt-cache show chromium-browser >/dev/null 2>&1; then
+  echo "Installing chromium-browser..."
+  sudo apt install -y chromium-browser
   CHROMIUM_CMD="chromium-browser"
+elif apt-cache show firefox-esr >/dev/null 2>&1; then
+  echo "Chromium not available, installing Firefox ESR as fallback..."
+  sudo apt install -y firefox-esr
+  CHROMIUM_CMD="firefox-esr"
 else
-  echo "Error: Neither 'chromium' nor 'chromium-browser' package found"
+  echo "Error: No suitable browser found (tried chromium, chromium-browser, firefox-esr)"
+  echo "Please install a browser manually: sudo apt install firefox-esr"
   exit 1
 fi
+
+echo "Installed browser: ${CHROMIUM_CMD}"
 
 echo "Configuring auto-login..."
 # Enable auto-login to console
@@ -68,15 +78,21 @@ xset -dpms
 # Hide mouse cursor after 1 second
 unclutter -idle 1 -root &
 
-# Start Chromium in kiosk mode (use detected command)
-${CHROMIUM_CMD} \\
-  --kiosk \\
-  --noerrdialogs \\
-  --disable-infobars \\
-  --disable-session-crashed-bubble \\
-  --disable-translate \\
-  --check-for-update-interval=31536000 \\
-  --app=${KIOSK_URL}
+# Start browser in kiosk mode (use detected command)
+if [[ "${CHROMIUM_CMD}" == "firefox-esr" ]]; then
+  # Firefox ESR kiosk mode
+  firefox-esr --kiosk ${KIOSK_URL}
+else
+  # Chromium-based kiosk mode
+  ${CHROMIUM_CMD} \\
+    --kiosk \\
+    --noerrdialogs \\
+    --disable-infobars \\
+    --disable-session-crashed-bubble \\
+    --disable-translate \\
+    --check-for-update-interval=31536000 \\
+    --app=${KIOSK_URL}
+fi
 EOF
 
 echo "Setting up X11 auto-start..."
