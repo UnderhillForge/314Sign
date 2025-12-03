@@ -38,7 +38,7 @@ sudo lighty-enable-mod webdav
 # === 2. Clone 314Sign from GitHub ===
 TEMP_DIR=$(mktemp -d)
 echo "Cloning 314Sign into $TEMP_DIR..."
-git clone --depth 1 https://github.com/UnderhillForge/314Sign.git "$TEMP_DIR/314Sign"
+git clone --depth 1 https://github.com/UnderhillForge/PiSign.git "$TEMP_DIR/PiSign"
 
 # === 3. Copy files to web root ===
 echo "Copying files to /var/www/html..."
@@ -46,7 +46,7 @@ sudo rsync -av --delete \
   --exclude='.git' \
   --exclude='*.md' \
   --exclude='setup-kiosk.sh' \
-  "$TEMP_DIR/314Sign/" /var/www/html/
+  "$TEMP_DIR/PiSign/" /var/www/html/
 
 # === 4. Create required directories ===
 sudo mkdir -p /var/www/html/logs
