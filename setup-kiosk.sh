@@ -42,11 +42,14 @@ git clone --depth 1 https://github.com/UnderhillForge/PiSign.git "$TEMP_DIR/PiSi
 
 # === 3. Copy files to web root ===
 echo "Copying files to /var/www/html..."
-sudo rsync -av --delete \
+sudo rsync -av \
   --exclude='.git' \
   --exclude='*.md' \
   --exclude='setup-kiosk.sh' \
   "$TEMP_DIR/PiSign/" /var/www/html/
+
+echo "Files copied. Verifying..."
+ls -la /var/www/html/ | head -20
 
 # === 4. Create required directories ===
 sudo mkdir -p /var/www/html/logs
@@ -57,7 +60,7 @@ sudo mkdir -p /var/www/html/scripts
 # === 5. Set ownership & permissions ===
 echo "Setting permissions..."
 # Copy permissions script to temp location and run it
-cp "$TEMP_DIR/314Sign/permissions.sh" /tmp/314sign-permissions.sh
+cp "$TEMP_DIR/PiSign/scripts/permissions.sh" /tmp/314sign-permissions.sh
 chmod +x /tmp/314sign-permissions.sh
 /tmp/314sign-permissions.sh /var/www/html
 rm /tmp/314sign-permissions.sh
