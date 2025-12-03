@@ -31,9 +31,10 @@ sudo apt install -y inotify-tools xdotool 2>/dev/null || echo "Note: Some option
 
 # Enable PHP and WebDAV
 echo "Enabling lighttpd modules..."
-sudo lighty-enable-mod fastcgi
-sudo lighty-enable-mod fastcgi-php
-sudo lighty-enable-mod webdav
+sudo lighty-enable-mod fastcgi || true
+sudo lighty-enable-mod fastcgi-php || true
+sudo lighty-enable-mod webdav || true
+echo "Lighttpd modules configured"
 
 # === 2. Clone 314Sign from GitHub ===
 TEMP_DIR=$(mktemp -d)
