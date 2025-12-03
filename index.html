@@ -205,7 +205,16 @@
             lastText = newText;
             // Parse Markdown and render as HTML
             const trimmed = newText.trim() || 'No specials today.';
-            specialsDiv.innerHTML = marked.parse(trimmed);
+            let html = marked.parse(trimmed);
+            // Process color tags: [cr]red text[/cr], [cy]yellow[/cy], etc.
+            html = html.replace(/\[cr\](.*?)\[\/cr\]/g, '<span style="color:#ff4444">$1</span>'); // red
+            html = html.replace(/\[cy\](.*?)\[\/cy\]/g, '<span style="color:#ffdd44">$1</span>'); // yellow
+            html = html.replace(/\[cg\](.*?)\[\/cg\]/g, '<span style="color:#44ff44">$1</span>'); // green
+            html = html.replace(/\[cb\](.*?)\[\/cb\]/g, '<span style="color:#4488ff">$1</span>'); // blue
+            html = html.replace(/\[co\](.*?)\[\/co\]/g, '<span style="color:#ff8844">$1</span>'); // orange
+            html = html.replace(/\[cp\](.*?)\[\/cp\]/g, '<span style="color:#ff44ff">$1</span>'); // pink
+            html = html.replace(/\[cw\](.*?)\[\/cw\]/g, '<span style="color:#ffffff">$1</span>'); // white
+            specialsDiv.innerHTML = html;
           }
         })
         .catch(err => {
