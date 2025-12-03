@@ -23,7 +23,11 @@ echo ""
 # === 1. Install required packages ===
 echo "Installing packages..."
 sudo apt update
-sudo apt install -y lighttpd php-cgi git qrencode inotify-tools xdotool
+sudo apt install -y lighttpd php-cgi git qrencode
+
+# Optional packages (needed for kiosk automation features, skip on headless systems)
+echo "Installing optional packages..."
+sudo apt install -y inotify-tools xdotool 2>/dev/null || echo "Note: Some optional packages unavailable (normal for headless systems)"
 
 # Enable PHP and WebDAV
 echo "Enabling lighttpd modules..."
