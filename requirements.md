@@ -30,6 +30,8 @@ This document outlines the **hardware, software, and setup prerequisites** for r
 - **Alternative**: Raspberry Pi OS Lite (64-bit) + minimal X11 kiosk setup
   - Lightweight kiosk mode without full desktop environment
   - One-command setup: `curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/scripts/os-lite-kiosk.sh | sudo bash`
+  - Features: Screen rotation (0-3), auto-detects Chromium/Firefox, re-runnable
+  - Installs: xserver-xorg, xinit, openbox, chromium (or firefox-esr fallback), unclutter
   - See `scripts/os-lite-kiosk.sh` for details
 
 ### Server & Runtime

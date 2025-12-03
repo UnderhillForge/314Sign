@@ -47,6 +47,12 @@ curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/scripts/
 sudo reboot
 ```
 
+**Features:**
+- Prompts for screen rotation (0=normal, 1=90°, 2=180°, 3=270°)
+- Auto-detects and installs Chromium or Firefox ESR
+- Re-runnable: change rotation anytime without reinstalling
+- Configures auto-login and fullscreen kiosk mode
+
 ---
 
 ## Maintenance & Monitoring
@@ -70,6 +76,13 @@ curl http://YOUR-HOSTNAME.local/status.php
 
 ### Auto-Schedule Menus
 Visit `http://YOUR-HOSTNAME.local/rules/` to configure time-based menu switching (e.g., breakfast 7-11am, lunch 11am-3pm, dinner 5-10pm).
+
+### Change Screen Rotation (Pi OS Lite)
+Re-run the kiosk script to update rotation without reinstalling:
+```bash
+curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/scripts/os-lite-kiosk.sh | sudo bash
+sudo reboot
+```
 
 ---
 
