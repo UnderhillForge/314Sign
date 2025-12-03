@@ -27,8 +27,10 @@ This document outlines the **hardware, software, and setup prerequisites** for r
 - **Primary**: [FullpageOS](https://github.com/guysoft/FullPageOS) (latest stable)
   - Why? Built-in kiosk mode (Chromium fullscreen) — no extra config.
   - Download: Flash via Raspberry Pi Imager.
-- **Alternative**: Raspberry Pi OS Lite (64-bit) + manual Chromium kiosk setup
-  - Add via: `sudo apt install chromium-browser unclutter`
+- **Alternative**: Raspberry Pi OS Lite (64-bit) + minimal X11 kiosk setup
+  - Lightweight kiosk mode without full desktop environment
+  - Install: `sudo apt install xserver-xorg xinit chromium-browser unclutter`
+  - Auto-start: Configure via `/etc/xdg/openbox/autostart` (see setup script)
 
 ### Server & Runtime
 - **Web Server**: lighttpd (1.4.50+)

@@ -36,6 +36,10 @@ http://YOUR-HOSTNAME.local
 http://YOUR-HOSTNAME.local/edit/
 http://YOUR-HOSTNAME.local/design/
 http://YOUR-HOSTNAME.local/rules/
+
+# 6. (Optional) For Pi OS Lite - Auto-boot to fullscreen kiosk:
+sudo /var/www/html/scripts/setup-kiosk-mode.sh
+sudo reboot
 ```
 
 ---
