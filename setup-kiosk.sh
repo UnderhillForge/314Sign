@@ -163,12 +163,46 @@ else
 fi
 
 # === 6. Configure lighttpd ===
+echo ""
+echo "Configuring lighttpd..."
 LIGHTTPD_CONF="/etc/lighttpd/lighttpd.conf"
 WEBDAV_CONF="/etc/lighttpd/conf-enabled/10-webdav.conf"
 
-# Enable ETag
+# Enable ETag (check for existing to avoid duplicates)
 if ! grep -q "server.etag" "$LIGHTTPD_CONF"; then
-  echo 'server.etag = "enable"' | sudo tee -a "$LIGHTTPD_CONF"
+  echo 'server.etag = "enable"' | sudo tee -a "$LIGHTTPD_CONF" > /dev/null
+  echo "Added ETag configuration"
+else
+  echo "ETag already configured"
+fi
+
+# Validate lighttpd config before proceeding
+echo "Validating lighttpd configuration..."
+if ! sudo lighttpd -t -f "$LIGHTTPD_CONF" 2>&1; then
+  echo ""
+  echo "⚠️  WARNING: lighttpd configuration has errors!"
+  echo "Attempting to fix common issues..."
+  
+  # Check for duplicate server.etag
+  ETAG_COUNT=$(grep -c "^[[:space:]]*server.etag" "$LIGHTTPD_CONF" || true)
+  if [ "$ETAG_COUNT" -gt 1 ]; then
+    echo "Found duplicate server.etag entries, removing duplicates..."
+    # Keep only the first occurrence
+    sudo sed -i '/server.etag/!b;n;:a;/server.etag/d;n;ba' "$LIGHTTPD_CONF"
+  fi
+  
+  # Validate again
+  if ! sudo lighttpd -t -f "$LIGHTTPD_CONF" 2>&1; then
+    echo ""
+    echo "❌ Configuration still has errors. Manual intervention required:"
+    echo "   sudo lighttpd -t -f /etc/lighttpd/lighttpd.conf"
+    echo "   sudo nano /etc/lighttpd/lighttpd.conf"
+    echo ""
+    echo "Common fixes:"
+    echo "   - Remove duplicate 'server.etag' lines"
+    echo "   - Check for syntax errors in configuration"
+    echo ""
+  fi
 fi
 
 # WebDAV: only allow safe files
@@ -203,8 +237,35 @@ cd /var/www/html
 [ ! -f qr-rules.png ] && qrencode -o qr-rules.png -s 10 "http://${HOSTNAME}.local/rules/"
 
 # === 8. Restart services ===
+echo ""
 echo "Restarting lighttpd..."
-sudo systemctl restart lighttpd
+
+# Final config validation before restart
+if sudo lighttpd -t -f "$LIGHTTPD_CONF" 2>&1 | grep -q "Syntax OK"; then
+  if sudo systemctl restart lighttpd; then
+    echo "✓ Lighttpd restarted successfully"
+  else
+    echo ""
+    echo "❌ Lighttpd failed to restart"
+    echo ""
+    echo "Diagnostic commands:"
+    echo "  sudo systemctl status lighttpd"
+    echo "  sudo journalctl -xeu lighttpd.service"
+    echo "  sudo tail -50 /var/log/lighttpd/error.log"
+    echo ""
+    echo "Common issues:"
+    echo "  - Port 80 already in use (check: sudo netstat -tulpn | grep :80)"
+    echo "  - Permission issues on /var/www/html"
+    echo "  - Module conflicts in configuration"
+    echo ""
+  fi
+else
+  echo ""
+  echo "⚠️  Skipping restart - configuration has errors"
+  echo "Fix the errors above and restart manually:"
+  echo "  sudo systemctl restart lighttpd"
+  echo ""
+fi
 
 # === 9. Cleanup ===
 rm -rf "$TEMP_DIR"
