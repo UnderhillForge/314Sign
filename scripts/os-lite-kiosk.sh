@@ -10,6 +10,7 @@
 #   - Openbox window manager (super lightweight)
 #   - Chromium browser in kiosk mode
 #   - Auto-start configuration
+#   - Screen rotation configuration
 #
 # Usage (after running main setup-kiosk.sh):
 #   curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/scripts/os-lite-kiosk.sh | sudo bash
@@ -17,6 +18,7 @@
 # Or if already cloned:
 #   sudo /var/www/html/scripts/os-lite-kiosk.sh
 #
+# Re-run anytime to change screen rotation - already installed packages will be skipped
 # After running, Pi will boot directly to fullscreen kiosk display
 ###############################################################################
 
@@ -24,7 +26,14 @@ set -e
 
 echo "=== 314Sign Kiosk Mode Setup ==="
 echo ""
-echo "This will configure your Pi to boot directly into fullscreen kiosk mode."
+
+# Check if already configured
+if [ -f ~/.config/openbox/autostart ]; then
+  echo "⚠️  Kiosk mode already configured."
+  echo "This will update rotation and browser settings."
+  echo ""
+fi
+
 echo "Press Ctrl+C to cancel, or Enter to continue..."
 read
 
@@ -51,17 +60,40 @@ fi
 
 echo "Setting screen rotation to: $ROTATION"
 
-echo "Installing minimal X11 and web browser..."
-sudo apt update
-sudo apt install -y \
-  xserver-xorg \
-  xinit \
-  openbox \
-  unclutter
+# Check if packages already installed
+echo "Checking installed packages..."
+NEED_INSTALL=false
+for pkg in xserver-xorg xinit openbox unclutter; do
+  if ! dpkg -l | grep -q "^ii  $pkg "; then
+    NEED_INSTALL=true
+    break
+  fi
+done
 
-# Try different browser packages in order of preference
+if [ "$NEED_INSTALL" = true ]; then
+  echo "Installing minimal X11 and web browser..."
+  sudo apt update
+  sudo apt install -y \
+    xserver-xorg \
+    xinit \
+    openbox \
+    unclutter
+else
+  echo "✓ X11 packages already installed, skipping..."
+fi
+
+# Detect or install browser
 CHROMIUM_CMD=""
-if apt-cache show chromium >/dev/null 2>&1; then
+if command -v chromium >/dev/null 2>&1; then
+  CHROMIUM_CMD="chromium"
+  echo "✓ Using installed: chromium"
+elif command -v chromium-browser >/dev/null 2>&1; then
+  CHROMIUM_CMD="chromium-browser"
+  echo "✓ Using installed: chromium-browser"
+elif command -v firefox-esr >/dev/null 2>&1; then
+  CHROMIUM_CMD="firefox-esr"
+  echo "✓ Using installed: firefox-esr"
+elif apt-cache show chromium >/dev/null 2>&1; then
   echo "Installing chromium..."
   sudo apt install -y chromium
   CHROMIUM_CMD="chromium"
