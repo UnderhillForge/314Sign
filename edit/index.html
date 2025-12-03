@@ -101,27 +101,58 @@
       border-radius: 6px;
     }
     .toolbar button:active { background: #dee2e6; }
-    .editor-panel {
+    
+    /* View toggle buttons */
+    .view-toggle {
+      display: flex;
+      gap: 0.5rem;
+      background: white;
+      padding: 0.5rem;
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .view-btn {
       flex: 1;
       display: flex;
-      gap: 1rem;
-      min-height: 0;
-    }
-    @media (max-width: 768px) {
-      .editor-panel { flex-direction: column; }
-    }
-    .editor-section, .preview-section {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-    }
-    .section-label {
-      font-size: 0.9rem;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.75rem;
+      font-size: 1rem;
       font-weight: 600;
       color: #666;
-      margin-bottom: 0.5rem;
+      background: #f8f9fa;
+      border: 2px solid transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
     }
+    .view-btn.active {
+      color: #007bff;
+      background: white;
+      border-color: #007bff;
+    }
+    .view-btn:active { background: #e9ecef; }
+    .view-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+    
+    /* Content area */
+    .content-area {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+    }
+    .view-panel {
+      display: none;
+      height: 100%;
+      flex-direction: column;
+    }
+    .view-panel.active {
+      display: flex;
+    }
+    
     textarea {
       flex: 1;
       width: 100%;
@@ -152,6 +183,50 @@
     #preview p { margin-bottom: 0.5em; }
     #preview strong { font-weight: 700; }
     #preview em { font-style: italic; }
+    
+    /* Help panel */
+    #help {
+      flex: 1;
+      padding: 1.5rem;
+      background: white;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    #help h3 {
+      color: #333;
+      margin-bottom: 1rem;
+      font-size: 1.3rem;
+    }
+    #help h4 {
+      color: #555;
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
+      font-size: 1.1rem;
+    }
+    #help .example {
+      background: #f8f9fa;
+      padding: 0.75rem;
+      border-radius: 6px;
+      margin: 0.5rem 0;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 0.95rem;
+    }
+    #help .result {
+      background: #e7f3ff;
+      padding: 0.75rem;
+      border-radius: 6px;
+      margin: 0.5rem 0 1.5rem 0;
+      border-left: 3px solid #007bff;
+    }
+    #help code {
+      background: #f8f9fa;
+      padding: 0.2rem 0.4rem;
+      border-radius: 3px;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 0.9rem;
+    }
     .actions {
       display: flex;
       gap: 1rem;
@@ -222,16 +297,73 @@
       <button onclick="insertMarkdown('- ', '')" title="Bullet list">• List</button>
       <button onclick="insertMarkdown('---\n', '')" title="Horizontal line">—</button>
     </div>
-    <div class="editor-panel">
-      <div class="editor-section">
-        <div class="section-label">Markdown Editor</div>
+    
+    <!-- View toggle buttons -->
+    <div class="view-toggle">
+      <button class="view-btn active" data-view="edit">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+        </svg>
+        Edit
+      </button>
+      <button class="view-btn" data-view="preview">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+        </svg>
+        Preview
+      </button>
+      <button class="view-btn" data-view="help">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        Help
+      </button>
+    </div>
+    
+    <!-- Content area with switchable panels -->
+    <div class="content-area">
+      <div class="view-panel active" id="edit-panel">
         <textarea id="content" placeholder="Loading..."></textarea>
       </div>
-      <div class="preview-section">
-        <div class="section-label">Preview</div>
+      <div class="view-panel" id="preview-panel">
         <div id="preview"></div>
       </div>
+      <div class="view-panel" id="help-panel">
+        <div id="help">
+          <h3>Markdown Formatting Guide</h3>
+          
+          <h4>Headings</h4>
+          <div class="example">## Large Heading<br>### Medium Heading</div>
+          <div class="result"><strong>Large Heading</strong><br><strong style="font-size:0.9em">Medium Heading</strong></div>
+          
+          <h4>Bold & Italic</h4>
+          <div class="example">**Bold text**<br>*Italic text*</div>
+          <div class="result"><strong>Bold text</strong><br><em>Italic text</em></div>
+          
+          <h4>Lists</h4>
+          <div class="example">- Item one<br>- Item two<br>- Item three</div>
+          <div class="result">• Item one<br>• Item two<br>• Item three</div>
+          
+          <h4>Horizontal Line</h4>
+          <div class="example">---</div>
+          <div class="result"><hr style="border: 1px solid #ddd; margin: 0.5rem 0;"></div>
+          
+          <h4>Combining Formats</h4>
+          <div class="example">## **Today's Special**<br><br>**Burger** - $8.95<br>*With fries and drink*<br><br>---<br><br>- Wings<br>- Nachos<br>- Salad</div>
+          
+          <h4>Quick Tips</h4>
+          <p style="margin: 0.5rem 0; line-height: 1.6;">
+            • Use the toolbar buttons for quick formatting<br>
+            • Leave blank lines between sections<br>
+            • Preview your changes before saving<br>
+            • Bold text (<code>**text**</code>) works great for prices<br>
+            • Use lists for multiple items
+          </p>
+        </div>
+      </div>
     </div>
+    
     <div class="actions">
       <button onclick="save()">Save & Refresh Kiosk</button>
       <button class="secondary" onclick="location.reload()">Cancel</button>
@@ -248,6 +380,35 @@
     const fontScaleInput = document.getElementById('fontScale');
     const fontScaleValue = document.getElementById('fontScaleValue');
     const menuTabs = document.querySelectorAll('.menu-tab');
+    const viewButtons = document.querySelectorAll('.view-btn');
+
+    // View switching
+    function switchView(viewName) {
+      // Update buttons
+      viewButtons.forEach(btn => {
+        if (btn.dataset.view === viewName) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      
+      // Update panels
+      document.querySelectorAll('.view-panel').forEach(panel => {
+        panel.classList.remove('active');
+      });
+      document.getElementById(viewName + '-panel').classList.add('active');
+      
+      // Update preview when switching to preview view
+      if (viewName === 'preview') {
+        updatePreview();
+      }
+    }
+
+    // Setup view button handlers
+    viewButtons.forEach(btn => {
+      btn.addEventListener('click', () => switchView(btn.dataset.view));
+    });
 
     // Update preview as user types
     function updatePreview() {
@@ -266,6 +427,8 @@
       textarea.selectionEnd = start + before.length + selected.length;
       textarea.focus();
       updatePreview();
+      // Switch to edit view after inserting
+      switchView('edit');
     }
 
     // Switch between menu files
