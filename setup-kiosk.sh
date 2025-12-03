@@ -23,7 +23,7 @@ echo ""
 # === 1. Install required packages ===
 echo "Installing packages..."
 sudo apt update
-sudo apt install -y lighttpd php-cgi git qrencode
+sudo apt install -y lighttpd lighttpd-mod-webdav php-cgi git qrencode
 
 # Optional packages (needed for kiosk automation features, skip on headless systems)
 echo "Installing optional packages..."
