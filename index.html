@@ -206,14 +206,14 @@
             // Parse Markdown and render as HTML
             const trimmed = newText.trim() || 'No specials today.';
             let html = marked.parse(trimmed);
-            // Process color tags: [cr]red text[/cr], [cy]yellow[/cy], etc.
-            html = html.replace(/\[cr\](.*?)\[\/cr\]/g, '<span style="color:#ff4444">$1</span>'); // red
-            html = html.replace(/\[cy\](.*?)\[\/cy\]/g, '<span style="color:#ffdd44">$1</span>'); // yellow
-            html = html.replace(/\[cg\](.*?)\[\/cg\]/g, '<span style="color:#44ff44">$1</span>'); // green
-            html = html.replace(/\[cb\](.*?)\[\/cb\]/g, '<span style="color:#4488ff">$1</span>'); // blue
-            html = html.replace(/\[co\](.*?)\[\/co\]/g, '<span style="color:#ff8844">$1</span>'); // orange
-            html = html.replace(/\[cp\](.*?)\[\/cp\]/g, '<span style="color:#ff44ff">$1</span>'); // pink
-            html = html.replace(/\[cw\](.*?)\[\/cw\]/g, '<span style="color:#ffffff">$1</span>'); // white
+            // Process color tags: {r}red text to end of line
+            html = html.replace(/\{r\}(.*?)(<\/|\{[rygbopw]\}|$)/g, '<span style="color:#ff4444">$1</span>$2'); // red
+            html = html.replace(/\{y\}(.*?)(<\/|\{[rygbopw]\}|$)/g, '<span style="color:#ffdd44">$1</span>$2'); // yellow
+            html = html.replace(/\{g\}(.*?)(<\/|\{[rygbopw]\}|$)/g, '<span style="color:#44ff44">$1</span>$2'); // green
+            html = html.replace(/\{b\}(.*?)(<\/|\{[rygbopw]\}|$)/g, '<span style="color:#4488ff">$1</span>$2'); // blue
+            html = html.replace(/\{o\}(.*?)(<\/|\{[rygbopw]\}|$)/g, '<span style="color:#ff8844">$1</span>$2'); // orange
+            html = html.replace(/\{p\}(.*?)(<\/|\{[rygbopw]\}|$)/g, '<span style="color:#ff44ff">$1</span>$2'); // pink
+            html = html.replace(/\{w\}(.*?)(<\/|\{[rygbopw]\}|$)/g, '<span style="color:#ffffff">$1</span>$2'); // white
             specialsDiv.innerHTML = html;
           }
         })

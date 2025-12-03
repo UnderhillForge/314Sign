@@ -1,19 +1,19 @@
 ## Tonight's Dinner Specials
 
-**Burger** - [cy]$8.95[/cy]  
+**Burger** - {y}$8.95  
 Classic beef burger with lettuce, tomato, onion
 
-**Stromboli** - [cy]$10.95[/cy]  
+**Stromboli** - {y}$10.95  
 Rolled with pepperoni, sausage, and mozzarella
 
-**Wings** - [cy]12 for $11.50 | 6 for $7.95[/cy]  
+**Wings** - {y}12 for $11.50 | 6 for $7.95  
 *Choice of Buffalo, BBQ, or Garlic Parmesan*
 
 ---
 
 ### Sides
-- French Fries - [cy]$3.50[/cy]
-- Onion Rings - [cy]$4.25[/cy]
-- Side Salad - [cy]$3.95[/cy]
+- French Fries - {y}$3.50
+- Onion Rings - {y}$4.25
+- Side Salad - {y}$3.95
 
-[co]**Ask about our daily dessert special!**[/co]
+{o}**Ask about our daily dessert special!**

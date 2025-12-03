@@ -359,7 +359,7 @@
           <div class="result"><hr style="border: 1px solid #ddd; margin: 0.5rem 0;"></div>
           
           <h4>Color Text</h4>
-          <div class="example">[cr]Red text[/cr]<br>[cy]Yellow text[/cy]<br>[cg]Green text[/cg]<br>[cb]Blue text[/cb]<br>[co]Orange text[/co]<br>[cp]Pink text[/cp]<br>[cw]White text[/cw]</div>
+          <div class="example">{r}Red text<br>{y}Yellow text<br>{g}Green text<br>{b}Blue text<br>{o}Orange text<br>{p}Pink text<br>{w}White text</div>
           <div class="result">
             <span style="color:#ff4444">Red text</span><br>
             <span style="color:#ffdd44">Yellow text</span><br>
@@ -371,7 +371,7 @@
           </div>
           
           <h4>Combining Formats</h4>
-          <div class="example">## **Today's Special**<br><br>**Burger** - [cy]$8.95[/cy]<br>*With fries and drink*<br><br>---<br><br>- Wings<br>- Nachos<br>- Salad</div>
+          <div class="example">## **Today's Special**<br><br>**Burger** - {y}$8.95<br>*With fries and drink*<br><br>---<br><br>- Wings<br>- Nachos<br>- Salad</div>
           
           <h4>Quick Tips</h4>
           <p style="margin: 0.5rem 0; line-height: 1.6;">
@@ -379,7 +379,8 @@
             • Leave blank lines between sections<br>
             • Preview your changes before saving<br>
             • Bold text (<code>**text**</code>) works great for items<br>
-            • Color tags (<code>[cy]...[/cy]</code>) highlight prices<br>
+            • Color tags (<code>{y}$8.95</code>) highlight prices<br>
+            • Colors last until end of line or next color tag<br>
             • Use lists for multiple items
           </p>
         </div>
@@ -436,14 +437,14 @@
     function updatePreview() {
       const markdown = textarea.value || 'No specials yet...';
       let html = marked.parse(markdown);
-      // Process color tags: [cr]red text[/cr], [cy]yellow[/cy], etc.
-      html = html.replace(/\[cr\](.*?)\[\/cr\]/g, '<span style="color:#ff4444">$1</span>'); // red
-      html = html.replace(/\[cy\](.*?)\[\/cy\]/g, '<span style="color:#ffdd44">$1</span>'); // yellow
-      html = html.replace(/\[cg\](.*?)\[\/cg\]/g, '<span style="color:#44ff44">$1</span>'); // green
-      html = html.replace(/\[cb\](.*?)\[\/cb\]/g, '<span style="color:#4488ff">$1</span>'); // blue
-      html = html.replace(/\[co\](.*?)\[\/co\]/g, '<span style="color:#ff8844">$1</span>'); // orange
-      html = html.replace(/\[cp\](.*?)\[\/cp\]/g, '<span style="color:#ff44ff">$1</span>'); // pink
-      html = html.replace(/\[cw\](.*?)\[\/cw\]/g, '<span style="color:#ffffff">$1</span>'); // white
+      // Process color tags: {r}red text to end of line
+      html = html.replace(/\{r\}(.*?)(<\/|\{[rygbopw]\}|$)/g, '<span style="color:#ff4444">$1</span>$2'); // red
+      html = html.replace(/\{y\}(.*?)(<\/|\{[rygbopw]\}|$)/g, '<span style="color:#ffdd44">$1</span>$2'); // yellow
+      html = html.replace(/\{g\}(.*?)(<\/|\{[rygbopw]\}|$)/g, '<span style="color:#44ff44">$1</span>$2'); // green
+      html = html.replace(/\{b\}(.*?)(<\/|\{[rygbopw]\}|$)/g, '<span style="color:#4488ff">$1</span>$2'); // blue
+      html = html.replace(/\{o\}(.*?)(<\/|\{[rygbopw]\}|$)/g, '<span style="color:#ff8844">$1</span>$2'); // orange
+      html = html.replace(/\{p\}(.*?)(<\/|\{[rygbopw]\}|$)/g, '<span style="color:#ff44ff">$1</span>$2'); // pink
+      html = html.replace(/\{w\}(.*?)(<\/|\{[rygbopw]\}|$)/g, '<span style="color:#ffffff">$1</span>$2'); // white
       preview.innerHTML = html;
     }
 
