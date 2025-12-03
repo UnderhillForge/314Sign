@@ -38,8 +38,19 @@ sudo apt install -y \
   xserver-xorg \
   xinit \
   openbox \
-  chromium \
   unclutter
+
+# Try chromium first (newer), fallback to chromium-browser (older)
+if sudo apt install -y chromium 2>/dev/null; then
+  echo "Installed: chromium"
+  CHROMIUM_CMD="chromium"
+elif sudo apt install -y chromium-browser 2>/dev/null; then
+  echo "Installed: chromium-browser"
+  CHROMIUM_CMD="chromium-browser"
+else
+  echo "Error: Neither 'chromium' nor 'chromium-browser' package found"
+  exit 1
+fi
 
 echo "Configuring auto-login..."
 # Enable auto-login to console
@@ -57,8 +68,8 @@ xset -dpms
 # Hide mouse cursor after 1 second
 unclutter -idle 1 -root &
 
-# Start Chromium in kiosk mode
-chromium \\
+# Start Chromium in kiosk mode (use detected command)
+${CHROMIUM_CMD} \\
   --kiosk \\
   --noerrdialogs \\
   --disable-infobars \\
