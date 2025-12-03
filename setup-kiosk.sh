@@ -38,15 +38,24 @@ sudo lighty-enable-mod webdav
 # === 2. Clone 314Sign from GitHub ===
 TEMP_DIR=$(mktemp -d)
 echo "Cloning 314Sign into $TEMP_DIR..."
-git clone --depth 1 https://github.com/UnderhillForge/PiSign.git "$TEMP_DIR/PiSign"
+if ! git clone --depth 1 https://github.com/UnderhillForge/PiSign.git "$TEMP_DIR/PiSign"; then
+  echo "ERROR: Git clone failed!"
+  exit 1
+fi
+
+echo "Clone successful. Checking contents..."
+ls -la "$TEMP_DIR/PiSign/" | head -20
 
 # === 3. Copy files to web root ===
 echo "Copying files to /var/www/html..."
-sudo rsync -av \
+if ! sudo rsync -av \
   --exclude='.git' \
   --exclude='*.md' \
   --exclude='setup-kiosk.sh' \
-  "$TEMP_DIR/PiSign/" /var/www/html/
+  "$TEMP_DIR/PiSign/" /var/www/html/; then
+  echo "ERROR: rsync failed!"
+  exit 1
+fi
 
 echo "Files copied. Verifying..."
 ls -la /var/www/html/ | head -20
