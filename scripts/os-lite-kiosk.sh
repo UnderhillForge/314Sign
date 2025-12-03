@@ -38,7 +38,7 @@ sudo apt install -y \
   xserver-xorg \
   xinit \
   openbox \
-  chromium-browser \
+  chromium \
   unclutter
 
 echo "Configuring auto-login..."
@@ -58,7 +58,7 @@ xset -dpms
 unclutter -idle 1 -root &
 
 # Start Chromium in kiosk mode
-chromium-browser \\
+chromium \\
   --kiosk \\
   --noerrdialogs \\
   --disable-infobars \\
