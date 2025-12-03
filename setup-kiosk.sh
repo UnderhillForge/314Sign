@@ -22,7 +22,6 @@ echo "Copying files to /var/www/html..."
 sudo rsync -av --delete \
   --exclude='.git' \
   --exclude='*.md' \
-  --exclude='permissions.sh' \
   --exclude='setup-kiosk.sh' \
   "$TEMP_DIR/314Sign/" /var/www/html/
 
@@ -30,6 +29,7 @@ sudo rsync -av --delete \
 sudo mkdir -p /var/www/html/logs
 sudo mkdir -p /var/www/html/bg
 sudo mkdir -p /var/www/html/menus
+sudo mkdir -p /var/www/html/scripts
 
 # === 5. Set ownership & permissions ===
 echo "Setting permissions..."

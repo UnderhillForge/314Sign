@@ -1,4 +1,3 @@
-/* Mark Begin */
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -38,11 +37,20 @@
       white-space: pre-wrap;
       -webkit-overflow-scrolling: touch;
     }
+    .version {
+      position: fixed;
+      bottom: 0.5rem;
+      right: 0.5rem;
+      font-size: 0.7rem;
+      opacity: 0.5;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
   <header>Specials</header>
   <div id="specials">Loading…</div>
+  <div class="version">314Sign v0.8.0</div>
 
   <script>
   const specialsDiv = document.getElementById('specials');

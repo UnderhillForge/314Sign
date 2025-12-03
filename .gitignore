@@ -1,0 +1,9 @@
+logs/
+bg/uploaded_*
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
+.idea/

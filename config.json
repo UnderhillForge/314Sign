@@ -1,5 +1,5 @@
 {
-  "bg": "bg1.jpg",
+  "bg": "backgd.jpg",
   "font": "'Comic Sans MS', cursive",
   "pollIntervalSeconds": 3,
   "fontScalePercent": 3,

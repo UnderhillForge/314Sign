@@ -70,6 +70,7 @@
     <div class="status" id="status"></div>
     <!-- Toast notification (mobile friendly) -->
     <div id="toast" class="toast" aria-live="polite" role="status" style="display:none"></div>
+    <div style="position:fixed;bottom:0.5rem;right:0.5rem;font-size:0.7rem;color:#999;opacity:0.6;pointer-events:none">314Sign v0.8.0</div>
   </div>
 
   <script>
@@ -317,6 +318,10 @@
       // Escape double quotes in bgUrl for safe insertion into url("...")
       const safeBg = String(bgUrl).replace(/"/g, '\\"');
 
+      // Note: This generator creates a simplified version of index.html
+      // The full production version has more features (ETag polling, rules checking, etc.)
+      // Consider just updating config.json instead of regenerating the entire file
+      
       var html = '';
       html += '<!DOCTYPE html>\n';
       html += '<html lang="en">\n';
@@ -327,11 +332,11 @@
       html += '  <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"><\/script>\n';
       html += '  <style>\n';
       html += '    * { margin:0; padding:0; box-sizing:border-box; }\n';
-      html += '    body, html { height:100%; overflow:hidden; }\n';
+      html += '    html, body { height:100%; overflow:hidden; }\n';
       html += '    body {\n';
       html += '      background: url("' + safeBg + '") center/cover no-repeat;\n';
       html += '      font-family: ' + font + ';\n';
-      html += '      color: white;\n';
+      html += '      color: #fff;\n';
       html += '      text-shadow: 2px 2px 4px rgba(0,0,0,0.7);\n';
       html += '      display: flex;\n';
       html += '      flex-direction: column;\n';
@@ -340,69 +345,58 @@
       html += '      background: rgba(0,0,0,0.5);\n';
       html += '      padding: 1rem;\n';
       html += '      text-align: center;\n';
-      html += '      font-size: 2.5rem;\n';
+      html += '      font-size: clamp(1.5rem, 5vw, 4rem);\n';
       html += '      font-weight: bold;\n';
-      html += '    }\n';
-      html += '    .menu-selector {\n';
-      html += '      background: rgba(0,0,0,0.6);\n';
-      html += '      padding: 0.75rem;\n';
-      html += '      display: flex;\n';
-      html += '      justify-content: center;\n';
-      html += '      gap: 0.5rem;\n';
-      html += '      flex-wrap: wrap;\n';
-      html += '    }\n';
-      html += '    .menu-btn {\n';
-      html += '      padding: 0.5rem 1rem;\n';
-      html += '      font-size: 1.2rem;\n';
-      html += '      font-weight: 600;\n';
-      html += '      color: rgba(255,255,255,0.7);\n';
-      html += '      background: rgba(255,255,255,0.1);\n';
-      html += '      border: 2px solid rgba(255,255,255,0.3);\n';
-      html += '      border-radius: 8px;\n';
-      html += '      cursor: pointer;\n';
-      html += '      transition: all 0.3s;\n';
-      html += '    }\n';
-      html += '    .menu-btn:hover { background: rgba(255,255,255,0.2); }\n';
-      html += '    .menu-btn.active {\n';
-      html += '      color: white;\n';
-      html += '      background: rgba(255,255,255,0.3);\n';
-      html += '      border-color: white;\n';
       html += '    }\n';
       html += '    #specials {\n';
       html += '      flex: 1;\n';
-      html += '      padding: 2rem;\n';
-      html += '      font-size: 1.8rem;\n';
+      html += '      padding: clamp(1rem, 2vw, 3rem);\n';
+      html += '      font-size: clamp(1rem, 3vw, 3rem);\n';
       html += '      line-height: 1.6;\n';
       html += '      overflow-y: auto;\n';
       html += '      white-space: pre-wrap;\n';
+      html += '      -webkit-overflow-scrolling: touch;\n';
       html += '    }\n';
+      html += '    .version { position: fixed; bottom: 0.5rem; right: 0.5rem; font-size: 0.7rem; opacity: 0.5; }\n';
       html += '  </style>\n';
       html += '</head>\n';
       html += '<body>\n';
       html += '  <header>Specials</header>\n';
-      html += '  <div class="menu-selector">\n';
-      html += '    <button class="menu-btn" data-menu="menus/breakfast.txt">🌅 Breakfast</button>\n';
-      html += '    <button class="menu-btn" data-menu="menus/lunch.txt">🌞 Lunch</button>\n';
-      html += '    <button class="menu-btn active" data-menu="menus/dinner.txt">🌙 Dinner</button>\n';
-      html += '    <button class="menu-btn" data-menu="menus/closed.txt">🚫 Closed</button>\n';
-      html += '  </div>\n';
-      html += '  <div id="specials"></div>\n';
+      html += '  <div id="specials">Loading…</div>\n';
+      html += '  <div class="version">314Sign v0.8.0</div>\n';
       html += '  <script>\n';
       html += '    const specialsDiv = document.getElementById("specials");\n';
-      html += '    const menuButtons = document.querySelectorAll(".menu-btn");\n';
       html += '    let currentMenu = localStorage.getItem("currentMenu") || "menus/dinner.txt";\n';
       html += '    function switchMenu(f) {\n';
       html += '      currentMenu = f;\n';
       html += '      localStorage.setItem("currentMenu", f);\n';
-      html += '      menuButtons.forEach(b => b.classList.toggle("active", b.dataset.menu === f));\n';
-      html += '      fetch(f + "?" + Date.now()).then(r => r.text()).then(t => specialsDiv.innerHTML = marked.parse(t));\n';
+      html += '      fetch(f + "?" + Date.now()).then(r => r.text()).then(t => {\n';
+      html += '        specialsDiv.innerHTML = marked.parse(t);\n';
+      html += '      });\n';
       html += '    }\n';
-      html += '    menuButtons.forEach(b => {\n';
-      html += '      b.addEventListener("click", () => switchMenu(b.dataset.menu));\n';
-      html += '      if (b.dataset.menu === currentMenu) b.classList.add("active");\n';
-      html += '    });\n';
+      html += '    function checkScheduleRules() {\n';
+      html += '      fetch("rules.json?" + Date.now()).then(r => r.ok ? r.json() : null).then(data => {\n';
+      html += '        if (!data || !data.enabled || !data.rules) return;\n';
+      html += '        const now = new Date();\n';
+      html += '        const currentDay = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"][now.getDay()];\n';
+      html += '        const currentTime = now.getHours().toString().padStart(2,"0")+":"+now.getMinutes().toString().padStart(2,"0");\n';
+      html += '        for (const rule of data.rules) {\n';
+      html += '          if (!rule.days.includes(currentDay)) continue;\n';
+      html += '          const startTime = rule.startTime || "00:00";\n';
+      html += '          const endTime = rule.endTime || "23:59";\n';
+      html += '          let matches = startTime <= endTime ? (currentTime >= startTime && currentTime < endTime) : (currentTime >= startTime || currentTime < endTime);\n';
+      html += '          if (matches && rule.menu && rule.menu !== currentMenu) {\n';
+      html += '            switchMenu(rule.menu);\n';
+      html += '            break;\n';
+      html += '          }\n';
+      html += '        }\n';
+      html += '      });\n';
+      html += '    }\n';
+      html += '    checkScheduleRules();\n';
+      html += '    setInterval(checkScheduleRules, 60000);\n';
       html += '    fetch(currentMenu + "?" + Date.now()).then(r => r.text()).then(t => specialsDiv.innerHTML = marked.parse(t));\n';
-      html += '    setInterval(() => location.reload(), 10000);\n';
+      html += '    setInterval(() => fetch(currentMenu + "?" + Date.now()).then(r => r.text()).then(t => specialsDiv.innerHTML = marked.parse(t)), 3000);\n';
+      html += '    setInterval(() => location.reload(), 300000);\n';
       html += '  <\/script>\n';
       html += '</body>\n';
       html += '</html>\n';
