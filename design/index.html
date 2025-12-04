@@ -8,19 +8,20 @@
   <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&family=Permanent+Marker&family=Caveat&family=Dancing+Script&display=swap" rel="stylesheet">
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
-    html, body { height:100%; font-family: -apple-system, sans-serif; background:#f8f9fa; }
+    html, body { height:100%; font-family: -apple-system, sans-serif; background:#1a1a1a; color:#e0e0e0; }
     .container {
       display:flex; flex-direction:column; height:100vh;
       padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
       gap:1rem;
     }
-    h1 { font-size:1.6rem; text-align:center; color:#333; }
+    h1 { font-size:1.6rem; text-align:center; color:#e0e0e0; }
     .section {
-      background:white; padding:1rem; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1);
+      background:#2d2d2d; padding:1rem; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.3);
     }
-    label { display:block; margin:0.5rem 0 0.3rem; font-weight:600; color:#444; }
+    label { display:block; margin:0.5rem 0 0.3rem; font-weight:600; color:#e0e0e0; }
     select, input[type="file"] {
-      width:100%; padding:0.8rem; font-size:1rem; border:2px solid #ddd; border-radius:8px;
+      width:100%; padding:0.8rem; font-size:1rem; border:2px solid #3a3a3a; border-radius:8px;
+      background:#1a1a1a; color:#e0e0e0;
     }
     .bg-grid {
       display:grid; grid-template-columns:repeat(3,1fr); gap:0.5rem; margin-top:0.5rem;
@@ -29,22 +30,22 @@
       width:100%; height:80px; object-fit:cover; border-radius:8px; cursor:pointer;
       border:3px solid transparent; transition:border 0.2s;
     }
-    .bg-thumb.selected { border-color:#007bff; }
+    .bg-thumb.selected { border-color:#4a9eff; }
     .preview-img {
       width:100%; height:180px; object-fit:cover; border-radius:8px; margin-top:0.5rem;
-      border:2px dashed #ccc; display:none;
+      border:2px dashed #3a3a3a; display:none;
     }
     .actions { display:flex; gap:1rem; }
     button {
       flex:1; padding:1rem; font-size:1.1rem; font-weight:600; color:white;
-      background:#007bff; border:none; border-radius:12px; cursor:pointer;
+      background:#4a9eff; border:none; border-radius:12px; cursor:pointer;
     }
-    button:active { background:#0056b3; }
+    button:active { background:#3a8edd; }
     button.secondary { background:#6c757d; }
     button.secondary:active { background:#5a6268; }
     button.danger { background:#dc3545; }
     button.danger:active { background:#c82333; }
-    .status { text-align:center; font-size:0.9rem; color:#666; }
+    .status { text-align:center; font-size:0.9rem; color:#b0b0b0; }
   </style>
 </head>
 <body>

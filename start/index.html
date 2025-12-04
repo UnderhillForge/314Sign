@@ -10,7 +10,7 @@
     html, body {
       height: 100%;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
       overscroll-behavior: none;
     }
     .container {
@@ -55,12 +55,12 @@
       }
     }
     .card {
-      background: white;
+      background: #2d2d2d;
       border-radius: 20px;
       padding: 2rem;
       text-decoration: none;
-      color: #333;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      color: #e0e0e0;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
       transition: transform 0.2s, box-shadow 0.2s;
       display: flex;
       flex-direction: column;
@@ -73,7 +73,7 @@
     }
     .card:active {
       transform: translateY(2px);
-      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.4);
     }
     .card-icon {
       font-size: 3.5rem;
@@ -86,32 +86,32 @@
     }
     .card-desc {
       font-size: 1rem;
-      color: #666;
+      color: #b0b0b0;
       line-height: 1.4;
     }
     .card.edit {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #5568d3 0%, #6a4c93 100%);
       color: white;
     }
     .card.edit .card-desc {
       color: rgba(255,255,255,0.9);
     }
     .card.rules {
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      background: linear-gradient(135deg, #d77fa1 0%, #c94b5c 100%);
       color: white;
     }
     .card.rules .card-desc {
       color: rgba(255,255,255,0.9);
     }
     .card.design {
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      background: linear-gradient(135deg, #3a8fd9 0%, #00c4cc 100%);
       color: white;
     }
     .card.design .card-desc {
       color: rgba(255,255,255,0.9);
     }
     .card.view {
-      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      background: linear-gradient(135deg, #36c770 0%, #2ec9b3 100%);
       color: white;
     }
     .card.view .card-desc {
