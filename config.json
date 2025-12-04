@@ -2,7 +2,7 @@
   "bg": "backgd.jpg",
   "font": "'Comic Sans MS', cursive",
   "pollIntervalSeconds": 3,
-  "fontScalePercent": 3,
+  "fontScalePercent": 5,
   "availableFonts": {
     "Comic Sans": "'Comic Sans MS', cursive",
     "Arial": "Arial, sans-serif",

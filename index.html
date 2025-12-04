@@ -129,9 +129,9 @@
   //  - pollInterval: number (seconds)  -- legacy/short key
   let pollIntervalMs = 3000;
   
-  // Font scale percentage. Default to 3% of viewport width.
+  // Font scale percentage. Default to 5% of viewport width.
   // Can be overridden via fontScalePercent in config.json.
-  let fontScalePercent = 3;
+  let fontScalePercent = 5;
 
     // Check schedule rules and auto-switch menu if enabled
     function checkScheduleRules() {
@@ -347,7 +347,13 @@
               return processed;
             });
             
-            const processedText = processedLines.join('\n');
+            let processedText = processedLines.join('\n');
+            
+            // Check for font size override tags [size=X%]...[/size]
+            const sizeRegex = /\[size=(\d+(?:\.\d+)?)%\]([\s\S]*?)\[\/size\]/gi;
+            processedText = processedText.replace(sizeRegex, (match, percent, content) => {
+              return `<span style="font-size: ${percent}vw">${content}</span>`;
+            });
             
             // Convert custom bullet syntax after color processing
             const withBullets = processedText.replace(/^- /gm, '• ');

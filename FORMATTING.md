@@ -81,6 +81,32 @@ Use three dashes to create a dividing line between sections.
 
 ---
 
+## Font Size Override
+
+Override the global font size for specific sections of text using size tags.
+
+### Syntax
+```
+[size=X%]Your text here[/size]
+```
+
+Where X is the percentage of screen width (e.g., 10 for 10%, 15 for 15%)
+
+### Examples
+```
+[size=10%]**SUPER SALE**[/size]
+Normal sized text here
+
+[size=8%]
+**Today's Special**
+Big text for the whole section
+[/size]
+```
+
+**Note:** Size tags work across multiple lines until you close them with `[/size]`
+
+---
+
 ## Complete Menu Example
 
 ```markdown
