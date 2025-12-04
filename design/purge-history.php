@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$historyDir = __DIR__ . '/history';
+$historyDir = __DIR__ . '/../history';
 
 if (!is_dir($historyDir)) {
     echo json_encode([
@@ -34,7 +34,7 @@ foreach ($files as $file) {
 }
 
 // Log the purge
-$logFile = __DIR__ . '/logs/history.log';
+$logFile = __DIR__ . '/../logs/history.log';
 $logDir = dirname($logFile);
 if (!is_dir($logDir)) {
     mkdir($logDir, 0775, true);
