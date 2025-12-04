@@ -158,8 +158,8 @@ update_file() {
   
   TOTAL_FILES=$((TOTAL_FILES + 1))
   
-  # Download from GitHub
-  if ! curl -fsSL "$remote_url" -o "$temp_file" 2>/dev/null; then
+  # Download from GitHub with cache busting
+  if ! curl -fsSL -H "Cache-Control: no-cache" "$remote_url?_=$(date +%s)" -o "$temp_file" 2>/dev/null; then
     log_warning "Could not download: $file_path (may not exist in repo)"
     FAILED_FILES=$((FAILED_FILES + 1))
     return 1
