@@ -203,23 +203,10 @@
       fetch('../config.json')
         .then(r => r.ok ? r.json() : {})
         .then(cfg => {
-          // Populate font dropdown from config.availableFonts
-          // If not present, use default font list
+          // Populate font dropdown ONLY from config.availableFonts
           const fonts = cfg.availableFonts || {
-            "Comic Sans": "'Comic Sans MS', 'Marker Felt', 'Apple Chancery', cursive",
-            "Chalkboard": "'Chalkboard', 'Chalkboard SE', cursive",
-            "Chalkduster": "'Chalkduster', cursive",
-            "Arial": "Arial, sans-serif",
-            "Helvetica": "'Helvetica Neue', Helvetica, sans-serif",
-            "Georgia": "Georgia, serif",
-            "Times New Roman": "'Times New Roman', Times, serif",
-            "Courier New": "'Courier New', monospace",
-            "Verdana": "Verdana, sans-serif",
-            "Trebuchet MS": "'Trebuchet MS', sans-serif",
-            "Lucida Console": "'Lucida Console', monospace",
-            "Impact": "Impact, fantasy",
-            "Palatino": "'Palatino Linotype', 'Book Antiqua', Palatino, serif",
-            "Garamond": "Garamond, serif"
+            "Lato": "Lato, sans-serif",
+            "DejaVu Sans": "'DejaVu Sans', sans-serif"
           };
           
           fontSelect.innerHTML = '';
@@ -320,29 +307,7 @@
       fetch('../config.json')
         .then(r => r.ok ? r.json() : {})
         .then(existingConfig => {
-          // Ensure availableFonts exists with all default fonts including chalkboard
-          const defaultFonts = {
-            "Comic Sans": "'Comic Sans MS', 'Marker Felt', 'Apple Chancery', cursive",
-            "Chalkboard": "'Chalkboard', 'Chalkboard SE', cursive",
-            "Chalkduster": "'Chalkduster', cursive",
-            "Arial": "Arial, sans-serif",
-            "Helvetica": "'Helvetica Neue', Helvetica, sans-serif",
-            "Georgia": "Georgia, serif",
-            "Times New Roman": "'Times New Roman', Times, serif",
-            "Courier New": "'Courier New', monospace",
-            "Verdana": "Verdana, sans-serif",
-            "Trebuchet MS": "'Trebuchet MS', sans-serif",
-            "Lucida Console": "'Lucida Console', monospace",
-            "Impact": "Impact, fantasy",
-            "Palatino": "'Palatino Linotype', 'Book Antiqua', Palatino, serif",
-            "Garamond": "Garamond, serif"
-          };
-          
-          // Merge existing availableFonts with defaults to add any missing fonts
-          const mergedFonts = {
-            ...defaultFonts,
-            ...(existingConfig.availableFonts || {})
-          };
+          // Don't merge or modify availableFonts - keep what's in config.json
           
           const updatedConfig = {
             ...existingConfig,
@@ -353,8 +318,8 @@
             headerSizePercent: parseFloat(headerSizeInput.value),
             bgBrightness: parseFloat(bgBrightnessInput.value) / 100,
             showClock: showClockCheckbox.checked,
-            clock24Hour: clock24HourCheckbox.checked,
-            availableFonts: mergedFonts
+            clock24Hour: clock24HourCheckbox.checked
+            // Keep existing availableFonts from config.json
           };
 
           // Save config.json
