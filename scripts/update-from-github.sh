@@ -131,6 +131,9 @@ declare -a UPDATE_FILES=(
   "bg/index.php"
   "status.php"
   "check-updates.php"
+  "apply-updates.php"
+  "restart-server.php"
+  "create-backup.php"
   "save-menu-history.php"
   "get-menu-history.php"
   "scripts/backup.sh"
@@ -139,6 +142,7 @@ declare -a UPDATE_FILES=(
   "permissions.sh"
   "setup-kiosk.sh"
   "create-webdav-user.sh"
+  "sudoers-314sign"
 )
 
 # Optional documentation files (won't fail if missing)

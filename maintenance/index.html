@@ -245,6 +245,9 @@
         <button class="action-button success" onclick="checkUpdates()">
           <span>📥</span> Check Updates
         </button>
+        <button class="action-button success" onclick="confirmApplyUpdates()" id="applyUpdatesBtn" style="display:none">
+          <span>⬇️</span> Apply Updates
+        </button>
         <button class="action-button warning" onclick="reloadKiosk()">
           <span>↻</span> Reload Kiosk
         </button>
@@ -376,11 +379,16 @@
               data.files.forEach(file => {
                 logMessage('  - ' + file, 'info');
               });
-              logMessage('Run: sudo /var/www/html/scripts/update-from-github.sh --backup', 'info');
               showToast(data.files.length + ' updates found!', 'warning');
+              // Show Apply Updates button
+              const applyBtn = document.getElementById('applyUpdatesBtn');
+              if (applyBtn) applyBtn.style.display = 'flex';
             } else {
               logMessage('✓ ' + data.message, 'success');
               showToast('System up to date', 'success');
+              // Hide Apply Updates button
+              const applyBtn = document.getElementById('applyUpdatesBtn');
+              if (applyBtn) applyBtn.style.display = 'none';
             }
             
             // Show raw output if available
@@ -401,6 +409,76 @@
         logMessage('Update check failed: ' + error.message, 'error');
         logMessage('Run manually: sudo /var/www/html/scripts/update-from-github.sh --dry-run', 'info');
         showToast('Check failed - run manually', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+      }
+    }
+    
+    // Apply updates with confirmation
+    function confirmApplyUpdates() {
+      if (!confirm('Apply available updates?\n\nA backup will be created automatically before updating.\n\nThe kiosk will reload after updates are applied.')) {
+        return;
+      }
+      applyUpdates();
+    }
+    
+    // Apply updates from GitHub
+    async function applyUpdates() {
+      const btn = event.target.closest('button');
+      const originalHTML = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Updating...';
+      
+      logMessage('Applying updates from GitHub...', 'info');
+      logMessage('This may take 30-60 seconds...', 'info');
+      
+      try {
+        const response = await fetch('../apply-updates.php');
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (data.success) {
+            logMessage('✓ Updates applied successfully', 'success');
+            if (data.backup_created) {
+              logMessage('✓ Backup created before update', 'success');
+            }
+            if (data.files_updated > 0) {
+              logMessage('✓ Updated ' + data.files_updated + ' file(s)', 'success');
+            }
+            
+            // Show output
+            if (data.output) {
+              logMessage('--- Update Output ---', 'info');
+              logMessage(data.output, 'info');
+            }
+            
+            showToast('Updates applied! Reloading...', 'success');
+            
+            // Hide Apply Updates button
+            btn.style.display = 'none';
+            
+            // Trigger kiosk reload after short delay
+            setTimeout(() => {
+              reloadKiosk();
+            }, 2000);
+          } else {
+            logMessage('✗ Update failed: ' + (data.error || data.message), 'error');
+            if (data.output) {
+              logMessage('--- Error Output ---', 'error');
+              logMessage(data.output, 'error');
+            }
+            showToast('Update failed', 'error');
+          }
+        } else {
+          logMessage('Update endpoint returned HTTP ' + response.status, 'error');
+          showToast('Update failed', 'error');
+        }
+        
+      } catch (error) {
+        logMessage('Update failed: ' + error.message, 'error');
+        showToast('Update failed', 'error');
       } finally {
         btn.disabled = false;
         btn.innerHTML = originalHTML;
@@ -432,15 +510,59 @@
       }
     }
     
-    // Restart server (requires SSH or manual action)
-    function restartServer() {
-      if (!confirm('Restart the server? This will briefly disconnect all users.\n\nThis action requires SSH access. Continue?')) {
+    // Restart server
+    async function restartServer() {
+      if (!confirm('Restart the web server?\n\nThis will briefly disconnect all users and reload this page.\n\nContinue?')) {
         return;
       }
       
-      logMessage('Server restart requires manual action', 'warning');
-      logMessage('Run: sudo systemctl restart lighttpd', 'info');
-      showToast('Manual restart required via SSH', 'info');
+      const btn = event.target.closest('button');
+      const originalHTML = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Restarting...';
+      
+      logMessage('Restarting web server...', 'warning');
+      
+      try {
+        const response = await fetch('../restart-server.php');
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (data.success) {
+            logMessage('✓ Server restarted successfully', 'success');
+            showToast('Server restarted! Reloading...', 'success');
+            
+            // Reload page after short delay
+            setTimeout(() => {
+              location.reload();
+            }, 2000);
+          } else {
+            logMessage('✗ Restart failed: ' + (data.error || data.message), 'error');
+            if (data.output) {
+              logMessage(data.output, 'error');
+            }
+            
+            // If sudo permission issue, show instructions
+            if (data.error && data.error.includes('sudo')) {
+              logMessage('To enable web restart, add this to /etc/sudoers.d/www-data:', 'info');
+              logMessage('www-data ALL=(ALL) NOPASSWD: /bin/systemctl restart lighttpd', 'info');
+            }
+            
+            showToast('Restart failed - use SSH', 'error');
+          }
+        } else {
+          throw new Error('HTTP ' + response.status);
+        }
+        
+      } catch (error) {
+        logMessage('Restart failed: ' + error.message, 'error');
+        logMessage('Use SSH: sudo systemctl restart lighttpd', 'info');
+        showToast('Use SSH to restart', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+      }
     }
     
     // Purge all history
@@ -494,14 +616,47 @@
       
       logMessage('Creating backup...', 'info');
       
-      // Note: This requires the backup script to be accessible via PHP endpoint
-      // For now, show instructions
-      logMessage('Backup requires manual action', 'warning');
-      logMessage('Run: ./scripts/backup.sh', 'info');
-      showToast('Manual backup required via SSH', 'info');
-      
-      btn.disabled = false;
-      btn.innerHTML = originalHTML;
+      try {
+        const response = await fetch('../create-backup.php');
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (data.success) {
+            logMessage('✓ Backup created successfully', 'success');
+            if (data.file_count > 0) {
+              logMessage('✓ Backed up ' + data.file_count + ' files', 'success');
+            }
+            if (data.backup_location) {
+              logMessage('✓ Location: ' + data.backup_location, 'success');
+            }
+            
+            // Show output if available
+            if (data.output) {
+              logMessage('--- Backup Output ---', 'info');
+              logMessage(data.output, 'info');
+            }
+            
+            showToast('Backup created!', 'success');
+          } else {
+            logMessage('✗ Backup failed: ' + (data.error || data.message), 'error');
+            if (data.output) {
+              logMessage(data.output, 'error');
+            }
+            showToast('Backup failed', 'error');
+          }
+        } else {
+          throw new Error('HTTP ' + response.status);
+        }
+        
+      } catch (error) {
+        logMessage('Backup failed: ' + error.message, 'error');
+        logMessage('Use SSH: /var/www/html/scripts/backup.sh', 'info');
+        showToast('Backup failed', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+      }
     }
     
     // Load health on page load

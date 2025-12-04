@@ -50,6 +50,11 @@ sudo chmod 755 "$WEB_ROOT/design/upload-bg.php" 2>/dev/null || true
 sudo chmod 755 "$WEB_ROOT/design/purge-history.php" 2>/dev/null || true
 sudo chmod 755 "$WEB_ROOT/status.php" 2>/dev/null || true
 sudo chmod 755 "$WEB_ROOT/check-updates.php" 2>/dev/null || true
+sudo chmod 755 "$WEB_ROOT/apply-updates.php" 2>/dev/null || true
+sudo chmod 755 "$WEB_ROOT/restart-server.php" 2>/dev/null || true
+sudo chmod 755 "$WEB_ROOT/create-backup.php" 2>/dev/null || true
+sudo chmod 755 "$WEB_ROOT/save-menu-history.php" 2>/dev/null || true
+sudo chmod 755 "$WEB_ROOT/get-menu-history.php" 2>/dev/null || true
 
 # Make all scripts in scripts/ directory executable
 if [ -d "$WEB_ROOT/scripts" ]; then

@@ -164,6 +164,39 @@ else
   echo "Basic permissions set"
 fi
 
+# === 5b. Configure sudo access for maintenance actions ===
+echo ""
+echo "Configuring sudo access for web-based maintenance..."
+
+# Check if sudoers file exists in temp directory
+if [ -f "$TEMP_DIR/314Sign/sudoers-314sign" ]; then
+  # Copy to /etc/sudoers.d/
+  sudo cp "$TEMP_DIR/314Sign/sudoers-314sign" /etc/sudoers.d/314sign
+  sudo chmod 0440 /etc/sudoers.d/314sign
+  
+  # Validate the sudoers file
+  if sudo visudo -cf /etc/sudoers.d/314sign; then
+    echo "✓ Sudo access configured for maintenance actions"
+    echo "  - Web interface can now restart server and apply updates"
+  else
+    echo "⚠ Sudoers file validation failed - removing invalid file"
+    sudo rm -f /etc/sudoers.d/314sign
+  fi
+elif [ -f "/var/www/html/sudoers-314sign" ]; then
+  # Fallback if already installed
+  sudo cp /var/www/html/sudoers-314sign /etc/sudoers.d/314sign
+  sudo chmod 0440 /etc/sudoers.d/314sign
+  
+  if sudo visudo -cf /etc/sudoers.d/314sign; then
+    echo "✓ Sudo access configured from existing file"
+  else
+    sudo rm -f /etc/sudoers.d/314sign
+  fi
+else
+  echo "⚠ sudoers-314sign not found - maintenance actions will require SSH"
+  echo "  To enable later, copy sudoers-314sign to /etc/sudoers.d/314sign"
+fi
+
 # === 6. Configure lighttpd ===
 echo ""
 echo "Configuring lighttpd..."
