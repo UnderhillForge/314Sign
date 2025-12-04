@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>System Maintenance</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      overscroll-behavior: none;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 1rem;
+      gap: 1rem;
+      padding-top: max(1rem, env(safe-area-inset-top));
+      padding-bottom: max(1rem, env(safe-area-inset-bottom));
+      overflow-y: auto;
+    }
+    h1 {
+      font-size: 1.8rem;
+      color: #e0e0e0;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    
+    .section {
+      background: #2d2d2d;
+      padding: 1rem;
+      border-radius: 12px;
+      flex-shrink: 0;
+    }
+    
+    .section-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #e0e0e0;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid #3a3a3a;
+    }
+    
+    .info-grid {
+      display: grid;
+      gap: 0.75rem;
+    }
+    
+    .info-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem;
+      background: #1a1a1a;
+      border-radius: 8px;
+    }
+    
+    .info-label {
+      font-weight: 600;
+      color: #b0b0b0;
+      font-size: 0.9rem;
+    }
+    
+    .info-value {
+      font-weight: 600;
+      color: #4a9eff;
+      font-size: 0.95rem;
+      text-align: right;
+    }
+    
+    .info-value.good { color: #36c770; }
+    .info-value.warning { color: #ffa726; }
+    .info-value.error { color: #ef5350; }
+    
+    .action-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+    
+    @media (min-width: 768px) {
+      .action-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    
+    .action-button {
+      padding: 1rem;
+      font-size: 1rem;
+      font-weight: 600;
+      color: white;
+      background: #4a9eff;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    
+    .action-button:active { background: #3a8edd; }
+    .action-button:disabled {
+      background: #3a3a3a;
+      color: #666;
+      cursor: not-allowed;
+    }
+    
+    .action-button.danger {
+      background: #dc3545;
+    }
+    .action-button.danger:active { background: #c82333; }
+    
+    .action-button.success {
+      background: #28a745;
+    }
+    .action-button.success:active { background: #218838; }
+    
+    .action-button.warning {
+      background: #ffa726;
+    }
+    .action-button.warning:active { background: #fb8c00; }
+    
+    .log-output {
+      background: #1a1a1a;
+      border: 2px solid #3a3a3a;
+      border-radius: 8px;
+      padding: 1rem;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 0.85rem;
+      color: #d0d0d0;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      display: none;
+    }
+    
+    .log-output.visible {
+      display: block;
+    }
+    
+    .log-output .log-success { color: #36c770; }
+    .log-output .log-error { color: #ef5350; }
+    .log-output .log-warning { color: #ffa726; }
+    .log-output .log-info { color: #4a9eff; }
+    
+    .back-button {
+      padding: 0.75rem 1.5rem;
+      background: #6c757d;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      text-align: center;
+    }
+    
+    .back-button:active { background: #5a6268; }
+    
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: max(1.25rem, env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.85);
+      color: #fff;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      font-size: 1rem;
+      min-width: 160px;
+      max-width: 92%;
+      text-align: center;
+      z-index: 9999;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+      display: none;
+    }
+    
+    .version {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #666;
+      padding: 1rem 0;
+    }
+    
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 System Maintenance</h1>
+    
+    <div class="section">
+      <div class="section-title">System Health</div>
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="info-label">Server Status</span>
+          <span class="info-value" id="serverStatus">Checking...</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Version</span>
+          <span class="info-value" id="versionInfo">0.9.1</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Disk Space</span>
+          <span class="info-value" id="diskSpace">Checking...</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Uptime</span>
+          <span class="info-value" id="uptime">Checking...</span>
+        </div>
+      </div>
+      <div id="healthLog" class="log-output"></div>
+    </div>
+    
+    <div class="section">
+      <div class="section-title">System Actions</div>
+      <div class="action-grid">
+        <button class="action-button" onclick="checkHealth()">
+          <span>🏥</span> Check Health
+        </button>
+        <button class="action-button success" onclick="checkUpdates()">
+          <span>📥</span> Check Updates
+        </button>
+        <button class="action-button warning" onclick="reloadKiosk()">
+          <span>↻</span> Reload Kiosk
+        </button>
+        <button class="action-button danger" onclick="restartServer()">
+          <span>🔄</span> Restart Server
+        </button>
+      </div>
+    </div>
+    
+    <div class="section">
+      <div class="section-title">Data Management</div>
+      <div class="action-grid">
+        <button class="action-button danger" onclick="confirmPurgeHistory()">
+          <span>🗑️</span> Clear All History
+        </button>
+        <button class="action-button" onclick="createBackup()">
+          <span>💾</span> Create Backup
+        </button>
+      </div>
+    </div>
+    
+    <div style="text-align: center; margin-top: auto;">
+      <a href="../start/" class="back-button">← Back to Menu</a>
+    </div>
+    
+    <div class="version">314Sign v0.9.1 | © 2025 J Stekervetz | CC BY-NC 4.0</div>
+  </div>
+  
+  <div id="toast" class="toast" aria-live="polite" role="status"></div>
+
+  <script>
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.style.display = 'block';
+      
+      if (type === 'success') {
+        toast.style.background = 'rgba(40, 167, 69, 0.95)';
+      } else if (type === 'error') {
+        toast.style.background = 'rgba(220, 53, 69, 0.95)';
+      } else {
+        toast.style.background = 'rgba(0, 0, 0, 0.85)';
+      }
+      
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 3000);
+    }
+    
+    function logMessage(message, type = 'info') {
+      const log = document.getElementById('healthLog');
+      const timestamp = new Date().toLocaleTimeString();
+      const className = 'log-' + type;
+      const line = `[${timestamp}] ${message}\n`;
+      
+      const span = document.createElement('span');
+      span.className = className;
+      span.textContent = line;
+      
+      log.appendChild(span);
+      log.classList.add('visible');
+      log.scrollTop = log.scrollHeight;
+    }
+    
+    // Check system health
+    async function checkHealth() {
+      logMessage('Checking system health...', 'info');
+      
+      try {
+        const response = await fetch('../status.php');
+        if (!response.ok) throw new Error('Status check failed');
+        
+        const data = await response.json();
+        
+        // Update UI
+        document.getElementById('serverStatus').textContent = 'Online';
+        document.getElementById('serverStatus').className = 'info-value good';
+        
+        document.getElementById('versionInfo').textContent = data.version || '0.9.1';
+        
+        if (data.uptime) {
+          document.getElementById('uptime').textContent = data.uptime;
+        }
+        
+        if (data.disk_space) {
+          const diskPct = parseFloat(data.disk_space.percent);
+          const diskEl = document.getElementById('diskSpace');
+          diskEl.textContent = data.disk_space.percent;
+          
+          if (diskPct > 90) {
+            diskEl.className = 'info-value error';
+          } else if (diskPct > 75) {
+            diskEl.className = 'info-value warning';
+          } else {
+            diskEl.className = 'info-value good';
+          }
+        }
+        
+        logMessage('✓ System health check complete', 'success');
+        showToast('System is healthy', 'success');
+        
+      } catch (error) {
+        logMessage('✗ Health check failed: ' + error.message, 'error');
+        showToast('Health check failed', 'error');
+        
+        document.getElementById('serverStatus').textContent = 'Error';
+        document.getElementById('serverStatus').className = 'info-value error';
+      }
+    }
+    
+    // Check for updates
+    async function checkUpdates() {
+      const btn = event.target.closest('button');
+      const originalHTML = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Checking...';
+      
+      logMessage('Checking for updates...', 'info');
+      
+      try {
+        // Try to run update script with --dry-run
+        const response = await fetch('../check-updates.php');
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (data.updates_available) {
+            logMessage('Updates available: ' + data.files.length + ' files', 'warning');
+            showToast(data.files.length + ' updates available', 'success');
+          } else {
+            logMessage('System is up to date', 'success');
+            showToast('No updates available', 'success');
+          }
+        } else {
+          logMessage('Update check endpoint not available', 'warning');
+          showToast('Run: scripts/update-from-github.sh --dry-run', 'info');
+        }
+        
+      } catch (error) {
+        logMessage('Check manually: scripts/update-from-github.sh --dry-run', 'info');
+        showToast('Manual check required', 'info');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+      }
+    }
+    
+    // Reload kiosk display
+    async function reloadKiosk() {
+      logMessage('Triggering kiosk reload...', 'info');
+      
+      try {
+        const token = Date.now().toString();
+        const response = await fetch('../reload.txt', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'text/plain' },
+          body: token
+        });
+        
+        if (response.ok) {
+          logMessage('✓ Kiosk reload triggered', 'success');
+          showToast('Kiosk will reload in ~10 seconds', 'success');
+        } else {
+          throw new Error('Failed to write reload token');
+        }
+        
+      } catch (error) {
+        logMessage('✗ Failed to trigger reload: ' + error.message, 'error');
+        showToast('Reload trigger failed', 'error');
+      }
+    }
+    
+    // Restart server (requires SSH or manual action)
+    function restartServer() {
+      if (!confirm('Restart the server? This will briefly disconnect all users.\n\nThis action requires SSH access. Continue?')) {
+        return;
+      }
+      
+      logMessage('Server restart requires manual action', 'warning');
+      logMessage('Run: sudo systemctl restart lighttpd', 'info');
+      showToast('Manual restart required via SSH', 'info');
+    }
+    
+    // Purge all history
+    function confirmPurgeHistory() {
+      if (!confirm('Delete ALL menu history?\n\nThis action cannot be undone!')) {
+        return;
+      }
+      
+      purgeHistory();
+    }
+    
+    async function purgeHistory() {
+      const btn = event.target.closest('button');
+      const originalHTML = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Deleting...';
+      
+      logMessage('Purging all menu history...', 'warning');
+      
+      try {
+        const response = await fetch('../design/purge-history.php', {
+          method: 'POST'
+        });
+        
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          logMessage('✓ Deleted ' + data.deleted + ' history files', 'success');
+          showToast('History cleared: ' + data.deleted + ' files', 'success');
+        } else {
+          throw new Error(data.error || 'Unknown error');
+        }
+        
+      } catch (error) {
+        logMessage('✗ Failed to purge history: ' + error.message, 'error');
+        showToast('Failed to clear history', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+      }
+    }
+    
+    // Create backup
+    async function createBackup() {
+      const btn = event.target.closest('button');
+      const originalHTML = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Creating...';
+      
+      logMessage('Creating backup...', 'info');
+      
+      // Note: This requires the backup script to be accessible via PHP endpoint
+      // For now, show instructions
+      logMessage('Backup requires manual action', 'warning');
+      logMessage('Run: ./scripts/backup.sh', 'info');
+      showToast('Manual backup required via SSH', 'info');
+      
+      btn.disabled = false;
+      btn.innerHTML = originalHTML;
+    }
+    
+    // Load health on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      checkHealth();
+    });
+  </script>
+</body>
+</html>

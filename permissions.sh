@@ -41,11 +41,15 @@ sudo chmod 664 "$WEB_ROOT/menus/closed.txt" 2>/dev/null || true
 sudo chmod 664 "$WEB_ROOT/edit/index.html" 2>/dev/null || true
 sudo chmod 664 "$WEB_ROOT/design/index.html" 2>/dev/null || true
 sudo chmod 664 "$WEB_ROOT/rules/index.html" 2>/dev/null || true
+sudo chmod 664 "$WEB_ROOT/maintenance/index.html" 2>/dev/null || true
+sudo chmod 664 "$WEB_ROOT/start/index.html" 2>/dev/null || true
 
 # PHP scripts should be executable
 sudo chmod 755 "$WEB_ROOT/bg/index.php" 2>/dev/null || true
 sudo chmod 755 "$WEB_ROOT/design/upload-bg.php" 2>/dev/null || true
+sudo chmod 755 "$WEB_ROOT/design/purge-history.php" 2>/dev/null || true
 sudo chmod 755 "$WEB_ROOT/status.php" 2>/dev/null || true
+sudo chmod 755 "$WEB_ROOT/check-updates.php" 2>/dev/null || true
 
 # Make all scripts in scripts/ directory executable
 if [ -d "$WEB_ROOT/scripts" ]; then

@@ -224,7 +224,7 @@ $HTTP["url"] =~ "^/menus/(breakfast|lunch|dinner|closed)\.txt$" {
 }
 
 # Enable WebDAV for editor pages
-$HTTP["url"] =~ "^/(edit|design|rules)/index\.html$" {
+$HTTP["url"] =~ "^/(edit|design|rules|maintenance|start)/index\.html$" {
     webdav.activate = "enable"
     webdav.is-readonly = "disable"
 }
@@ -284,7 +284,7 @@ echo "Core files found: $FINAL_COUNT"
 
 # Check critical files
 MISSING_FILES=()
-for file in "index.html" "config.json" "rules.json" "edit/index.html" "design/index.html" "rules/index.html" "status.php"; do
+for file in "index.html" "config.json" "rules.json" "edit/index.html" "design/index.html" "rules/index.html" "maintenance/index.html" "start/index.html" "status.php"; do
   if [ ! -f "/var/www/html/$file" ]; then
     MISSING_FILES+=("$file")
   fi
