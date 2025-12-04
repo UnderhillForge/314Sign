@@ -6,6 +6,14 @@
 
 header('Content-Type: application/json');
 
+// Allow both GET and POST requests for easier testing
+// Browser JS uses POST, curl/testing can use GET
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'GET') {
+    http_response_code(405);
+    echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+    exit;
+}
+
 // Security: Only allow from localhost/same host
 $allowed_hosts = ['localhost', '127.0.0.1', $_SERVER['SERVER_NAME']];
 if (!in_array($_SERVER['REMOTE_ADDR'], ['127.0.0.1', '::1']) && 
