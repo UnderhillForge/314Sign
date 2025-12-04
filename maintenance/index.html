@@ -332,10 +332,10 @@
           document.getElementById('uptime').textContent = data.uptime;
         }
         
-        if (data.disk_space) {
-          const diskPct = parseFloat(data.disk_space.percent);
+        if (data.disk) {
+          const diskPct = parseFloat(data.disk.used_percent);
           const diskEl = document.getElementById('diskSpace');
-          diskEl.textContent = data.disk_space.percent;
+          diskEl.textContent = data.disk.used_percent + '%';
           
           if (diskPct > 90) {
             diskEl.className = 'info-value error';
