@@ -214,6 +214,31 @@
     // --------------------------------------------------------------------
     // 1. Load config.json (once)
     // --------------------------------------------------------------------
+    
+    // First, load custom fonts from fonts/ directory
+    fetch('fonts/index.php')
+      .then(r => r.ok ? r.json() : [])
+      .then(customFonts => {
+        // Generate @font-face rules for custom fonts
+        if (customFonts.length > 0) {
+          let fontFaceCSS = '';
+          customFonts.forEach(font => {
+            fontFaceCSS += `
+@font-face {
+  font-family: '${font.filename}';
+  src: url('fonts/${font.file}') format('truetype');
+  font-display: swap;
+}`;
+          });
+          const style = document.createElement('style');
+          style.textContent = fontFaceCSS;
+          document.head.appendChild(style);
+          console.log('[Fonts] Loaded', customFonts.length, 'custom fonts');
+        }
+      })
+      .catch(err => console.warn('[Fonts] Could not load custom fonts:', err));
+    
+    // Then load config
     fetch('config.json?' + Date.now(), {
       cache: 'no-store',
       headers: { 'Cache-Control': 'no-cache' }
