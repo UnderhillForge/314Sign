@@ -129,6 +129,8 @@ declare -a UPDATE_FILES=(
   "start/index.html"
   "maintenance/index.html"
   "bg/index.php"
+  "fonts/index.php"
+  "fonts/.htaccess"
   "status.php"
   "check-updates.php"
   "apply-updates.php"
@@ -154,6 +156,7 @@ declare -a DOC_FILES=(
   "requirements.md"
   "contributing.md"
   "LICENSE"
+  "fonts/README.md"
   ".github/copilot-instructions.md"
 )
 
@@ -255,6 +258,42 @@ for i in {1..9}; do
     fi
   fi
 done
+
+echo ""
+
+# === Update custom fonts from fonts/ directory ===
+log_info "Checking for custom font updates..."
+FONTS_URL="https://api.github.com/repos/$GITHUB_REPO/contents/fonts"
+if FONTS_LIST=$(curl -fsSL "$FONTS_URL" 2>/dev/null); then
+  FONT_COUNT=$(echo "$FONTS_LIST" | grep -o '"name":.*\.ttf"' | wc -l)
+  if [[ $FONT_COUNT -gt 0 ]]; then
+    log_info "Found $FONT_COUNT font files in repository"
+    echo "$FONTS_LIST" | grep -o '"name":"[^"]*\.ttf"' | sed 's/"name":"//;s/"//' | while read -r font_file; do
+      local_font="$WEB_ROOT/fonts/$font_file"
+      remote_url="$GITHUB_RAW_BASE/fonts/$font_file"
+      
+      if [[ ! -f "$local_font" ]]; then
+        log_info "New font: $font_file"
+        if [[ "$DRY_RUN" == false ]]; then
+          mkdir -p "$WEB_ROOT/fonts"
+          if curl -fsSL "$remote_url" -o "$local_font" 2>/dev/null; then
+            log_success "Downloaded: $font_file"
+            UPDATED_FILES=$((UPDATED_FILES + 1))
+          else
+            log_warning "Failed to download: $font_file"
+            FAILED_FILES=$((FAILED_FILES + 1))
+          fi
+        else
+          echo "  [DRY RUN] Would download: $font_file"
+        fi
+      fi
+    done
+  else
+    log_info "No custom fonts found in repository"
+  fi
+else
+  log_warning "Could not check fonts directory (repo may not have fonts/)"
+fi
 
 echo ""
 
