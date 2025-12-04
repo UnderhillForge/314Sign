@@ -73,6 +73,12 @@
       <label for="headerSize">4. Header Size (% of screen): <span id="headerSizeValue">5%</span></label>
       <input type="range" id="headerSize" min="5" max="20" value="5" step="0.5" style="width: 100%" />
     </div>
+    
+    <div class="section">
+      <label for="bgBrightness">5. Background Brightness: <span id="bgBrightnessValue">100%</span></label>
+      <input type="range" id="bgBrightness" min="20" max="150" value="100" step="5" style="width: 100%" />
+      <small style="color: #666; display: block; margin-top: 0.25rem;">Lower values darken, higher values brighten</small>
+    </div>
 
     <div class="section">
       <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
@@ -103,6 +109,8 @@
     const headerTextInput = document.getElementById('headerText');
     const headerSizeInput = document.getElementById('headerSize');
     const headerSizeValue = document.getElementById('headerSizeValue');
+    const bgBrightnessInput = document.getElementById('bgBrightness');
+    const bgBrightnessValue = document.getElementById('bgBrightnessValue');
     const showClockCheckbox = document.getElementById('showClock');
     const clock24HourCheckbox = document.getElementById('clock24Hour');
     const status = document.getElementById('status');
@@ -110,6 +118,11 @@
     // Update header size display
     headerSizeInput.addEventListener('input', () => {
       headerSizeValue.textContent = headerSizeInput.value + '%';
+    });
+    
+    // Update background brightness display
+    bgBrightnessInput.addEventListener('input', () => {
+      bgBrightnessValue.textContent = bgBrightnessInput.value + '%';
     });
 
   let backgrounds = [];        // Filled from server
@@ -244,6 +257,12 @@
           if (cfg.clock24Hour !== false) {
             clock24HourCheckbox.checked = true;
           }
+          
+          // Load background brightness
+          if (Number.isFinite(cfg.bgBrightness)) {
+            bgBrightnessInput.value = cfg.bgBrightness * 100;
+            bgBrightnessValue.textContent = Math.round(cfg.bgBrightness * 100) + '%';
+          }
         })
         .catch(err => {
           console.error('Failed to load config:', err);
@@ -295,6 +314,7 @@
             font: fontSelect.value,
             headerText: headerTextInput.value.trim() || 'Specials',
             headerSizePercent: parseFloat(headerSizeInput.value),
+            bgBrightness: parseFloat(bgBrightnessInput.value) / 100,
             showClock: showClockCheckbox.checked,
             clock24Hour: clock24HourCheckbox.checked,
             availableFonts: existingConfig.availableFonts || defaultFonts

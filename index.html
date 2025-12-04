@@ -251,6 +251,13 @@
               header.style.fontSize = 'clamp(1.5rem, ' + cfg.headerSizePercent + 'vw, 8rem)';
             }
           }
+          
+          // Load and apply background brightness
+          if (Number.isFinite(cfg.bgBrightness)) {
+            document.body.style.filter = 'brightness(' + cfg.bgBrightness + ')';
+          } else {
+            document.body.style.filter = 'brightness(1)';
+          }
         }
       })
       .catch(() => console.warn('config.json missing – using defaults'))
@@ -309,6 +316,15 @@
               if (currentSize !== newSize) {
                 header.style.fontSize = newSize;
               }
+            }
+          }
+          
+          // Check if background brightness changed
+          if (Number.isFinite(cfg.bgBrightness)) {
+            const currentFilter = document.body.style.filter;
+            const newFilter = 'brightness(' + cfg.bgBrightness + ')';
+            if (currentFilter !== newFilter) {
+              document.body.style.filter = newFilter;
             }
           }
         })
