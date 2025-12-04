@@ -355,6 +355,10 @@
               return `<span style="font-size: ${percent}vw">${content}</span>`;
             });
             
+            // Check for alignment tags [center]...[/center] and [right]...[/right]
+            processedText = processedText.replace(/\[center\]([\s\S]*?)\[\/center\]/gi, '<div style="text-align: center">$1</div>');
+            processedText = processedText.replace(/\[right\]([\s\S]*?)\[\/right\]/gi, '<div style="text-align: right">$1</div>');
+            
             // Convert custom bullet syntax after color processing
             const withBullets = processedText.replace(/^- /gm, '• ');
             let html = marked.parse(withBullets);

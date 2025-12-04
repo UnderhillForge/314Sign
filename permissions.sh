@@ -23,6 +23,7 @@ sudo find "$WEB_ROOT" -type f -exec chmod 644 {} \;
 sudo chmod 775 "$WEB_ROOT/bg" 2>/dev/null || true
 sudo chmod 775 "$WEB_ROOT/menus" 2>/dev/null || true
 sudo chmod 775 "$WEB_ROOT/logs" 2>/dev/null || true
+sudo chmod 775 "$WEB_ROOT/history" 2>/dev/null || true
 
 # Editable files (need WebDAV write access)
 sudo chmod 664 "$WEB_ROOT/index.html" 2>/dev/null || true

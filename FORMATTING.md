@@ -107,6 +107,44 @@ Big text for the whole section
 
 ---
 
+## Text Alignment
+
+Center or right-align text using alignment tags.
+
+### Syntax
+```
+[center]Centered text[/center]
+[right]Right-aligned text[/right]
+```
+
+### Examples
+```
+[center]
+**Welcome to Our Restaurant**
+Open Daily 11am - 9pm
+[/center]
+
+[right]Prices subject to change[/right]
+```
+
+**Note:** Text is left-aligned by default. Alignment tags work across multiple lines.
+
+---
+
+## Emoji Support
+
+Add emoji directly in your menu text using the emoji toolbar buttons or copy-paste from your device:
+- 🍔 Burgers
+- 🍕 Pizza  
+- 🍗 Chicken
+- 🥗 Salads
+- 🍰 Desserts
+- ☕ Coffee
+- 🍺 Beer
+- 🍷 Wine
+
+---
+
 ## Complete Menu Example
 
 ```markdown

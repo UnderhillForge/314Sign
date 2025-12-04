@@ -265,6 +265,84 @@
       color: #666;
       flex-shrink: 0;
     }
+    /* History Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      z-index: 10000;
+      padding: 1rem;
+      overflow-y: auto;
+    }
+    .modal.active { display: flex; align-items: center; justify-content: center; }
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      max-width: 600px;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid #e9ecef;
+    }
+    .modal-header h3 { margin: 0; }
+    .close-modal {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #666;
+      padding: 0;
+      width: 2rem;
+      height: 2rem;
+    }
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem;
+      background: #f8f9fa;
+      border-radius: 6px;
+      gap: 1rem;
+    }
+    .history-info {
+      flex: 1;
+    }
+    .history-date {
+      font-weight: 600;
+      color: #333;
+    }
+    .history-meta {
+      font-size: 0.85rem;
+      color: #666;
+    }
+    .history-restore {
+      padding: 0.5rem 1rem;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .history-restore:active { background: #0056b3; }
     /* Toast styles (mobile friendly) */
     .toast {
       position: fixed;
@@ -307,6 +385,19 @@
       <button onclick="insertMarkdown('## ', '')" title="Heading">H2</button>
       <button onclick="insertMarkdown('- ', '')" title="Bullet list">• List</button>
       <button onclick="insertMarkdown('---\n', '')" title="Horizontal line">—</button>
+      <button onclick="insertMarkdown('[center]', '[/center]')" title="Center align">⬌ Center</button>
+      <button onclick="insertMarkdown('[right]', '[/right]')" title="Right align">⇥ Right</button>
+    </div>
+    <div class="toolbar">
+      <button onclick="insertEmoji('🍔')" title="Burger">🍔</button>
+      <button onclick="insertEmoji('🍕')" title="Pizza">🍕</button>
+      <button onclick="insertEmoji('🍗')" title="Chicken">🍗</button>
+      <button onclick="insertEmoji('🥗')" title="Salad">🥗</button>
+      <button onclick="insertEmoji('🍰')" title="Dessert">🍰</button>
+      <button onclick="insertEmoji('☕')" title="Coffee">☕</button>
+      <button onclick="insertEmoji('🍺')" title="Beer">🍺</button>
+      <button onclick="insertEmoji('🍷')" title="Wine">🍷</button>
+      <button onclick="showHistoryModal()" title="View History" style="margin-left: auto;">📜 History</button>
     </div>
     
     <!-- View toggle buttons -->
@@ -593,6 +684,16 @@
             // show toast notification
             if (window.showToast) showToast('Saved — kiosk updated');
             
+            // Save to history
+            const menuName = currentFile.replace('menus/', '').replace('.txt', '');
+            const formData = new FormData();
+            formData.append('menu', menuName);
+            formData.append('content', data);
+            fetch('../save-menu-history.php', {
+              method: 'POST',
+              body: formData
+            }).catch(() => {}); // Silent fail if history save fails
+            
             // Trigger kiosk reload
             const token = Date.now().toString();
             fetch('../reload.txt', {
@@ -627,6 +728,78 @@
     }
     window.addEventListener('resize', fixHeight);
     fixHeight();
+    
+    // Insert emoji at cursor
+    function insertEmoji(emoji) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      textarea.value = textarea.value.substring(0, start) + emoji + textarea.value.substring(end);
+      textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
+      textarea.focus();
+      updatePreview();
+      switchView('edit');
+    }
+    
+    // Show history modal
+    function showHistoryModal() {
+      const modal = document.getElementById('historyModal');
+      const historyList = document.getElementById('historyList');
+      modal.classList.add('active');
+      
+      // Get menu name from current file
+      const menuName = currentFile.replace('menus/', '').replace('.txt', '');
+      
+      // Load history
+      fetch(`../get-menu-history.php?action=list&menu=${menuName}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.history && data.history.length > 0) {
+            historyList.innerHTML = data.history.map(item => `
+              <div class="history-item">
+                <div class="history-info">
+                  <div class="history-date">${item.dayOfWeek}, ${item.date}</div>
+                  <div class="history-meta">${item.time.replace(/(..)(..)(..)/, '$1:$2:$3')}</div>
+                </div>
+                <button class="history-restore" onclick="restoreHistory('${item.filename}')">Restore</button>
+              </div>
+            `).join('');
+          } else {
+            historyList.innerHTML = '<p style="text-align: center; color: #666;">No history available for this menu</p>';
+          }
+        })
+        .catch(() => {
+          historyList.innerHTML = '<p style="text-align: center; color: #c00;">Failed to load history</p>';
+        });
+    }
+    
+    // Close history modal
+    function closeHistoryModal() {
+      document.getElementById('historyModal').classList.remove('active');
+    }
+    
+    // Restore from history
+    function restoreHistory(filename) {
+      if (!confirm('Restore this version? Current changes will be lost.')) return;
+      
+      fetch(`../get-menu-history.php?action=get&filename=${filename}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.content) {
+            textarea.value = data.content;
+            updatePreview();
+            closeHistoryModal();
+            showToast('History restored - remember to save!');
+          }
+        })
+        .catch(() => {
+          showToast('Failed to restore history', 2000);
+        });
+    }
+    
+    // Close modal on background click
+    document.getElementById('historyModal').addEventListener('click', (e) => {
+      if (e.target.id === 'historyModal') closeHistoryModal();
+    });
 
     // Toast helper
     (function(){
@@ -643,6 +816,20 @@
       };
     })();
   </script>
+  
+  <!-- History Modal -->
+  <div id="historyModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>📜 Menu History</h3>
+        <button class="close-modal" onclick="closeHistoryModal()">×</button>
+      </div>
+      <div id="historyList" class="history-list">
+        <p style="text-align: center; color: #666;">Loading...</p>
+      </div>
+    </div>
+  </div>
+  
   <div class="version">314Sign v0.9.1 | © 2025 J Stekervetz | CC BY-NC 4.0</div>
 </body>
 </html>
