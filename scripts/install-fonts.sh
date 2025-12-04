@@ -91,6 +91,35 @@ sudo mkdir -p "$FONT_DIR"
 wget -q https://github.com/google/fonts/raw/main/ofl/bangers/Bangers-Regular.ttf
 sudo mv Bangers-Regular.ttf "$FONT_DIR/"
 
+# Download and install Dancing Script (Google Font - elegant flowing script)
+echo "Installing Dancing Script (elegant script)..."
+FONT_DIR="/usr/share/fonts/truetype/dancingscript"
+sudo mkdir -p "$FONT_DIR"
+wget -q https://github.com/google/fonts/raw/main/ofl/dancingscript/DancingScript%5Bwght%5D.ttf -O DancingScript.ttf
+sudo mv DancingScript.ttf "$FONT_DIR/"
+
+# Download and install Satisfy (Google Font - casual flowing script)
+echo "Installing Satisfy (casual flowing script)..."
+FONT_DIR="/usr/share/fonts/truetype/satisfy"
+sudo mkdir -p "$FONT_DIR"
+wget -q https://github.com/google/fonts/raw/main/apache/satisfy/Satisfy-Regular.ttf
+sudo mv Satisfy-Regular.ttf "$FONT_DIR/"
+
+# Download and install Comic Neue (Open Source - modern comic book handwriting)
+echo "Installing Comic Neue (comic book handwriting)..."
+FONT_DIR="/usr/share/fonts/truetype/comicneue"
+sudo mkdir -p "$FONT_DIR"
+wget -q https://github.com/crozynski/comicneue/raw/master/Fonts/TTF/ComicNeue-Regular.ttf
+wget -q https://github.com/crozynski/comicneue/raw/master/Fonts/TTF/ComicNeue-Bold.ttf
+sudo mv ComicNeue-*.ttf "$FONT_DIR/"
+
+# Download and install Architects Daughter (Google Font - handwritten architectural)
+echo "Installing Architects Daughter (handwritten)..."
+FONT_DIR="/usr/share/fonts/truetype/architectsdaughter"
+sudo mkdir -p "$FONT_DIR"
+wget -q https://github.com/google/fonts/raw/main/ofl/architectsdaughter/ArchitectsDaughter-Regular.ttf
+sudo mv ArchitectsDaughter-Regular.ttf "$FONT_DIR/"
+
 # Refresh font cache
 fc-cache -f -v
 
@@ -98,20 +127,17 @@ echo ""
 echo "Fonts installed successfully!"
 echo ""
 echo "Available distinctive fonts:"
-fc-list | grep -iE "Permanent|Bebas|Shadows|Pacifico|Bangers|Caveat|Kalam|Indie|Comfortaa|Lato" | cut -d: -f2 | sort -u
-
-echo ""
-echo "All installed fonts:"
-fc-list | grep -iE "DejaVu|FreeSans|Liberation|Lato|Caveat|Kalam|Indie|Comfortaa|Quicksand|Permanent|Bebas|Shadows|Pacifico|Bangers" | cut -d: -f2 | sort -u
+fc-list | grep -iE "Permanent|Bebas|Shadows|Pacifico|Bangers|Caveat|Kalam|Indie|Dancing|Satisfy|Comic Neue|Architects|Lato" | cut -d: -f2 | sort -u
 
 echo ""
 echo "To use these fonts, select them in the design editor."
 echo "Recommended for restaurant menus:"
 echo "  - Bebas Neue (tall, bold, modern)"
 echo "  - Permanent Marker (bold marker style)"
-echo "  - Pacifico (retro script, fun)"
-echo "  - Bangers (comic book, energetic)"
+echo "  - Dancing Script (elegant flowing script)"
+echo "  - Satisfy (casual flowing script)"
+echo "  - Comic Neue (handwritten comic book)"
+echo "  - Architects Daughter (handwritten casual)"
 echo "  - Caveat (handwritten, casual)"
 echo "  - Shadows Into Light (casual handwriting)"
 echo "  - Lato (clean, modern)"
-echo "  - DejaVu Sans (professional)"
