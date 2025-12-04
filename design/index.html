@@ -292,7 +292,8 @@
           if (!r.ok) return r.text().then(t => Promise.reject('Config save failed: ' + (t || r.statusText)));
           return uploadImageIfNeeded();
         })
-      .then(() => generateIndexHTML())
+      // Skip generateIndexHTML - config.json changes are enough
+      // The live index.html reads config dynamically at runtime
       .then(() => {
         status.textContent = 'Saved! Kiosk updated.';
         // Show mobile-friendly toast as confirmation
