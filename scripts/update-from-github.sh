@@ -150,11 +150,14 @@ declare -a UPDATE_FILES=(
 
 # Optional documentation files (won't fail if missing)
 declare -a DOC_FILES=(
-  "readme.md"
-  "FORMATTING.md"
-  "troubleshooting.md"
-  "requirements.md"
-  "contributing.md"
+  "docs/readme.md"
+  "docs/FORMATTING.md"
+  "docs/troubleshooting.md"
+  "docs/requirements.md"
+  "docs/contributing.md"
+  "docs/file_structure.md"
+  "docs/diagnostic.html"
+  "docs/font-test.html"
   "LICENSE"
   "fonts/README.md"
   ".github/copilot-instructions.md"
