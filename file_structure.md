@@ -34,7 +34,7 @@
 │   └── closed.txt              # Closed message
 │
 ├── history/                    # Menu version history (7 days)
-│   └── [menu]_YYYY-MM-DD_Day_HHMMSS.txt
+│   └── [menu]_YYYY-MM-DD_Day.txt
 │
 ├── bg/                         # Background images
 │   ├── index.php               # Image list API

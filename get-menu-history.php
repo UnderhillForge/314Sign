@@ -31,13 +31,13 @@ if ($action === 'list') {
         $basename = basename($file, '.txt');
         $parts = explode('_', $basename);
         
-        if (count($parts) >= 4) {
+        // Format: MENUNAME_YYYY-MM-DD_DayOfWeek (3 parts)
+        if (count($parts) >= 3) {
             $history[] = [
                 'filename' => basename($file),
                 'menu' => $parts[0],
                 'date' => $parts[1],
                 'dayOfWeek' => $parts[2],
-                'time' => $parts[3],
                 'timestamp' => filemtime($file),
                 'size' => filesize($file)
             ];

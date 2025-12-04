@@ -914,15 +914,19 @@
         .then(r => r.json())
         .then(data => {
           if (data.history && data.history.length > 0) {
-            historyList.innerHTML = data.history.map(item => `
+            historyList.innerHTML = data.history.map(item => {
+              const lastModified = new Date(item.timestamp * 1000);
+              const timeStr = lastModified.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+              return `
               <div class="history-item">
                 <div class="history-info">
                   <div class="history-date">${item.dayOfWeek}, ${item.date}</div>
-                  <div class="history-meta">${item.time.replace(/(..)(..)(..)/, '$1:$2:$3')}</div>
+                  <div class="history-meta">Last saved: ${timeStr}</div>
                 </div>
                 <button class="history-restore" onclick="restoreHistory('${item.filename}')">Restore</button>
               </div>
-            `).join('');
+            `;
+            }).join('');
           } else {
             historyList.innerHTML = '<p style="text-align: center; color: #666;">No history available for this menu</p>';
           }

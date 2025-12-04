@@ -21,7 +21,7 @@
 - **Multi-menu tabs**: Switches between breakfast/lunch/dinner/closed.txt via localStorage; each tab PUTs to its own file using `../menus/{name}.txt` relative paths.
 - **Active rule display**: Shows which menu is currently active on kiosk based on rules.json schedule. Updates menu tab styling and displays status bar with active rule name and time range. Refreshes every 60s.
 - **Font scale slider**: Adjusts `fontScalePercent` (5-20%) in `config.json` via PUT; `index.html` reads this to set `clamp()` font sizes dynamically. Merges into existing config to avoid clobbering `bg`/`font`.
-- **Menu history**: Auto-saves to `save-menu-history.php` on every save, creates timestamped files in `history/` directory. Modal displays 7-day history via `get-menu-history.php` with restore capability. History files auto-prune after 7 days.
+- **Menu history**: Auto-saves to `save-menu-history.php` on every save, creates one file per day in `history/` directory (format: MENUNAME_YYYY-MM-DD_DayOfWeek.txt). Modal displays 7-day history via `get-menu-history.php` with restore capability. History files auto-prune after 7 days. Multiple saves on same day overwrite the daily file.
 - **Reload trigger**: Button writes timestamp to `reload.txt`; kiosk checks every 10s and reloads on change. Also auto-triggers on menu save.
 - **Markdown toolbar**: Inserts formatting (`**bold**`, color tags like `{r}`, list bullets, alignment tags, size overrides) and shows live preview via marked.js.
 - **Emoji toolbar**: Quick-insert buttons for 🍔🍕🍗🥗🍰☕🍺🍷.
@@ -48,7 +48,7 @@
 ### PHP Backends
 - **`design/upload-bg.php`**: Validates MIME type (`image/*`), file extension (jpg/png/gif/webp), renames to `uploaded_YYYYMMDD_HHMMSS.{ext}`, saves to `../bg/`, logs to `logs/uploads.log`. Returns JSON `{filename}` on success or `{error}` with HTTP 4xx/5xx on failure. Check logs for permission/quota issues.
 - **`bg/index.php`**: Scans `bg/` directory, filters for image extensions, sorts naturally, returns JSON array of filenames. No pagination; assumes <100 images.
-- **`save-menu-history.php`**: Receives POST with menu name and content, creates timestamped file in `history/` directory (format: MENUNAME_YYYY-MM-DD_DayOfWeek_HHMMSS.txt), auto-prunes files older than 7 days, logs to `logs/history.log`.
+- **`save-menu-history.php`**: Receives POST with menu name and content, creates one file per day in `history/` directory (format: MENUNAME_YYYY-MM-DD_DayOfWeek.txt). Overwrites existing file if saving multiple times same day. Auto-prunes files older than 7 days, logs to `logs/history.log`.
 - **`get-menu-history.php`**: Returns menu history as JSON. action=list returns array sorted by timestamp descending, action=get returns specific file content.
 
 ## Configuration Schema

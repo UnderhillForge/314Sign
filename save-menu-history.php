@@ -29,15 +29,17 @@ if (!is_dir($historyDir)) {
     mkdir($historyDir, 0775, true);
 }
 
-// Create filename with format: MENUNAME_YYYY-MM-DD_DayOfWeek_HHMMSS.txt
+// Create filename with format: MENUNAME_YYYY-MM-DD_DayOfWeek.txt (one file per day)
 $timestamp = time();
 $date = date('Y-m-d', $timestamp);
 $dayOfWeek = date('l', $timestamp); // Monday, Tuesday, etc.
-$time = date('His', $timestamp);
-$filename = "{$menuName}_{$date}_{$dayOfWeek}_{$time}.txt";
+$filename = "{$menuName}_{$date}_{$dayOfWeek}.txt";
 $filepath = $historyDir . '/' . $filename;
 
-// Save history file
+// Check if file for today already exists
+$isUpdate = file_exists($filepath);
+
+// Save history file (overwrites if exists for same day)
 if (file_put_contents($filepath, $content) === false) {
     http_response_code(500);
     echo json_encode(['error' => 'Failed to save history']);
@@ -67,6 +69,7 @@ $logEntry = json_encode([
     'timestamp' => date('c', $timestamp),
     'menu' => $menuName,
     'filename' => $filename,
+    'action' => $isUpdate ? 'updated' : 'created',
     'pruned' => $pruned
 ]) . "\n";
 
@@ -75,5 +78,6 @@ file_put_contents($logFile, $logEntry, FILE_APPEND);
 echo json_encode([
     'success' => true,
     'filename' => $filename,
+    'action' => $isUpdate ? 'updated' : 'created',
     'pruned' => $pruned
 ]);
