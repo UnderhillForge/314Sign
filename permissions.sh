@@ -56,6 +56,14 @@ sudo chmod 755 "$WEB_ROOT/create-backup.php" 2>/dev/null || true
 sudo chmod 755 "$WEB_ROOT/trigger-reload.php" 2>/dev/null || true
 sudo chmod 755 "$WEB_ROOT/save-menu-history.php" 2>/dev/null || true
 sudo chmod 755 "$WEB_ROOT/get-menu-history.php" 2>/dev/null || true
+sudo chmod 755 "$WEB_ROOT/fonts/index.php" 2>/dev/null || true
+
+# Set permissions for fonts directory (needs to be writable for uploads)
+if [ -d "$WEB_ROOT/fonts" ]; then
+  sudo chown www-data:www-data "$WEB_ROOT/fonts"
+  sudo chmod 775 "$WEB_ROOT/fonts"
+  sudo find "$WEB_ROOT/fonts" -type f -name "*.ttf" -exec chmod 644 {} \;
+fi
 
 # Make all scripts in scripts/ directory executable
 if [ -d "$WEB_ROOT/scripts" ]; then

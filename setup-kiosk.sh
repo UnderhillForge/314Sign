@@ -128,6 +128,8 @@ fi
 # === 4. Create required directories ===
 sudo mkdir -p /var/www/html/logs
 sudo mkdir -p /var/www/html/bg
+sudo mkdir -p /var/www/html/fonts
+sudo mkdir -p /var/www/html/history
 sudo mkdir -p /var/www/html/menus
 sudo mkdir -p /var/www/html/scripts
 sudo mkdir -p /var/www/html/start
