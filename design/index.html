@@ -167,18 +167,30 @@
         .then(r => r.ok ? r.json() : {})
         .then(cfg => {
           // Populate font dropdown from config.availableFonts
-          if (cfg.availableFonts && typeof cfg.availableFonts === 'object') {
-            fontSelect.innerHTML = '';
-            Object.entries(cfg.availableFonts).forEach(([name, value]) => {
-              const option = document.createElement('option');
-              option.value = value;
-              option.textContent = name;
-              fontSelect.appendChild(option);
-            });
-            console.log('Fonts loaded from config:', Object.keys(cfg.availableFonts));
-          } else {
-            console.warn('No availableFonts in config.json');
-          }
+          // If not present, use default font list
+          const fonts = cfg.availableFonts || {
+            "Comic Sans": "'Comic Sans MS', cursive",
+            "Arial": "Arial, sans-serif",
+            "Helvetica": "'Helvetica Neue', Helvetica, sans-serif",
+            "Georgia": "Georgia, serif",
+            "Times New Roman": "'Times New Roman', Times, serif",
+            "Courier New": "'Courier New', monospace",
+            "Verdana": "Verdana, sans-serif",
+            "Trebuchet MS": "'Trebuchet MS', sans-serif",
+            "Lucida Console": "'Lucida Console', monospace",
+            "Impact": "Impact, fantasy",
+            "Palatino": "'Palatino Linotype', 'Book Antiqua', Palatino, serif",
+            "Garamond": "Garamond, serif"
+          };
+          
+          fontSelect.innerHTML = '';
+          Object.entries(fonts).forEach(([name, value]) => {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = name;
+            fontSelect.appendChild(option);
+          });
+          console.log('Fonts loaded:', Object.keys(fonts).length + ' fonts');
           
           if (cfg.bg) {
             if (cfg.bg.startsWith('data:')) {
@@ -243,13 +255,30 @@
       fetch('../config.json')
         .then(r => r.ok ? r.json() : {})
         .then(existingConfig => {
+          // Ensure availableFonts exists
+          const defaultFonts = {
+            "Comic Sans": "'Comic Sans MS', cursive",
+            "Arial": "Arial, sans-serif",
+            "Helvetica": "'Helvetica Neue', Helvetica, sans-serif",
+            "Georgia": "Georgia, serif",
+            "Times New Roman": "'Times New Roman', Times, serif",
+            "Courier New": "'Courier New', monospace",
+            "Verdana": "Verdana, sans-serif",
+            "Trebuchet MS": "'Trebuchet MS', sans-serif",
+            "Lucida Console": "'Lucida Console', monospace",
+            "Impact": "Impact, fantasy",
+            "Palatino": "'Palatino Linotype', 'Book Antiqua', Palatino, serif",
+            "Garamond": "Garamond, serif"
+          };
+          
           const updatedConfig = {
             ...existingConfig,
             bg: selectedBg === 'uploaded' ? uploadedDataUrl : selectedBg,
             font: fontSelect.value,
             headerText: headerTextInput.value.trim() || 'Specials',
             showClock: showClockCheckbox.checked,
-            clock24Hour: clock24HourCheckbox.checked
+            clock24Hour: clock24HourCheckbox.checked,
+            availableFonts: existingConfig.availableFonts || defaultFonts
           };
 
           // Save config.json
