@@ -87,7 +87,7 @@
 <body>
   <header>
     <span id="header">Specials</span>
-    <span id="clock" class="hidden">00:00</span>
+    <span id="clock">00:00</span>
   </header>
   <div id="specials">Loading…</div>
   <div class="version">314Sign v0.9.0</div>
@@ -194,20 +194,21 @@
           headerEl.textContent = cfg.headerText;
         }
         
-        // Show/hide clock based on config
+        // Show/hide clock based on config (default hidden)
+        // Start by hiding it
+        clockEl.classList.add('hidden');
+        if (clockInterval) {
+          clearInterval(clockInterval);
+          clockInterval = null;
+        }
+        
+        // Then show if enabled
         if (cfg.showClock) {
           clockEl.classList.remove('hidden');
           // Set clock format (default to 24-hour if not specified)
           clock24Hour = cfg.clock24Hour !== false;
           updateClock();
-          if (clockInterval) clearInterval(clockInterval);
           clockInterval = setInterval(updateClock, 1000);
-        } else {
-          clockEl.classList.add('hidden');
-          if (clockInterval) {
-            clearInterval(clockInterval);
-            clockInterval = null;
-          }
         }
 
         // Configure poll interval from config (supports multiple keys)
