@@ -288,34 +288,25 @@
             lastText = newText;
             // Parse Markdown and render as HTML
             const trimmed = newText.trim() || 'No specials today.';
-            // Convert custom bullet syntax before Markdown parsing
-            // Lines starting with "- " become "• " (bullet without Markdown list wrapping)
-            const withBullets = trimmed.replace(/^- /gm, '• ');
-            let html = marked.parse(withBullets);
             
-            // Process color tags with simpler regex
-            // Match color tag and everything after it, then handle in replacement function
+            // Process color tags BEFORE Markdown parsing
+            // This way each line's color stays on that line
             const colorMap = {
-              r: '#ff4444', // red
-              y: '#ffdd44', // yellow
-              g: '#44ff44', // green
-              b: '#4488ff', // blue
-              o: '#ff8844', // orange
-              p: '#ff44ff', // pink
-              w: '#ffffff'  // white
+              r: '#ff4444', y: '#ffdd44', g: '#44ff44', b: '#4488ff',
+              o: '#ff8844', p: '#ff44ff', w: '#ffffff'
             };
             
-            // Process each color tag
+            let processedText = trimmed;
             Object.keys(colorMap).forEach(colorKey => {
               const color = colorMap[colorKey];
-              // Match {color} followed by text until next tag or another color tag
-              // Use a more precise pattern: match text, then close span before any tag boundary
-              const regex = new RegExp('\\{' + colorKey + '\\}((?:(?!\\{[rygbopw]\\}|<\\/)[^<>])*)', 'gi');
-              html = html.replace(regex, function(match, text) {
-                // Trim and wrap only if there's actual content
-                return text.trim() ? '<span style="color:' + color + '">' + text + '</span>' : '';
-              });
+              // Match {color} and text until end of line
+              const regex = new RegExp('\\{' + colorKey + '\\}([^\n\r]*)', 'gi');
+              processedText = processedText.replace(regex, '<span style="color:' + color + '">$1</span>');
             });
+            
+            // Convert custom bullet syntax after color processing
+            const withBullets = processedText.replace(/^- /gm, '• ');
+            let html = marked.parse(withBullets);
             
             specialsDiv.innerHTML = html;
           }
