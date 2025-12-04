@@ -213,6 +213,8 @@
           // If not present, use default font list
           const fonts = cfg.availableFonts || {
             "Comic Sans": "'Comic Sans MS', cursive",
+            "Chalkboard": "'Chalkboard', 'Chalkboard SE', cursive",
+            "Chalkduster": "'Chalkduster', cursive",
             "Arial": "Arial, sans-serif",
             "Helvetica": "'Helvetica Neue', Helvetica, sans-serif",
             "Georgia": "Georgia, serif",
@@ -324,9 +326,11 @@
       fetch('../config.json')
         .then(r => r.ok ? r.json() : {})
         .then(existingConfig => {
-          // Ensure availableFonts exists
+          // Ensure availableFonts exists with all default fonts including chalkboard
           const defaultFonts = {
             "Comic Sans": "'Comic Sans MS', cursive",
+            "Chalkboard": "'Chalkboard', 'Chalkboard SE', cursive",
+            "Chalkduster": "'Chalkduster', cursive",
             "Arial": "Arial, sans-serif",
             "Helvetica": "'Helvetica Neue', Helvetica, sans-serif",
             "Georgia": "Georgia, serif",
@@ -340,6 +344,12 @@
             "Garamond": "Garamond, serif"
           };
           
+          // Merge existing availableFonts with defaults to add any missing fonts
+          const mergedFonts = {
+            ...defaultFonts,
+            ...(existingConfig.availableFonts || {})
+          };
+          
           const updatedConfig = {
             ...existingConfig,
             bg: selectedBg === 'uploaded' ? uploadedDataUrl : selectedBg,
@@ -350,7 +360,7 @@
             bgBrightness: parseFloat(bgBrightnessInput.value) / 100,
             showClock: showClockCheckbox.checked,
             clock24Hour: clock24HourCheckbox.checked,
-            availableFonts: existingConfig.availableFonts || defaultFonts
+            availableFonts: mergedFonts
           };
 
           // Save config.json
@@ -370,6 +380,12 @@
         status.textContent = 'Saved! Kiosk updated.';
         // Show mobile-friendly toast as confirmation
         if (window.showToast) showToast('Saved — kiosk updated');
+        
+        // Trigger kiosk reload immediately
+        fetch('../trigger-reload.php', {
+          method: 'POST'
+        }).catch(() => {});
+        
         setTimeout(() => status.textContent = '', 3000);
       })
       .catch(err => {
