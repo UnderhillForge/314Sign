@@ -243,6 +243,14 @@
               specials.style.fontSize = 'clamp(1rem, ' + fontScalePercent + 'vw, 6rem)';
             }
           }
+          
+          // Load and apply header size
+          if (Number.isFinite(cfg.headerSizePercent)) {
+            const header = document.querySelector('header');
+            if (header) {
+              header.style.fontSize = 'clamp(1.5rem, ' + cfg.headerSizePercent + 'vw, 8rem)';
+            }
+          }
         }
       })
       .catch(() => console.warn('config.json missing – using defaults'))
@@ -289,6 +297,18 @@
             const specials = document.getElementById('specials');
             if (specials) {
               specials.style.fontSize = 'clamp(1rem, ' + fontScalePercent + 'vw, 6rem)';
+            }
+          }
+          
+          // Check if header size changed
+          if (Number.isFinite(cfg.headerSizePercent)) {
+            const header = document.querySelector('header');
+            if (header) {
+              const currentSize = header.style.fontSize;
+              const newSize = 'clamp(1.5rem, ' + cfg.headerSizePercent + 'vw, 8rem)';
+              if (currentSize !== newSize) {
+                header.style.fontSize = newSize;
+              }
             }
           }
         })
