@@ -292,15 +292,27 @@
             // Lines starting with "- " become "• " (bullet without Markdown list wrapping)
             const withBullets = trimmed.replace(/^- /gm, '• ');
             let html = marked.parse(withBullets);
-            // Process color tags: match text until next color tag, paragraph end, or line break
-            // Use non-greedy match with broader lookahead
-            html = html.replace(/\{r\}(.*?)(?=\{[rygbopw]\}|<\/p>|<\/li>|<br>|$)/gs, '<span style="color:#ff4444">$1</span>'); // red
-            html = html.replace(/\{y\}(.*?)(?=\{[rygbopw]\}|<\/p>|<\/li>|<br>|$)/gs, '<span style="color:#ffdd44">$1</span>'); // yellow
-            html = html.replace(/\{g\}(.*?)(?=\{[rygbopw]\}|<\/p>|<\/li>|<br>|$)/gs, '<span style="color:#44ff44">$1</span>'); // green
-            html = html.replace(/\{b\}(.*?)(?=\{[rygbopw]\}|<\/p>|<\/li>|<br>|$)/gs, '<span style="color:#4488ff">$1</span>'); // blue
-            html = html.replace(/\{o\}(.*?)(?=\{[rygbopw]\}|<\/p>|<\/li>|<br>|$)/gs, '<span style="color:#ff8844">$1</span>'); // orange
-            html = html.replace(/\{p\}(.*?)(?=\{[rygbopw]\}|<\/p>|<\/li>|<br>|$)/gs, '<span style="color:#ff44ff">$1</span>'); // pink
-            html = html.replace(/\{w\}(.*?)(?=\{[rygbopw]\}|<\/p>|<\/li>|<br>|$)/gs, '<span style="color:#ffffff">$1</span>'); // white
+            
+            // Process color tags with simpler regex
+            // Match color tag and everything after it, then handle in replacement function
+            const colorMap = {
+              r: '#ff4444', // red
+              y: '#ffdd44', // yellow
+              g: '#44ff44', // green
+              b: '#4488ff', // blue
+              o: '#ff8844', // orange
+              p: '#ff44ff', // pink
+              w: '#ffffff'  // white
+            };
+            
+            // Process each color tag
+            Object.keys(colorMap).forEach(colorKey => {
+              const color = colorMap[colorKey];
+              // Match {color} followed by text until next tag or end of element
+              const regex = new RegExp('\\{' + colorKey + '\\}([^{]*?)(?=\\{[rygbopw]\\}|</p>|</li>|</h|<br|$)', 'gi');
+              html = html.replace(regex, '<span style="color:' + color + '">$1</span>');
+            });
+            
             specialsDiv.innerHTML = html;
           }
         })
