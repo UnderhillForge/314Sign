@@ -87,23 +87,23 @@ Override the global font size for specific sections of text using size tags.
 
 ### Syntax
 ```
-[size=X%]Your text here[/size]
+[sX]Your text here[/s]
 ```
 
 Where X is the percentage of screen width (e.g., 10 for 10%, 15 for 15%)
 
 ### Examples
 ```
-[size=10%]**SUPER SALE**[/size]
+[s15]**SUPER SALE**[/s]
 Normal sized text here
 
-[size=8%]
+[s10]
 **Today's Special**
 Big text for the whole section
-[/size]
+[/s]
 ```
 
-**Note:** Size tags work across multiple lines until you close them with `[/size]`
+**Note:** Size tags work across multiple lines until you close them with `[/s]`
 
 ---
 

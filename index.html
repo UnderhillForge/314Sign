@@ -349,8 +349,8 @@
             
             let processedText = processedLines.join('\n');
             
-            // Check for font size override tags [size=X%]...[/size]
-            const sizeRegex = /\[size=(\d+(?:\.\d+)?)%\]([\s\S]*?)\[\/size\]/gi;
+            // Check for font size override tags [sX]...[/s] where X is percentage
+            const sizeRegex = /\[s(\d+(?:\.\d+)?)\]([\s\S]*?)\[\/s\]/gi;
             processedText = processedText.replace(sizeRegex, (match, percent, content) => {
               return `<span style="font-size: ${percent}vw">${content}</span>`;
             });
