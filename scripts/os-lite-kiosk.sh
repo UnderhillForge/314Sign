@@ -49,14 +49,25 @@ echo "  1 = 90° clockwise (portrait)"
 echo "  2 = 180° (upside down)"
 echo "  3 = 270° clockwise (portrait, other direction)"
 echo ""
-read -p "Enter rotation (0-3) [default: 0]: " ROTATION
-ROTATION=${ROTATION:-0}
+read -p "Enter rotation for HDMI-1 (0-3) [default: 0]: " ROTATION_HDMI1
+ROTATION_HDMI1=${ROTATION_HDMI1:-0}
+
+read -p "Enter rotation for HDMI-2 (0-3) [default: 0]: " ROTATION_HDMI2
+ROTATION_HDMI2=${ROTATION_HDMI2:-0}
 
 # Validate input
-if ! [[ "$ROTATION" =~ ^[0-3]$ ]]; then
-  echo "Invalid rotation. Using 0 (normal)."
-  ROTATION=0
+if ! [[ "$ROTATION_HDMI1" =~ ^[0-3]$ ]]; then
+  echo "Invalid HDMI-1 rotation. Using 0 (normal)."
+  ROTATION_HDMI1=0
 fi
+
+if ! [[ "$ROTATION_HDMI2" =~ ^[0-3]$ ]]; then
+  echo "Invalid HDMI-2 rotation. Using 0 (normal)."
+  ROTATION_HDMI2=0
+fi
+
+echo "HDMI-1 rotation: $ROTATION_HDMI1"
+echo "HDMI-2 rotation: $ROTATION_HDMI2"
 
 echo "Setting screen rotation to: $ROTATION"
 
@@ -155,11 +166,13 @@ BOOT_CONFIG="/boot/firmware/config.txt"
 [ ! -f "$BOOT_CONFIG" ] && BOOT_CONFIG="/boot/config.txt"
 
 if [ -f "$BOOT_CONFIG" ]; then
-  # Remove any existing display_rotate setting
+  # Remove any existing display_rotate or display_hdmi_rotate settings
   sudo sed -i '/^display_rotate=/d' "$BOOT_CONFIG"
-  # Add new rotation setting
-  echo "display_rotate=$ROTATION" | sudo tee -a "$BOOT_CONFIG" > /dev/null
-  echo "Display rotation set in $BOOT_CONFIG"
+  sudo sed -i '/^display_hdmi_rotate=/d' "$BOOT_CONFIG"
+  # Add new rotation settings for each HDMI port
+  echo "display_hdmi_rotate:0=$ROTATION_HDMI1" | sudo tee -a "$BOOT_CONFIG" > /dev/null
+  echo "display_hdmi_rotate:1=$ROTATION_HDMI2" | sudo tee -a "$BOOT_CONFIG" > /dev/null
+  echo "Display rotation set in $BOOT_CONFIG (HDMI-1: $ROTATION_HDMI1, HDMI-2: $ROTATION_HDMI2)"
 else
   echo "Warning: Boot config not found, skipping console rotation"
 fi
@@ -167,14 +180,21 @@ fi
 echo "Configuring X11 to use correct GPU..."
 sudo mkdir -p /etc/X11/xorg.conf.d
 
-# Map display_rotate values to X11 rotation names
-# 0 = normal, 1 = 90 degrees (left), 2 = 180 degrees (inverted), 3 = 270 degrees (right)
-case "$ROTATION" in
-  0) XROTATE="normal" ;;
-  1) XROTATE="left" ;;
-  2) XROTATE="inverted" ;;
-  3) XROTATE="right" ;;
-  *) XROTATE="normal" ;;
+# Map display_rotate values to X11 rotation names for each port
+case "$ROTATION_HDMI1" in
+  0) XROTATE_HDMI1="normal" ;;
+  1) XROTATE_HDMI1="left" ;;
+  2) XROTATE_HDMI1="inverted" ;;
+  3) XROTATE_HDMI1="right" ;;
+  *) XROTATE_HDMI1="normal" ;;
+esac
+
+case "$ROTATION_HDMI2" in
+  0) XROTATE_HDMI2="normal" ;;
+  1) XROTATE_HDMI2="left" ;;
+  2) XROTATE_HDMI2="inverted" ;;
+  3) XROTATE_HDMI2="right" ;;
+  *) XROTATE_HDMI2="normal" ;;
 esac
 
 sudo tee /etc/X11/xorg.conf.d/99-v3d.conf > /dev/null <<XCONF
@@ -191,12 +211,12 @@ EndSection
 
 Section "Monitor"
   Identifier "HDMI-1"
-  Option "Rotate" "$XROTATE"
+  Option "Rotate" "$XROTATE_HDMI1"
 EndSection
 
 Section "Monitor"
   Identifier "HDMI-2"
-  Option "Rotate" "$XROTATE"
+  Option "Rotate" "$XROTATE_HDMI2"
 EndSection
 
 Section "Screen"
