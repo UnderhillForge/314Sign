@@ -292,14 +292,15 @@
             // Lines starting with "- " become "• " (bullet without Markdown list wrapping)
             const withBullets = trimmed.replace(/^- /gm, '• ');
             let html = marked.parse(withBullets);
-            // Process color tags: {r}red text to end of line or next tag
-            html = html.replace(/\{r\}(.*?)(?=<\/[^>]+>|\{[rygbopw]\}|$)/g, '<span style="color:#ff4444">$1</span>'); // red
-            html = html.replace(/\{y\}(.*?)(?=<\/[^>]+>|\{[rygbopw]\}|$)/g, '<span style="color:#ffdd44">$1</span>'); // yellow
-            html = html.replace(/\{g\}(.*?)(?=<\/[^>]+>|\{[rygbopw]\}|$)/g, '<span style="color:#44ff44">$1</span>'); // green
-            html = html.replace(/\{b\}(.*?)(?=<\/[^>]+>|\{[rygbopw]\}|$)/g, '<span style="color:#4488ff">$1</span>'); // blue
-            html = html.replace(/\{o\}(.*?)(?=<\/[^>]+>|\{[rygbopw]\}|$)/g, '<span style="color:#ff8844">$1</span>'); // orange
-            html = html.replace(/\{p\}(.*?)(?=<\/[^>]+>|\{[rygbopw]\}|$)/g, '<span style="color:#ff44ff">$1</span>'); // pink
-            html = html.replace(/\{w\}(.*?)(?=<\/[^>]+>|\{[rygbopw]\}|$)/g, '<span style="color:#ffffff">$1</span>'); // white
+            // Process color tags: match text until next color tag, paragraph end, or line break
+            // Use non-greedy match with broader lookahead
+            html = html.replace(/\{r\}(.*?)(?=\{[rygbopw]\}|<\/p>|<\/li>|<br>|$)/gs, '<span style="color:#ff4444">$1</span>'); // red
+            html = html.replace(/\{y\}(.*?)(?=\{[rygbopw]\}|<\/p>|<\/li>|<br>|$)/gs, '<span style="color:#ffdd44">$1</span>'); // yellow
+            html = html.replace(/\{g\}(.*?)(?=\{[rygbopw]\}|<\/p>|<\/li>|<br>|$)/gs, '<span style="color:#44ff44">$1</span>'); // green
+            html = html.replace(/\{b\}(.*?)(?=\{[rygbopw]\}|<\/p>|<\/li>|<br>|$)/gs, '<span style="color:#4488ff">$1</span>'); // blue
+            html = html.replace(/\{o\}(.*?)(?=\{[rygbopw]\}|<\/p>|<\/li>|<br>|$)/gs, '<span style="color:#ff8844">$1</span>'); // orange
+            html = html.replace(/\{p\}(.*?)(?=\{[rygbopw]\}|<\/p>|<\/li>|<br>|$)/gs, '<span style="color:#ff44ff">$1</span>'); // pink
+            html = html.replace(/\{w\}(.*?)(?=\{[rygbopw]\}|<\/p>|<\/li>|<br>|$)/gs, '<span style="color:#ffffff">$1</span>'); // white
             specialsDiv.innerHTML = html;
           }
         })
