@@ -206,7 +206,7 @@
           // Populate font dropdown from config.availableFonts
           // If not present, use default font list
           const fonts = cfg.availableFonts || {
-            "Comic Sans": "'Comic Sans MS', cursive",
+            "Comic Sans": "'Comic Sans MS', 'Marker Felt', 'Apple Chancery', cursive",
             "Chalkboard": "'Chalkboard', 'Chalkboard SE', cursive",
             "Chalkduster": "'Chalkduster', cursive",
             "Arial": "Arial, sans-serif",
@@ -322,7 +322,7 @@
         .then(existingConfig => {
           // Ensure availableFonts exists with all default fonts including chalkboard
           const defaultFonts = {
-            "Comic Sans": "'Comic Sans MS', cursive",
+            "Comic Sans": "'Comic Sans MS', 'Marker Felt', 'Apple Chancery', cursive",
             "Chalkboard": "'Chalkboard', 'Chalkboard SE', cursive",
             "Chalkduster": "'Chalkduster', cursive",
             "Arial": "Arial, sans-serif",

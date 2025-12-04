@@ -1,13 +1,13 @@
 {
   "bg": "backgd.jpg",
-  "font": "'Comic Sans MS', cursive",
-  "headerFont": "'Comic Sans MS', cursive",
+  "font": "'Comic Sans MS', 'Marker Felt', 'Apple Chancery', cursive",
+  "headerFont": "'Comic Sans MS', 'Marker Felt', 'Apple Chancery', cursive",
   "pollIntervalSeconds": 3,
   "fontScalePercent": 5,
   "headerSizePercent": 5,
   "bgBrightness": 1.0,
   "availableFonts": {
-    "Comic Sans": "'Comic Sans MS', cursive",
+    "Comic Sans": "'Comic Sans MS', 'Marker Felt', 'Apple Chancery', cursive",
     "Chalkboard": "'Chalkboard', 'Chalkboard SE', cursive",
     "Chalkduster": "'Chalkduster', cursive",
     "Arial": "Arial, sans-serif",
