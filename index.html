@@ -254,7 +254,26 @@
       checkScheduleRules();
       rulesCheckInterval = setInterval(checkScheduleRules, 60000);
       
+      // Check config for font scale changes every 10 seconds
+      setInterval(checkConfigChanges, 10000);
+      
       pollSpecials();
+    }
+    
+    function checkConfigChanges() {
+      fetch('config.json?' + Date.now(), { cache: 'no-store' })
+        .then(r => r.ok ? r.json() : {})
+        .then(cfg => {
+          // Check if font scale changed
+          if (Number.isFinite(cfg.fontScalePercent) && cfg.fontScalePercent !== fontScalePercent) {
+            fontScalePercent = cfg.fontScalePercent;
+            const specials = document.getElementById('specials');
+            if (specials) {
+              specials.style.fontSize = 'clamp(1rem, ' + fontScalePercent + 'vw, 3rem)';
+            }
+          }
+        })
+        .catch(() => {});
     }
 
     function pollSpecials() {
