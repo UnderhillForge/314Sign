@@ -319,6 +319,45 @@
       fetch('config.json?' + Date.now(), { cache: 'no-store' })
         .then(r => r.ok ? r.json() : {})
         .then(cfg => {
+          let needsReload = false;
+          
+          // Check if body font changed
+          if (cfg.font && cfg.font !== document.body.style.fontFamily) {
+            needsReload = true;
+          }
+          
+          // Check if header font changed
+          if (cfg.headerFont) {
+            const header = document.querySelector('header');
+            if (header && cfg.headerFont !== header.style.fontFamily) {
+              needsReload = true;
+            }
+          }
+          
+          // Check if background changed
+          if (cfg.bg) {
+            const expectedBg = `url("bg/${cfg.bg}")`;
+            const currentBg = document.body.style.backgroundImage;
+            if (currentBg && currentBg !== expectedBg) {
+              needsReload = true;
+            }
+          }
+          
+          // Check if header text changed
+          if (cfg.headerText) {
+            const headerEl = document.getElementById('header');
+            if (headerEl && cfg.headerText !== headerEl.textContent) {
+              needsReload = true;
+            }
+          }
+          
+          // If major changes detected, reload the page
+          if (needsReload) {
+            console.log('Config changed - reloading...');
+            location.reload();
+            return;
+          }
+          
           // Check if font scale changed
           if (Number.isFinite(cfg.fontScalePercent) && cfg.fontScalePercent !== fontScalePercent) {
             fontScalePercent = cfg.fontScalePercent;
