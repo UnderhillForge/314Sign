@@ -11,19 +11,19 @@
     "Lato Light": "'Lato Light', Lato, sans-serif",
     "Lato Bold": "'Lato Bold', Lato, sans-serif",
     "Lato Black": "'Lato Black', Lato, sans-serif",
-    "Lato Heavy": "'Lato Heavy', Lato, sans-serif",
+    "Caveat (Handwritten)": "Caveat, cursive",
+    "Kalam (Chalkboard Style)": "Kalam, cursive",
+    "Kalam Bold": "'Kalam Bold', Kalam, cursive",
+    "Indie Flower (Casual)": "'Indie Flower', cursive",
+    "Comfortaa (Rounded)": "Comfortaa, cursive",
+    "Quicksand (Geometric)": "Quicksand, sans-serif",
     "DejaVu Sans": "'DejaVu Sans', sans-serif",
     "DejaVu Sans Bold": "'DejaVu Sans Bold', 'DejaVu Sans', sans-serif",
-    "DejaVu Sans Condensed": "'DejaVu Sans Condensed', 'DejaVu Sans', sans-serif",
     "FreeSans": "FreeSans, sans-serif",
     "FreeSans Bold": "'FreeSans Bold', FreeSans, sans-serif",
     "Liberation Sans": "'Liberation Sans', sans-serif",
-    "Liberation Sans Narrow": "'Liberation Sans Narrow', 'Liberation Sans', sans-serif",
     "DejaVu Serif": "'DejaVu Serif', serif",
-    "DejaVu Serif Bold": "'DejaVu Serif Bold', 'DejaVu Serif', serif",
-    "DejaVu Serif Condensed": "'DejaVu Serif Condensed', 'DejaVu Serif', serif",
     "Liberation Serif": "'Liberation Serif', serif",
-    "DejaVu Sans Mono": "'DejaVu Sans Mono', monospace",
-    "Liberation Mono": "'Liberation Mono', monospace"
+    "DejaVu Sans Mono": "'DejaVu Sans Mono', monospace"
   }
 }
