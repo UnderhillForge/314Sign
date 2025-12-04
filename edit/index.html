@@ -453,10 +453,10 @@
   <div class="container">
     <h2>Daily Specials Editor</h2>
     <div class="menu-tabs">
-      <button class="menu-tab active" data-file="menus/breakfast.txt">🌅 Breakfast</button>
-      <button class="menu-tab" data-file="menus/lunch.txt">🌞 Lunch</button>
-      <button class="menu-tab" data-file="menus/dinner.txt">🌙 Dinner</button>
-      <button class="menu-tab" data-file="menus/closed.txt">🚫 Closed</button>
+      <button class="menu-tab active" data-file="menus/breakfast.txt">Breakfast</button>
+      <button class="menu-tab" data-file="menus/lunch.txt">Lunch</button>
+      <button class="menu-tab" data-file="menus/dinner.txt">Dinner</button>
+      <button class="menu-tab" data-file="menus/closed.txt">Closed</button>
     </div>
     <div id="statusBar" class="status-bar">
       <span id="statusText">Loading schedule info...</span>
@@ -477,15 +477,8 @@
       <button onclick="insertMarkdown('[right]', '[/right]')" title="Right align">⇥ Right</button>
     </div>
     <div class="toolbar">
-      <button onclick="insertEmoji('🍔')" title="Burger">🍔</button>
-      <button onclick="insertEmoji('🍕')" title="Pizza">🍕</button>
-      <button onclick="insertEmoji('🍗')" title="Chicken">🍗</button>
-      <button onclick="insertEmoji('🥗')" title="Salad">🥗</button>
-      <button onclick="insertEmoji('🍰')" title="Dessert">🍰</button>
-      <button onclick="insertEmoji('☕')" title="Coffee">☕</button>
-      <button onclick="insertEmoji('🍺')" title="Beer">🍺</button>
-      <button onclick="insertEmoji('🍷')" title="Wine">🍷</button>
-      <button onclick="showHistoryModal()" title="View History" style="margin-left: auto;">📜 History</button>
+      <!-- Emoji toolbar removed - support available via insertEmoji() function -->
+      <button onclick="showHistoryModal()" title="View History" style="margin-left: auto;">History</button>
     </div>
     
     <!-- View toggle buttons -->
