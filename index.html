@@ -308,8 +308,9 @@
             // Process each color tag
             Object.keys(colorMap).forEach(colorKey => {
               const color = colorMap[colorKey];
-              // Match {color} followed by text until next tag or end of element
-              const regex = new RegExp('\\{' + colorKey + '\\}([^{]*?)(?=\\{[rygbopw]\\}|</p>|</li>|</h|<br|$)', 'gi');
+              // Match {color} followed by text until next tag, end of element, or line break
+              // [^{<] stops at opening brace or any HTML tag
+              const regex = new RegExp('\\{' + colorKey + '\\}([^{<]*?)(?=\\{[rygbopw]\\}|<)', 'gi');
               html = html.replace(regex, '<span style="color:' + color + '">$1</span>');
             });
             
