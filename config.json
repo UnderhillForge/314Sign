@@ -11,16 +11,12 @@
     "Lato Bold": "'Lato Bold', Lato, sans-serif",
     "Bebas Neue (Tall & Bold)": "'Bebas Neue', sans-serif",
     "Permanent Marker (Bold)": "'Permanent Marker', cursive",
-    "Dancing Script (Elegant)": "'Dancing Script', cursive",
-    "Satisfy (Flowing Script)": "Satisfy, cursive",
-    "Comic Neue (Handwritten)": "'Comic Neue', cursive",
-    "Architects Daughter": "'Architects Daughter', cursive",
     "Caveat (Casual)": "Caveat, cursive",
     "Shadows Into Light": "'Shadows Into Light', cursive",
-    "Bangers (Comic Bold)": "Bangers, cursive",
-    "Indie Flower": "'Indie Flower', cursive",
     "DejaVu Sans": "'DejaVu Sans', sans-serif",
+    "DejaVu Sans Bold": "'DejaVu Sans Bold', 'DejaVu Sans', sans-serif",
     "FreeSans": "FreeSans, sans-serif",
+    "FreeSans Bold": "'FreeSans Bold', FreeSans, sans-serif",
     "Liberation Sans": "'Liberation Sans', sans-serif"
   }
 }
