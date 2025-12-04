@@ -130,6 +130,8 @@ sudo mkdir -p /var/www/html/logs
 sudo mkdir -p /var/www/html/bg
 sudo mkdir -p /var/www/html/menus
 sudo mkdir -p /var/www/html/scripts
+sudo mkdir -p /var/www/html/start
+sudo mkdir -p /var/www/html/history
 
 # === 5. Set ownership & permissions ===
 echo ""
@@ -232,6 +234,7 @@ EOF
 echo "Generating QR codes..."
 HOSTNAME=$(hostname)
 cd /var/www/html
+[ ! -f qr-start.png ] && qrencode -o qr-start.png -s 10 "http://${HOSTNAME}.local/start/"
 [ ! -f qr-edit.png ] && qrencode -o qr-edit.png -s 10 "http://${HOSTNAME}.local/edit/"
 [ ! -f qr-design.png ] && qrencode -o qr-design.png -s 10 "http://${HOSTNAME}.local/design/"
 [ ! -f qr-rules.png ] && qrencode -o qr-rules.png -s 10 "http://${HOSTNAME}.local/rules/"
@@ -310,6 +313,7 @@ echo "📺 Kiosk Display:"
 echo "   http://${HOSTNAME}.local"
 echo ""
 echo "📱 Staff Editors:"
+echo "   • Quick Start:   http://${HOSTNAME}.local/start/"
 echo "   • Menu Editor:   http://${HOSTNAME}.local/edit/"
 echo "   • Style Config:  http://${HOSTNAME}.local/design/"
 echo "   • Auto Schedule: http://${HOSTNAME}.local/rules/"

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>314Sign Quick Start</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      overscroll-behavior: none;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 2rem;
+      padding-top: max(2rem, env(safe-area-inset-top));
+      padding-bottom: max(2rem, env(safe-area-inset-bottom));
+      gap: 2rem;
+    }
+    .logo {
+      text-align: center;
+      color: white;
+      margin-bottom: 1rem;
+    }
+    .logo h1 {
+      font-size: 3.5rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+    }
+    .logo p {
+      font-size: 1.25rem;
+      font-weight: 400;
+      opacity: 0.95;
+      text-shadow: 1px 1px 4px rgba(0,0,0,0.3);
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 500px;
+    }
+    @media (min-width: 768px) {
+      .cards {
+        grid-template-columns: 1fr 1fr;
+        max-width: 800px;
+      }
+    }
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 2rem;
+      text-decoration: none;
+      color: #333;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 1rem;
+      cursor: pointer;
+      min-height: 200px;
+      justify-content: center;
+    }
+    .card:active {
+      transform: translateY(2px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    .card-icon {
+      font-size: 3.5rem;
+      line-height: 1;
+    }
+    .card-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+    .card-desc {
+      font-size: 1rem;
+      color: #666;
+      line-height: 1.4;
+    }
+    .card.edit {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .card.edit .card-desc {
+      color: rgba(255,255,255,0.9);
+    }
+    .card.rules {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+    }
+    .card.rules .card-desc {
+      color: rgba(255,255,255,0.9);
+    }
+    .card.design {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: white;
+    }
+    .card.design .card-desc {
+      color: rgba(255,255,255,0.9);
+    }
+    .card.view {
+      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      color: white;
+    }
+    .card.view .card-desc {
+      color: rgba(255,255,255,0.9);
+    }
+    .footer {
+      position: fixed;
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255,255,255,0.8);
+      font-size: 0.85rem;
+      text-align: center;
+      text-shadow: 1px 1px 4px rgba(0,0,0,0.3);
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <h1>314Sign</h1>
+      <p>Quick Start Menu</p>
+    </div>
+    
+    <div class="cards">
+      <a href="../edit/" class="card edit">
+        <div class="card-icon">✏️</div>
+        <div class="card-title">Edit Menus</div>
+        <div class="card-desc">Update breakfast, lunch, dinner, and closed messages</div>
+      </a>
+      
+      <a href="../rules/" class="card rules">
+        <div class="card-icon">⏰</div>
+        <div class="card-title">Schedule Rules</div>
+        <div class="card-desc">Set automatic menu switching by time of day</div>
+      </a>
+      
+      <a href="../design/" class="card design">
+        <div class="card-icon">🎨</div>
+        <div class="card-title">Design</div>
+        <div class="card-desc">Change background, fonts, colors, and brightness</div>
+      </a>
+      
+      <a href="../" class="card view">
+        <div class="card-icon">📺</div>
+        <div class="card-title">View Kiosk</div>
+        <div class="card-desc">See the live display as customers see it</div>
+      </a>
+    </div>
+  </div>
+  
+  <div class="footer">
+    314Sign v0.9.1 | © 2025 J Stekervetz | CC BY-NC 4.0
+  </div>
+</body>
+</html>

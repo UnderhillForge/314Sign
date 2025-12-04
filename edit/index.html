@@ -52,13 +52,53 @@
       cursor: pointer;
       transition: all 0.2s;
       text-align: center;
+      position: relative;
     }
     .menu-tab.active {
       color: #007bff;
       background: white;
       border-color: #007bff;
     }
+    .menu-tab.kiosk-active {
+      background: #d4edda;
+      border-color: #28a745;
+      color: #155724;
+    }
+    .menu-tab.kiosk-active.active {
+      background: #c3e6cb;
+      border-color: #28a745;
+      color: #155724;
+    }
+    .menu-tab .badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: #28a745;
+      color: white;
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-weight: 700;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
     .menu-tab:active { background: #e9ecef; }
+    .status-bar {
+      background: white;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      flex-shrink: 0;
+      text-align: center;
+      font-size: 0.9rem;
+      color: #666;
+      display: none;
+    }
+    .status-bar.active {
+      display: block;
+    }
+    .status-bar strong {
+      color: #28a745;
+      font-weight: 700;
+    }
     .controls {
       display: flex;
       gap: 1rem;
@@ -373,6 +413,9 @@
       <button class="menu-tab" data-file="menus/dinner.txt">🌙 Dinner</button>
       <button class="menu-tab" data-file="menus/closed.txt">🚫 Closed</button>
     </div>
+    <div id="statusBar" class="status-bar">
+      <span id="statusText">Loading schedule info...</span>
+    </div>
     <div class="controls">
       <label for="fontScale">Font Size (% of screen):</label>
       <input type="range" id="fontScale" min="5" max="20" value="5" step="0.5" />
@@ -620,6 +663,82 @@
           // Use default if config fails
           fontScaleValue.textContent = fontScaleInput.value + '%';
         });
+      
+      // Load rules and check active schedule
+      checkActiveRule();
+    }
+    
+    // Check which rule is currently active on the kiosk
+    function checkActiveRule() {
+      fetch('../rules.json')
+        .then(r => r.ok ? r.json() : null)
+        .then(rulesData => {
+          const statusBar = document.getElementById('statusBar');
+          const statusText = document.getElementById('statusText');
+          
+          if (!rulesData || !rulesData.enabled || !rulesData.rules || rulesData.rules.length === 0) {
+            // No rules active
+            statusBar.classList.remove('active');
+            return;
+          }
+          
+          // Check which rule matches current time
+          const now = new Date();
+          const currentDay = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][now.getDay()];
+          const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+          
+          let activeRule = null;
+          for (const rule of rulesData.rules) {
+            if (!rule.days.includes(currentDay)) continue;
+            
+            const start = rule.startTime;
+            const end = rule.endTime;
+            
+            // Handle midnight crossing
+            if (start > end) {
+              if (currentTime >= start || currentTime < end) {
+                activeRule = rule;
+                break;
+              }
+            } else {
+              if (currentTime >= start && currentTime < end) {
+                activeRule = rule;
+                break;
+              }
+            }
+          }
+          
+          if (activeRule) {
+            // Show status bar
+            statusBar.classList.add('active');
+            statusText.innerHTML = `📺 Kiosk is showing: <strong>${activeRule.name}</strong> (${activeRule.startTime} - ${activeRule.endTime})`;
+            
+            // Highlight the active menu tab
+            const activeMenuFile = activeRule.menu;
+            menuTabs.forEach(tab => {
+              if (tab.dataset.file === activeMenuFile) {
+                tab.classList.add('kiosk-active');
+                // Add badge
+                if (!tab.querySelector('.badge')) {
+                  const badge = document.createElement('span');
+                  badge.className = 'badge';
+                  badge.textContent = 'LIVE';
+                  tab.appendChild(badge);
+                }
+              } else {
+                tab.classList.remove('kiosk-active');
+                const badge = tab.querySelector('.badge');
+                if (badge) badge.remove();
+              }
+            });
+          } else {
+            statusBar.classList.remove('active');
+          }
+        })
+        .catch(() => {
+          // Rules file doesn't exist or error
+          document.getElementById('statusBar').classList.remove('active');
+        });
     }
 
     // Update font scale display and save to config
@@ -728,6 +847,9 @@
     }
     window.addEventListener('resize', fixHeight);
     fixHeight();
+    
+    // Refresh active rule status every minute
+    setInterval(checkActiveRule, 60000);
     
     // Insert emoji at cursor
     function insertEmoji(emoji) {

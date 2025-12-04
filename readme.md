@@ -14,11 +14,21 @@
 | Feature | Why It Matters |
 |-------|----------------|
 | **Edit from any phone** | Staff use their own device — no training needed |
+| **Quick start page** | Simple landing page with links to all tools |
 | **Live preview & instant update** | Changes appear in **< 3 seconds** |
-| **Custom backgrounds & fonts** | Match your brand with Comic Sans, handwriting, or elegance |
+| **Active rule display** | See which menu is currently live on kiosk |
+| **7-day menu history** | Restore previous versions with one click |
+| **Auto-schedule menus** | Breakfast/lunch/dinner switch by time of day |
+| **Custom backgrounds & fonts** | Match your brand with 12+ font options |
+| **Background brightness** | Adjust darkness (20-150%) for text readability |
+| **Header & text sizing** | Independent control for header (5-20%) and body (5-20%) |
 | **Upload photos from phone** | Snap a special → upload → done |
+| **Emoji toolbar** | Quick-insert 🍔🍕🍗🥗🍰☕🍺🍷 |
+| **Text alignment** | Center or right-align text with tags |
+| **Color tags** | {r}red {y}yellow {g}green {b}blue and more |
+| **Size override tags** | [s15]bigger text[/s] for emphasis |
 | **Zero apps or accounts** | Works on **Wi-Fi only**, no internet required |
-| **Auto-reload kiosk** | No manual refresh — just works |
+| **Remote reload trigger** | Force kiosk refresh from edit page |
 
 ---
 
@@ -33,6 +43,7 @@ curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/setup-ki
 
 # 5. Open in browser (replace with your hostname):
 http://YOUR-HOSTNAME.local
+http://YOUR-HOSTNAME.local/start/
 http://YOUR-HOSTNAME.local/edit/
 http://YOUR-HOSTNAME.local/design/
 http://YOUR-HOSTNAME.local/rules/
@@ -104,7 +115,7 @@ sudo reboot
 
 ## License & Credits
 
-**314Sign v0.8.0**  
+**314Sign v0.9.1**  
 Licensed under [Creative Commons Attribution-NonCommercial 4.0 International](LICENSE)
 
 - ✅ Free for personal, educational, and non-profit use

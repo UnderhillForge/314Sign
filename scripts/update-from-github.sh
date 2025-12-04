@@ -125,6 +125,7 @@ declare -a UPDATE_FILES=(
   "design/index.html"
   "design/upload-bg.php"
   "rules/index.html"
+  "start/index.html"
   "bg/index.php"
   "status.php"
   "save-menu-history.php"

@@ -19,23 +19,37 @@
 
 ### `edit/index.html` (mobile menu editor)
 - **Multi-menu tabs**: Switches between breakfast/lunch/dinner/closed.txt via localStorage; each tab PUTs to its own file using `../menus/{name}.txt` relative paths.
-- **Font scale slider**: Adjusts `fontScalePercent` (1-10%) in `config.json` via PUT; `index.html` reads this to set `clamp()` font sizes dynamically. Merges into existing config to avoid clobbering `bg`/`font`.
-- **Markdown toolbar**: Inserts formatting (`**bold**`, color tags like `{r}`, list bullets) and shows live preview via marked.js.
+- **Active rule display**: Shows which menu is currently active on kiosk based on rules.json schedule. Updates menu tab styling and displays status bar with active rule name and time range. Refreshes every 60s.
+- **Font scale slider**: Adjusts `fontScalePercent` (5-20%) in `config.json` via PUT; `index.html` reads this to set `clamp()` font sizes dynamically. Merges into existing config to avoid clobbering `bg`/`font`.
+- **Menu history**: Auto-saves to `save-menu-history.php` on every save, creates timestamped files in `history/` directory. Modal displays 7-day history via `get-menu-history.php` with restore capability. History files auto-prune after 7 days.
+- **Reload trigger**: Button writes timestamp to `reload.txt`; kiosk checks every 10s and reloads on change. Also auto-triggers on menu save.
+- **Markdown toolbar**: Inserts formatting (`**bold**`, color tags like `{r}`, list bullets, alignment tags, size overrides) and shows live preview via marked.js.
+- **Emoji toolbar**: Quick-insert buttons for 🍔🍕🍗🥗🍰☕🍺🍷.
 - **Toast UX**: Shows success/error notifications using `.toast` CSS + `showToast()` helper; all editor pages follow this pattern (aria-live for accessibility).
 
 ### `design/index.html` (style configurator)
 - **Background picker**: Fetches image list from `bg/index.php` → renders thumbnails → on selection, PUTs `config.json` with new `bg` filename (prefer file references over data URLs for caching).
 - **Upload flow**: User picks image → validates client-side → POSTs FormData to `upload-bg.php` → receives `{filename: "uploaded_YYYYMMDD_HHMMSS.ext"}` → saves filename to `config.json` → adds thumb to grid.
 - **Font dropdown**: Populated from `config.json.availableFonts` map (keys = display names, values = CSS font-family strings).
+- **Header controls**: Text input for custom header text, size slider (5-20%) for header font size.
+- **Brightness slider**: Adjusts background brightness (20-150%, default 100%) saved as `bgBrightness` (0.2-1.5) in config.json. Applied via CSS filter on body element.
+- **Clock settings**: Toggles for showClock and clock24Hour format.
 - **CRITICAL SYNC**: `generateIndexHTML()` (L314-430) creates a **simplified** version of `index.html` when saving themes. This generator **intentionally omits** ETag polling, rules checking, and fontScalePercent logic to avoid complexity. Prefer writing only `config.json` instead of regenerating `index.html` unless the user explicitly requests full HTML rewrites. If you add kiosk features (e.g., new polling behaviors), update both the live `index.html` and the generator or document why they diverge.
 
 ### `rules/index.html` (schedule configurator)
 - **Rules engine**: Writes `rules.json` with `{enabled: bool, rules: [{name, days[], startTime, endTime, menu}]}`. `index.html` checks this every minute.
 - **Time range logic**: Handles midnight crossings (e.g., startTime "22:00" → endTime "07:00" spans two days); see `checkScheduleRules()` in `index.html` for implementation.
 
+### `start/index.html` (quick start landing page)
+- **Navigation hub**: Simple, mobile-friendly landing page with large buttons linking to edit/, design/, rules/, and the main kiosk display.
+- **Visual design**: Gradient background, colorful card-style buttons with icons, responsive grid layout.
+- **Purpose**: Provides easy access for staff who need to quickly navigate to editing/configuration tools without remembering URLs.
+
 ### PHP Backends
 - **`design/upload-bg.php`**: Validates MIME type (`image/*`), file extension (jpg/png/gif/webp), renames to `uploaded_YYYYMMDD_HHMMSS.{ext}`, saves to `../bg/`, logs to `logs/uploads.log`. Returns JSON `{filename}` on success or `{error}` with HTTP 4xx/5xx on failure. Check logs for permission/quota issues.
 - **`bg/index.php`**: Scans `bg/` directory, filters for image extensions, sorts naturally, returns JSON array of filenames. No pagination; assumes <100 images.
+- **`save-menu-history.php`**: Receives POST with menu name and content, creates timestamped file in `history/` directory (format: MENUNAME_YYYY-MM-DD_DayOfWeek_HHMMSS.txt), auto-prunes files older than 7 days, logs to `logs/history.log`.
+- **`get-menu-history.php`**: Returns menu history as JSON. action=list returns array sorted by timestamp descending, action=get returns specific file content.
 
 ## Configuration Schema
 
@@ -44,7 +58,12 @@
 {
   "bg": "filename.jpg",                     // background image (or data URL for legacy)
   "font": "'Comic Sans MS', cursive",       // CSS font-family string
-  "fontScalePercent": 3,                    // viewport width % for clamp() (1-10)
+  "fontScalePercent": 5,                    // viewport width % for body text (5-20)
+  "headerSizePercent": 5,                   // viewport width % for header text (5-20)
+  "bgBrightness": 1.0,                      // background brightness (0.2-1.5, default 1.0)
+  "headerText": "Specials",                 // header text override
+  "showClock": false,                       // show/hide clock
+  "clock24Hour": true,                      // 24-hour vs 12-hour format
   "pollIntervalMs": 3000,                   // preferred poll interval (milliseconds)
   "pollIntervalSeconds": 3,                 // alternate (seconds)
   "pollInterval": 3,                        // legacy shorthand (seconds)
@@ -106,4 +125,4 @@
 5. **Ignoring ETag**: `index.html` relies on lighttpd's ETag header for fast change detection; disabling ETags (via `server.etag = "disable"`) forces text comparisons on every poll (slower but functional).
 
 ## Version Management
-- Current version: **0.8.0** (hardcoded in HTML footer divs, `status.php`, README). Increment when releasing breaking changes or major features; update all instances via find/replace.
+- Current version: **0.9.1** (hardcoded in HTML footer divs, `status.php`, README). Increment when releasing breaking changes or major features; update all instances via find/replace.
