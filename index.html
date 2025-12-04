@@ -260,7 +260,24 @@
       pollSpecials();
     }
     
+    let lastReloadToken = null;
+    
     function checkConfigChanges() {
+      // Check for reload trigger
+      fetch('reload.txt?' + Date.now(), { cache: 'no-store' })
+        .then(r => r.ok ? r.text() : '')
+        .then(token => {
+          if (token && lastReloadToken === null) {
+            // First load, just store the token
+            lastReloadToken = token.trim();
+          } else if (token && token.trim() !== lastReloadToken) {
+            // Token changed, reload the page
+            location.reload();
+          }
+        })
+        .catch(() => {});
+      
+      // Check for font scale changes
       fetch('config.json?' + Date.now(), { cache: 'no-store' })
         .then(r => r.ok ? r.json() : {})
         .then(cfg => {

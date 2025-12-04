@@ -299,6 +299,7 @@
       <label for="fontScale">Font Size (% of screen):</label>
       <input type="range" id="fontScale" min="1" max="10" value="3" step="0.5" />
       <span id="fontScaleValue">3%</span>
+      <button id="reloadKiosk" style="margin-left: auto; padding: 0.5rem 1rem; background: #28a745; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">↻ Reload Kiosk</button>
     </div>
     <div class="toolbar">
       <button onclick="insertMarkdown('**', '**')" title="Bold">B</button>
@@ -547,6 +548,18 @@
           });
         })
         .catch(err => console.error('Failed to save font scale:', err));
+    });
+    
+    // Reload kiosk button
+    document.getElementById('reloadKiosk').addEventListener('click', () => {
+      const token = Date.now().toString();
+      fetch('../reload.txt', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'text/plain' },
+        body: token
+      })
+        .then(() => showToast('Kiosk will reload in ~10 seconds', 'success'))
+        .catch(() => showToast('Failed to trigger reload', 'error'));
     });
 
     // Initialize: set active tab based on currentFile from localStorage
