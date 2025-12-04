@@ -42,12 +42,14 @@
       flex: 1;
       /* Responsive padding: scales with viewport width between 1rem-3rem */
       padding: clamp(1rem, 2vw, 3rem);
-      /* Responsive specials text: scales with viewport width (3vw) between 1rem-3rem */
+      /* Responsive specials text: scales with viewport width (3vw) between 1rem-6rem */
       /* 3vw means 3% of screen width; larger TVs get bigger fonts automatically */
-      font-size: clamp(1rem, 3vw, 3rem);
+      font-size: clamp(1rem, 3vw, 6rem);
       line-height: 1.1;
       overflow-y: auto;
       white-space: pre-wrap;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
       -webkit-overflow-scrolling: touch;
     }
     /* Fix bullet point spacing and indentation */
@@ -238,7 +240,7 @@
           if (fontScalePercent > 0) {
             const specials = document.getElementById('specials');
             if (specials) {
-              specials.style.fontSize = 'clamp(1rem, ' + fontScalePercent + 'vw, 3rem)';
+              specials.style.fontSize = 'clamp(1rem, ' + fontScalePercent + 'vw, 6rem)';
             }
           }
         }
@@ -286,7 +288,7 @@
             fontScalePercent = cfg.fontScalePercent;
             const specials = document.getElementById('specials');
             if (specials) {
-              specials.style.fontSize = 'clamp(1rem, ' + fontScalePercent + 'vw, 3rem)';
+              specials.style.fontSize = 'clamp(1rem, ' + fontScalePercent + 'vw, 6rem)';
             }
           }
         })
