@@ -56,25 +56,62 @@ sudo mkdir -p "$FONT_DIR"
 wget -q https://github.com/google/fonts/raw/main/ofl/indieflower/IndieFlower-Regular.ttf
 sudo mv IndieFlower-Regular.ttf "$FONT_DIR/"
 
+# Download and install Permanent Marker (Google Font - bold marker style)
+echo "Installing Permanent Marker (bold marker font)..."
+FONT_DIR="/usr/share/fonts/truetype/permanentmarker"
+sudo mkdir -p "$FONT_DIR"
+wget -q https://github.com/google/fonts/raw/main/apache/permanentmarker/PermanentMarker-Regular.ttf
+sudo mv PermanentMarker-Regular.ttf "$FONT_DIR/"
+
+# Download and install Bebas Neue (Google Font - tall, bold, impactful)
+echo "Installing Bebas Neue (tall bold font)..."
+FONT_DIR="/usr/share/fonts/truetype/bebasneue"
+sudo mkdir -p "$FONT_DIR"
+wget -q https://github.com/google/fonts/raw/main/ofl/bebasneue/BebasNeue-Regular.ttf
+sudo mv BebasNeue-Regular.ttf "$FONT_DIR/"
+
+# Download and install Shadows Into Light (Google Font - handwritten casual)
+echo "Installing Shadows Into Light (casual handwriting)..."
+FONT_DIR="/usr/share/fonts/truetype/shadowsintolight"
+sudo mkdir -p "$FONT_DIR"
+wget -q https://github.com/google/fonts/raw/main/apache/shadowsintolight/ShadowsIntoLight-Regular.ttf
+sudo mv ShadowsIntoLight-Regular.ttf "$FONT_DIR/"
+
+# Download and install Pacifico (Google Font - bold script, retro)
+echo "Installing Pacifico (bold retro script)..."
+FONT_DIR="/usr/share/fonts/truetype/pacifico"
+sudo mkdir -p "$FONT_DIR"
+wget -q https://github.com/google/fonts/raw/main/ofl/pacifico/Pacifico-Regular.ttf
+sudo mv Pacifico-Regular.ttf "$FONT_DIR/"
+
+# Download and install Bangers (Google Font - comic book style)
+echo "Installing Bangers (comic book style)..."
+FONT_DIR="/usr/share/fonts/truetype/bangers"
+sudo mkdir -p "$FONT_DIR"
+wget -q https://github.com/google/fonts/raw/main/ofl/bangers/Bangers-Regular.ttf
+sudo mv Bangers-Regular.ttf "$FONT_DIR/"
+
 # Refresh font cache
 fc-cache -f -v
 
 echo ""
 echo "Fonts installed successfully!"
 echo ""
-echo "Available handwriting/chalkboard-style fonts:"
-fc-list | grep -iE "Caveat|Kalam|Indie|Comfortaa|Quicksand" | cut -d: -f2 | sort -u
+echo "Available distinctive fonts:"
+fc-list | grep -iE "Permanent|Bebas|Shadows|Pacifico|Bangers|Caveat|Kalam|Indie|Comfortaa|Lato" | cut -d: -f2 | sort -u
 
 echo ""
 echo "All installed fonts:"
-fc-list | grep -iE "DejaVu|FreeSans|Liberation|Lato|Caveat|Kalam|Indie|Comfortaa|Quicksand" | cut -d: -f2 | sort -u
+fc-list | grep -iE "DejaVu|FreeSans|Liberation|Lato|Caveat|Kalam|Indie|Comfortaa|Quicksand|Permanent|Bebas|Shadows|Pacifico|Bangers" | cut -d: -f2 | sort -u
 
 echo ""
 echo "To use these fonts, select them in the design editor."
 echo "Recommended for restaurant menus:"
-echo "  - Lato (modern, geometric)"
+echo "  - Bebas Neue (tall, bold, modern)"
+echo "  - Permanent Marker (bold marker style)"
+echo "  - Pacifico (retro script, fun)"
+echo "  - Bangers (comic book, energetic)"
 echo "  - Caveat (handwritten, casual)"
-echo "  - Kalam (handwritten, bold)"
-echo "  - Indie Flower (playful, casual)"
-echo "  - Comfortaa (rounded, friendly)"
-echo "  - DejaVu Sans (clean, readable)"
+echo "  - Shadows Into Light (casual handwriting)"
+echo "  - Lato (clean, modern)"
+echo "  - DejaVu Sans (professional)"

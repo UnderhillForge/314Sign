@@ -8,22 +8,19 @@
   "bgBrightness": 1.0,
   "availableFonts": {
     "Lato": "Lato, sans-serif",
-    "Lato Light": "'Lato Light', Lato, sans-serif",
     "Lato Bold": "'Lato Bold', Lato, sans-serif",
-    "Lato Black": "'Lato Black', Lato, sans-serif",
+    "Bebas Neue (Tall & Bold)": "'Bebas Neue', sans-serif",
+    "Permanent Marker (Bold)": "'Permanent Marker', cursive",
+    "Pacifico (Retro Script)": "Pacifico, cursive",
+    "Bangers (Comic Book)": "Bangers, cursive",
     "Caveat (Handwritten)": "Caveat, cursive",
-    "Kalam (Chalkboard Style)": "Kalam, cursive",
-    "Kalam Bold": "'Kalam Bold', Kalam, cursive",
-    "Indie Flower (Casual)": "'Indie Flower', cursive",
+    "Shadows Into Light": "'Shadows Into Light', cursive",
+    "Indie Flower": "'Indie Flower', cursive",
     "Comfortaa (Rounded)": "Comfortaa, cursive",
-    "Quicksand (Geometric)": "Quicksand, sans-serif",
+    "Kalam": "Kalam, cursive",
     "DejaVu Sans": "'DejaVu Sans', sans-serif",
-    "DejaVu Sans Bold": "'DejaVu Sans Bold', 'DejaVu Sans', sans-serif",
     "FreeSans": "FreeSans, sans-serif",
-    "FreeSans Bold": "'FreeSans Bold', FreeSans, sans-serif",
     "Liberation Sans": "'Liberation Sans', sans-serif",
-    "DejaVu Serif": "'DejaVu Serif', serif",
-    "Liberation Serif": "'Liberation Serif', serif",
-    "DejaVu Sans Mono": "'DejaVu Sans Mono', monospace"
+    "DejaVu Serif": "'DejaVu Serif', serif"
   }
 }
