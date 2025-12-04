@@ -61,24 +61,31 @@
     </div>
 
     <div class="section">
-      <label>2. Font Style</label>
+      <label>2. Body Font Style</label>
       <select id="font">
         <!-- Populated dynamically from config.json availableFonts -->
       </select>
     </div>
 
     <div class="section">
-      <label>3. Header Text</label>
+      <label>3. Header Font Style</label>
+      <select id="headerFont">
+        <!-- Populated dynamically from config.json availableFonts -->
+      </select>
+    </div>
+
+    <div class="section">
+      <label>4. Header Text</label>
       <input type="text" id="headerText" placeholder="Specials" maxlength="50" />
     </div>
     
     <div class="section">
-      <label for="headerSize">4. Header Size (% of screen): <span id="headerSizeValue">5%</span></label>
+      <label for="headerSize">5. Header Size (% of screen): <span id="headerSizeValue">5%</span></label>
       <input type="range" id="headerSize" min="5" max="20" value="5" step="0.5" style="width: 100%" />
     </div>
     
     <div class="section">
-      <label for="bgBrightness">5. Background Brightness: <span id="bgBrightnessValue">100%</span></label>
+      <label for="bgBrightness">6. Background Brightness: <span id="bgBrightnessValue">100%</span></label>
       <input type="range" id="bgBrightness" min="20" max="150" value="100" step="5" style="width: 100%" />
       <small style="color: #666; display: block; margin-top: 0.25rem;">Lower values darken, higher values brighten</small>
     </div>
@@ -116,6 +123,7 @@
     const upload = document.getElementById('upload');
     const preview = document.getElementById('preview');
     const fontSelect = document.getElementById('font');
+    const headerFontSelect = document.getElementById('headerFont');
     const headerTextInput = document.getElementById('headerText');
     const headerSizeInput = document.getElementById('headerSize');
     const headerSizeValue = document.getElementById('headerSizeValue');
@@ -219,11 +227,17 @@
           };
           
           fontSelect.innerHTML = '';
+          headerFontSelect.innerHTML = '';
           Object.entries(fonts).forEach(([name, value]) => {
             const option = document.createElement('option');
             option.value = value;
             option.textContent = name;
             fontSelect.appendChild(option);
+            
+            const headerOption = document.createElement('option');
+            headerOption.value = value;
+            headerOption.textContent = name;
+            headerFontSelect.appendChild(headerOption);
           });
           console.log('Fonts loaded:', Object.keys(fonts).length + ' fonts');
           
@@ -245,6 +259,14 @@
           if (cfg.font) {
             fontSelect.value = cfg.font;
             console.log('Font set to:', cfg.font);
+          }
+          
+          // Set the header font (defaults to body font if not set)
+          if (cfg.headerFont) {
+            headerFontSelect.value = cfg.headerFont;
+            console.log('Header font set to:', cfg.headerFont);
+          } else if (cfg.font) {
+            headerFontSelect.value = cfg.font;
           }
           
           // Load header text
@@ -322,6 +344,7 @@
             ...existingConfig,
             bg: selectedBg === 'uploaded' ? uploadedDataUrl : selectedBg,
             font: fontSelect.value,
+            headerFont: headerFontSelect.value,
             headerText: headerTextInput.value.trim() || 'Specials',
             headerSizePercent: parseFloat(headerSizeInput.value),
             bgBrightness: parseFloat(bgBrightnessInput.value) / 100,

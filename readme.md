@@ -3,7 +3,7 @@
 **Version 0.9.1** | [License: CC BY-NC 4.0](LICENSE)
 
 > **No apps. No logins. No tech skills.**  
-> Just point a mobile browser at edit.html, make changes, and **watch it update instantly** on screen.
+> Just point a mobile browser at http://YOUR-HOSTNAME.local/start, make changes and **watch it update instantly** on screen.
 
 314Sign turns any **Raspberry Pi** (with fullpageOS or Raspberry Pi OS Lite 64-bit) into a **beautiful, live-updating digital sign** — perfect for **restaurants, private clubs, cafés, or kitchens**.
 

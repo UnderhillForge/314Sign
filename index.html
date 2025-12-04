@@ -204,6 +204,12 @@
         if (cfg.bg)   document.body.style.backgroundImage = `url('bg/${cfg.bg}')`;
         if (cfg.font) document.body.style.fontFamily = cfg.font;
         
+        // Apply header font separately if set (falls back to body font)
+        if (cfg.headerFont) {
+          const headerEl = document.querySelector('header');
+          if (headerEl) headerEl.style.fontFamily = cfg.headerFont;
+        }
+        
         // Apply header text if set (default 'Specials')
         if (cfg.headerText) {
           headerEl.textContent = cfg.headerText;

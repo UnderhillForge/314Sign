@@ -1,12 +1,15 @@
 {
   "bg": "backgd.jpg",
   "font": "'Comic Sans MS', cursive",
+  "headerFont": "'Comic Sans MS', cursive",
   "pollIntervalSeconds": 3,
   "fontScalePercent": 5,
   "headerSizePercent": 5,
   "bgBrightness": 1.0,
   "availableFonts": {
     "Comic Sans": "'Comic Sans MS', cursive",
+    "Chalkboard": "'Chalkboard', 'Chalkboard SE', cursive",
+    "Chalkduster": "'Chalkduster', cursive",
     "Arial": "Arial, sans-serif",
     "Helvetica": "'Helvetica Neue', Helvetica, sans-serif",
     "Georgia": "Georgia, serif",
