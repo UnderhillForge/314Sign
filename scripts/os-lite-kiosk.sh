@@ -166,7 +166,18 @@ fi
 
 echo "Configuring X11 to use correct GPU..."
 sudo mkdir -p /etc/X11/xorg.conf.d
-sudo tee /etc/X11/xorg.conf.d/99-v3d.conf > /dev/null <<'XCONF'
+
+# Map display_rotate values to X11 rotation names
+# 0 = normal, 1 = 90 degrees (left), 2 = 180 degrees (inverted), 3 = 270 degrees (right)
+case "$ROTATION" in
+  0) XROTATE="normal" ;;
+  1) XROTATE="left" ;;
+  2) XROTATE="inverted" ;;
+  3) XROTATE="right" ;;
+  *) XROTATE="normal" ;;
+esac
+
+sudo tee /etc/X11/xorg.conf.d/99-v3d.conf > /dev/null <<XCONF
 Section "ServerFlags"
   Option "AutoAddGPU" "false"
 EndSection
@@ -178,9 +189,15 @@ Section "Device"
   BusID "platform:axi:gpu"
 EndSection
 
+Section "Monitor"
+  Identifier "HDMI-1"
+  Option "Rotate" "$XROTATE"
+EndSection
+
 Section "Screen"
   Identifier "Default Screen"
   Device "vc4"
+  Monitor "HDMI-1"
 EndSection
 XCONF
 
