@@ -130,6 +130,7 @@ declare -a UPDATE_FILES=(
   "status.php"
   "save-menu-history.php"
   "get-menu-history.php"
+  "purge-history.php"
   "scripts/backup.sh"
   "scripts/os-lite-kiosk.sh"
   "scripts/update-from-github.sh"

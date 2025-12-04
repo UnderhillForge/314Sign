@@ -42,6 +42,8 @@
     button:active { background:#0056b3; }
     button.secondary { background:#6c757d; }
     button.secondary:active { background:#5a6268; }
+    button.danger { background:#dc3545; }
+    button.danger:active { background:#c82333; }
     .status { text-align:center; font-size:0.9rem; color:#666; }
   </style>
 </head>
@@ -95,6 +97,13 @@
       <button onclick="saveDesign()">Save & Update Kiosk</button>
       <button class="secondary" onclick="location.reload()">Cancel</button>
     </div>
+    
+    <div class="section" style="margin-top: 1rem; border: 2px solid #dc3545;">
+      <label style="color: #dc3545; font-weight: 700;">⚠️ Danger Zone</label>
+      <p style="font-size: 0.9rem; color: #666; margin: 0.5rem 0;">Delete all menu history files (7-day backup). This action cannot be undone.</p>
+      <button class="danger" onclick="purgeHistory()" style="margin-top: 0.5rem;">Purge All History</button>
+    </div>
+    
     <div class="status" id="status"></div>
     <!-- Toast notification (mobile friendly) -->
     <div id="toast" class="toast" aria-live="polite" role="status" style="display:none"></div>
@@ -606,6 +615,29 @@
         }, ms);
       };
     })();
+    
+    // === Purge History ===
+    function purgeHistory() {
+      if (!confirm('⚠️ WARNING: This will permanently delete all menu history files.\n\nAre you sure you want to continue?')) {
+        return;
+      }
+      
+      fetch('../purge-history.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+        .then(r => r.ok ? r.json() : Promise.reject('Purge failed'))
+        .then(data => {
+          if (data.success) {
+            showToast(`✓ ${data.message}`, 4000);
+          } else {
+            showToast('✗ Failed to purge history', 4000);
+          }
+        })
+        .catch(err => {
+          showToast('✗ Error: ' + err, 4000);
+        });
+    }
   </script>
 </body>
 </html>
