@@ -4,6 +4,33 @@ Quick reference for formatting your menu specials with Markdown and color tags.
 
 ---
 
+## Per-Menu Font Size
+
+Set a custom font size for each menu file by adding this directive at the **very first line**:
+
+```
+[FONTSCALE:X]
+```
+
+Where X is the percentage of screen width (5-20). For example:
+- `[FONTSCALE:5]` - Small text (default)
+- `[FONTSCALE:7]` - Medium text
+- `[FONTSCALE:10]` - Large text
+- `[FONTSCALE:15]` - Extra large text
+
+**Example menu file:**
+```
+[FONTSCALE:8]
+## Today's Specials
+
+**Burger** - {y}$8.95
+**Pizza** - {y}$12.95
+```
+
+**Note:** This line will not be displayed to customers - it's automatically removed.
+
+---
+
 ## Basic Text Formatting
 
 ### Headings

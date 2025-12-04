@@ -377,7 +377,20 @@
           if (newText !== null && newText !== undefined) {
             lastText = newText;
             // Parse Markdown and render as HTML
-            const trimmed = newText.trim() || 'No specials today.';
+            let trimmed = newText.trim() || 'No specials today.';
+            
+            // Check for embedded font scale at the top of the file [FONTSCALE:X]
+            const fontScaleMatch = trimmed.match(/^\[FONTSCALE:(\d+(?:\.\d+)?)\]\n?/i);
+            if (fontScaleMatch) {
+              const menuFontScale = parseFloat(fontScaleMatch[1]);
+              // Remove the fontscale directive from display
+              trimmed = trimmed.replace(/^\[FONTSCALE:\d+(?:\.\d+)?\]\n?/i, '');
+              // Apply font scale to specials div
+              const specials = document.getElementById('specials');
+              if (specials && menuFontScale > 0 && menuFontScale <= 20) {
+                specials.style.fontSize = 'clamp(1rem, ' + menuFontScale + 'vw, 6rem)';
+              }
+            }
             
             // Process color tags line by line to prevent bleeding
             const lines = trimmed.split('\n');

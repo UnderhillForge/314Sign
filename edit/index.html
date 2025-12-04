@@ -499,6 +499,10 @@
         <div id="help">
           <h3>Markdown Formatting Guide</h3>
           
+          <h4>Per-Menu Font Size</h4>
+          <div class="example">[FONTSCALE:8]<br>## Today's Specials</div>
+          <div class="result">Set custom font size (5-20%) for this menu. Add on first line - won't display to customers.</div>
+          
           <h4>Headings</h4>
           <div class="example">## Large Heading<br>### Medium Heading</div>
           <div class="result"><strong>Large Heading</strong><br><strong style="font-size:0.9em">Medium Heading</strong></div>
@@ -595,15 +599,43 @@
     // Update preview as user types
     function updatePreview() {
       const markdown = textarea.value || 'No specials yet...';
-      let html = marked.parse(markdown);
-      // Process color tags: {r}red text to end of line
-      html = html.replace(/\{r\}(.*?)(<\/|\{[rygbopw]\}|$)/g, '<span style="color:#ff4444">$1</span>$2'); // red
-      html = html.replace(/\{y\}(.*?)(<\/|\{[rygbopw]\}|$)/g, '<span style="color:#ffdd44">$1</span>$2'); // yellow
-      html = html.replace(/\{g\}(.*?)(<\/|\{[rygbopw]\}|$)/g, '<span style="color:#44ff44">$1</span>$2'); // green
-      html = html.replace(/\{b\}(.*?)(<\/|\{[rygbopw]\}|$)/g, '<span style="color:#4488ff">$1</span>$2'); // blue
-      html = html.replace(/\{o\}(.*?)(<\/|\{[rygbopw]\}|$)/g, '<span style="color:#ff8844">$1</span>$2'); // orange
-      html = html.replace(/\{p\}(.*?)(<\/|\{[rygbopw]\}|$)/g, '<span style="color:#ff44ff">$1</span>$2'); // pink
-      html = html.replace(/\{w\}(.*?)(<\/|\{[rygbopw]\}|$)/g, '<span style="color:#ffffff">$1</span>$2'); // white
+      
+      // Process color tags line by line (before markdown parsing)
+      const lines = markdown.split('\n');
+      const processedLines = lines.map(line => {
+        let processed = line;
+        // Apply color tags within this line only
+        const colorMap = {
+          r: '#ff4444', y: '#ffdd44', g: '#44ff44', b: '#4488ff',
+          o: '#ff8844', p: '#ff44ff', w: '#ffffff'
+        };
+        
+        Object.keys(colorMap).forEach(colorKey => {
+          const color = colorMap[colorKey];
+          // Replace {color} with opening span, text continues to end of line
+          const regex = new RegExp('\\{' + colorKey + '\\}(.*)$', 'i');
+          processed = processed.replace(regex, '<span style="color:' + color + '">$1</span>');
+        });
+        
+        return processed;
+      });
+      
+      let processedText = processedLines.join('\n');
+      
+      // Check for font size override tags [sX]...[/s] where X is percentage
+      const sizeRegex = /\[s(\d+(?:\.\d+)?)\]([\s\S]*?)\[\/s\]/gi;
+      processedText = processedText.replace(sizeRegex, (match, percent, content) => {
+        return `<span style="font-size: ${percent}vw">${content}</span>`;
+      });
+      
+      // Check for alignment tags [center]...[/center] and [right]...[/right]
+      processedText = processedText.replace(/\[center\]([\s\S]*?)\[\/center\]/gi, '<div style="text-align: center">$1</div>');
+      processedText = processedText.replace(/\[right\]([\s\S]*?)\[\/right\]/gi, '<div style="text-align: right">$1</div>');
+      
+      // Convert custom bullet syntax after color processing
+      const withBullets = processedText.replace(/^- /gm, '• ');
+      let html = marked.parse(withBullets);
+      
       preview.innerHTML = html;
     }
 
