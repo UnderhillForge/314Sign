@@ -19,11 +19,23 @@
     header {
       background: rgba(0,0,0,0.5);
       padding: 1rem;
-      text-align: center;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
       /* Responsive header font: scales with viewport width (5vw) between 1.5rem-4rem */
       /* Larger screens get proportionally larger text; clamp() prevents extremes */
       font-size: clamp(1.5rem, 5vw, 4rem);
       font-weight: bold;
+    }
+    #clock {
+      position: absolute;
+      right: 1rem;
+      font-size: clamp(1rem, 3vw, 2.5rem);
+      font-weight: normal;
+    }
+    #clock.hidden {
+      display: none;
     }
     #specials {
       flex: 1;
@@ -73,17 +85,30 @@
   </style>
 </head>
 <body>
-  <header id="header">Specials</header>
+  <header>
+    <span id="header">Specials</span>
+    <span id="clock" class="hidden">00:00</span>
+  </header>
   <div id="specials">Loading…</div>
   <div class="version">314Sign v0.8.0</div>
 
   <script>
   const specialsDiv = document.getElementById('specials');
   const headerEl = document.getElementById('header');
+  const clockEl = document.getElementById('clock');
   let currentMenu = localStorage.getItem('currentMenu') || 'menus/dinner.txt';
   let lastText = '';
   let lastEtag = null;
   let rulesCheckInterval = null;
+  let clockInterval = null;
+
+  // Update clock display
+  function updateClock() {
+    const now = new Date();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    clockEl.textContent = `${hours}:${minutes}`;
+  }
 
   // Poll interval in milliseconds. Default to 3000ms (3s).
   // This value can be overridden from config.json using one of:
@@ -158,6 +183,20 @@
         // Apply header text if set (default 'Specials')
         if (cfg.headerText) {
           headerEl.textContent = cfg.headerText;
+        }
+        
+        // Show/hide clock based on config
+        if (cfg.showClock) {
+          clockEl.classList.remove('hidden');
+          updateClock();
+          if (clockInterval) clearInterval(clockInterval);
+          clockInterval = setInterval(updateClock, 1000);
+        } else {
+          clockEl.classList.add('hidden');
+          if (clockInterval) {
+            clearInterval(clockInterval);
+            clockInterval = null;
+          }
         }
 
         // Configure poll interval from config (supports multiple keys)

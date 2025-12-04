@@ -68,6 +68,13 @@
       <input type="text" id="headerText" placeholder="Specials" maxlength="50" />
     </div>
 
+    <div class="section">
+      <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+        <input type="checkbox" id="showClock" style="width:auto;margin:0" />
+        <span>Show Clock (hh:mm)</span>
+      </label>
+    </div>
+
     <div class="actions">
       <button onclick="saveDesign()">Save & Update Kiosk</button>
       <button class="secondary" onclick="location.reload()">Cancel</button>
@@ -84,6 +91,7 @@
     const preview = document.getElementById('preview');
     const fontSelect = document.getElementById('font');
     const headerTextInput = document.getElementById('headerText');
+    const showClockCheckbox = document.getElementById('showClock');
     const status = document.getElementById('status');
 
   let backgrounds = [];        // Filled from server
@@ -190,6 +198,11 @@
           if (cfg.headerText) {
             headerTextInput.value = cfg.headerText;
           }
+          
+          // Load clock setting
+          if (cfg.showClock) {
+            showClockCheckbox.checked = true;
+          }
         })
         .catch(err => {
           console.error('Failed to load config:', err);
@@ -223,7 +236,8 @@
             ...existingConfig,
             bg: selectedBg === 'uploaded' ? uploadedDataUrl : selectedBg,
             font: fontSelect.value,
-            headerText: headerTextInput.value.trim() || 'Specials'
+            headerText: headerTextInput.value.trim() || 'Specials',
+            showClock: showClockCheckbox.checked
           };
 
           // Save config.json
