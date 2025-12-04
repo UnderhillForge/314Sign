@@ -92,23 +92,6 @@
       box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
     .menu-tab:active { background: #e9ecef; }
-    .status-bar {
-      background: white;
-      padding: 0.5rem 0.75rem;
-      border-radius: 8px;
-      flex-shrink: 0;
-      text-align: center;
-      font-size: 0.8rem;
-      color: #666;
-      display: none;
-      line-height: 1.4;
-    }
-    .status-bar.active {
-      display: block;
-    }
-    .status-bar strong {
-      color: #28a745;
-      font-weight: 700;
     }
     .controls {
       display: flex;
@@ -458,9 +441,6 @@
       <button class="menu-tab" data-file="menus/dinner.txt">Dinner</button>
       <button class="menu-tab" data-file="menus/closed.txt">Closed</button>
     </div>
-    <div id="statusBar" class="status-bar">
-      <span id="statusText">Loading schedule info...</span>
-    </div>
     <div class="controls">
       <label for="fontScale">Font Size:</label>
       <input type="range" id="fontScale" min="5" max="20" value="5" step="0.5" />
@@ -478,7 +458,6 @@
     </div>
     <div class="toolbar">
       <!-- Emoji toolbar removed - support available via insertEmoji() function -->
-      <button onclick="showHistoryModal()" title="View History" style="margin-left: auto;">History</button>
     </div>
     
     <!-- View toggle buttons -->
@@ -559,6 +538,10 @@
           </p>
         </div>
       </div>
+    </div>
+    
+    <div style="padding: 1rem 0; text-align: center;">
+      <button onclick="showHistoryModal()" style="padding: 0.5rem 1rem; font-size: 0.9rem;">📜 View History</button>
     </div>
     
     <div class="actions">
@@ -711,12 +694,13 @@
       fetch('../rules.json')
         .then(r => r.ok ? r.json() : null)
         .then(rulesData => {
-          const statusBar = document.getElementById('statusBar');
-          const statusText = document.getElementById('statusText');
-          
           if (!rulesData || !rulesData.enabled || !rulesData.rules || rulesData.rules.length === 0) {
-            // No rules active
-            statusBar.classList.remove('active');
+            // No rules active - remove all highlights
+            menuTabs.forEach(tab => {
+              tab.classList.remove('kiosk-active');
+              const badge = tab.querySelector('.badge');
+              if (badge) badge.remove();
+            });
             return;
           }
           
@@ -747,10 +731,6 @@
           }
           
           if (activeRule) {
-            // Show status bar
-            statusBar.classList.add('active');
-            statusText.innerHTML = `📺 Kiosk is showing: <strong>${activeRule.name}</strong> (${activeRule.startTime} - ${activeRule.endTime})`;
-            
             // Highlight the active menu tab
             const activeMenuFile = activeRule.menu;
             menuTabs.forEach(tab => {
@@ -770,12 +750,16 @@
               }
             });
           } else {
-            statusBar.classList.remove('active');
+            // No active rule - remove all highlights
+            menuTabs.forEach(tab => {
+              tab.classList.remove('kiosk-active');
+              const badge = tab.querySelector('.badge');
+              if (badge) badge.remove();
+            });
           }
         })
         .catch(() => {
-          // Rules file doesn't exist or error
-          document.getElementById('statusBar').classList.remove('active');
+          // Rules file doesn't exist or error - silent fail
         });
     }
 
