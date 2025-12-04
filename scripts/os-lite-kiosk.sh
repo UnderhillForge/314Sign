@@ -165,12 +165,20 @@ else
 fi
 
 echo "Setting up X11 auto-start..."
+cat > ~/.xinitrc <<'EOF'
+#!/bin/sh
+# Start openbox window manager
+exec openbox-session
+EOF
+
 cat > ~/.bash_profile <<'EOF'
 # Auto-start X11 on login (console only)
 if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
   startx -- -nocursor
 fi
 EOF
+
+chmod +x ~/.xinitrc
 
 echo ""
 echo "✅ Kiosk mode configured!"
