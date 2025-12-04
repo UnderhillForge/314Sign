@@ -592,6 +592,15 @@
             status.textContent = 'Saved! Kiosk will refresh...';
             // show toast notification
             if (window.showToast) showToast('Saved — kiosk updated');
+            
+            // Trigger kiosk reload
+            const token = Date.now().toString();
+            fetch('../reload.txt', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'text/plain' },
+              body: token
+            }).catch(() => {});
+            
             try { parent.location.reload(); } catch(e) {}
             setTimeout(() => status.textContent = '', 3000);
           } else {
@@ -634,6 +643,6 @@
       };
     })();
   </script>
-  <div class="version">314Sign v0.9.0</div>
+  <div class="version">314Sign v0.9.1</div>
 </body>
 </html>
