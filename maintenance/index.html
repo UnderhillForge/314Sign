@@ -362,30 +362,45 @@
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner"></span> Checking...';
       
-      logMessage('Checking for updates...', 'info');
+      logMessage('Checking for updates from GitHub...', 'info');
       
       try {
-        // Try to run update script with --dry-run
         const response = await fetch('../check-updates.php');
         
         if (response.ok) {
           const data = await response.json();
           
-          if (data.updates_available) {
-            logMessage('Updates available: ' + data.files.length + ' files', 'warning');
-            showToast(data.files.length + ' updates available', 'success');
+          if (data.success) {
+            if (data.updates_available) {
+              logMessage('✓ Updates available: ' + data.files.length + ' file(s)', 'warning');
+              data.files.forEach(file => {
+                logMessage('  - ' + file, 'info');
+              });
+              logMessage('Run: sudo /var/www/html/scripts/update-from-github.sh --backup', 'info');
+              showToast(data.files.length + ' updates found!', 'warning');
+            } else {
+              logMessage('✓ ' + data.message, 'success');
+              showToast('System up to date', 'success');
+            }
+            
+            // Show raw output if available
+            if (data.output) {
+              logMessage('--- Update Check Output ---', 'info');
+              logMessage(data.output, 'info');
+            }
           } else {
-            logMessage('System is up to date', 'success');
-            showToast('No updates available', 'success');
+            logMessage('Error: ' + (data.error || 'Unknown error'), 'error');
+            showToast('Check failed', 'error');
           }
         } else {
-          logMessage('Update check endpoint not available', 'warning');
-          showToast('Run: scripts/update-from-github.sh --dry-run', 'info');
+          logMessage('Update check endpoint returned HTTP ' + response.status, 'error');
+          showToast('Check failed', 'error');
         }
         
       } catch (error) {
-        logMessage('Check manually: scripts/update-from-github.sh --dry-run', 'info');
-        showToast('Manual check required', 'info');
+        logMessage('Update check failed: ' + error.message, 'error');
+        logMessage('Run manually: sudo /var/www/html/scripts/update-from-github.sh --dry-run', 'info');
+        showToast('Check failed - run manually', 'error');
       } finally {
         btn.disabled = false;
         btn.innerHTML = originalHTML;
