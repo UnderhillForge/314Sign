@@ -190,14 +190,14 @@ Section "Device"
 EndSection
 
 Section "Monitor"
-  Identifier "HDMI-1"
+  Identifier "HDMI-2"
   Option "Rotate" "$XROTATE"
 EndSection
 
 Section "Screen"
   Identifier "Default Screen"
   Device "vc4"
-  Monitor "HDMI-1"
+  Monitor "HDMI-2"
 EndSection
 XCONF
 
