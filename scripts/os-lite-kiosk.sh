@@ -167,10 +167,20 @@ fi
 echo "Configuring X11 to use correct GPU..."
 sudo mkdir -p /etc/X11/xorg.conf.d
 sudo tee /etc/X11/xorg.conf.d/99-v3d.conf > /dev/null <<'XCONF'
+Section "ServerFlags"
+  Option "AutoAddGPU" "false"
+EndSection
+
 Section "Device"
   Identifier "vc4"
   Driver "modesetting"
   Option "kmsdev" "/dev/dri/card1"
+  BusID "platform:axi:gpu"
+EndSection
+
+Section "Screen"
+  Identifier "Default Screen"
+  Device "vc4"
 EndSection
 XCONF
 
