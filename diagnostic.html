@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>314Sign Diagnostic</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 2rem;
+      background: #1a1a1a;
+      color: #0f0;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 { color: #0ff; }
+    .test { 
+      margin: 1rem 0;
+      padding: 1rem;
+      background: #2a2a2a;
+      border-left: 4px solid #0f0;
+    }
+    .test.fail { border-left-color: #f00; }
+    .result { margin-top: 0.5rem; color: #ff0; }
+    button {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      background: #0f0;
+      color: #000;
+      border: none;
+      cursor: pointer;
+      font-family: monospace;
+      font-weight: bold;
+    }
+    button:hover { background: #0ff; }
+  </style>
+</head>
+<body>
+  <h1>314Sign System Diagnostic</h1>
+  
+  <div class="test" id="test1">
+    <strong>Test 1: Config.json</strong>
+    <div class="result" id="result1">Testing...</div>
+  </div>
+  
+  <div class="test" id="test2">
+    <strong>Test 2: Reload.txt</strong>
+    <div class="result" id="result2">Testing...</div>
+  </div>
+  
+  <div class="test" id="test3">
+    <strong>Test 3: trigger-reload.php</strong>
+    <div class="result" id="result3">Testing...</div>
+  </div>
+  
+  <div class="test" id="test4">
+    <strong>Test 4: Current Font</strong>
+    <div class="result" id="result4">Testing...</div>
+  </div>
+  
+  <div style="margin-top: 2rem;">
+    <button onclick="runTests()">Re-run Tests</button>
+    <button onclick="testReload()">Test Reload Trigger</button>
+  </div>
+
+  <script>
+    function runTests() {
+      // Test 1: Config
+      fetch('config.json?' + Date.now())
+        .then(r => r.json())
+        .then(cfg => {
+          document.getElementById('result1').innerHTML = 
+            `✓ Font: ${cfg.font}<br>✓ HeaderFont: ${cfg.headerFont}<br>✓ Background: ${cfg.bg}`;
+          document.getElementById('test1').classList.remove('fail');
+        })
+        .catch(err => {
+          document.getElementById('result1').textContent = '✗ Failed: ' + err.message;
+          document.getElementById('test1').classList.add('fail');
+        });
+      
+      // Test 2: Reload.txt
+      fetch('reload.txt?' + Date.now())
+        .then(r => r.text())
+        .then(content => {
+          document.getElementById('result2').textContent = '✓ reload.txt exists. Token: ' + content.trim();
+          document.getElementById('test2').classList.remove('fail');
+        })
+        .catch(err => {
+          document.getElementById('result2').textContent = '✗ reload.txt not found or inaccessible';
+          document.getElementById('test2').classList.add('fail');
+        });
+      
+      // Test 3: trigger-reload.php
+      fetch('trigger-reload.php', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) {
+            document.getElementById('result3').textContent = '✓ Trigger works. New token: ' + data.timestamp;
+            document.getElementById('test3').classList.remove('fail');
+          } else {
+            document.getElementById('result3').textContent = '✗ Trigger failed: ' + (data.error || 'unknown');
+            document.getElementById('test3').classList.add('fail');
+          }
+        })
+        .catch(err => {
+          document.getElementById('result3').textContent = '✗ trigger-reload.php not found';
+          document.getElementById('test3').classList.add('fail');
+        });
+      
+      // Test 4: Current font
+      const bodyFont = getComputedStyle(document.body).fontFamily;
+      document.getElementById('result4').textContent = '✓ Current: ' + bodyFont;
+    }
+    
+    function testReload() {
+      fetch('trigger-reload.php', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) {
+            alert('Reload triggered! Token: ' + data.timestamp + '\n\nIf the kiosk is running, it should reload within 10 seconds.');
+          } else {
+            alert('Trigger failed: ' + (data.error || 'unknown'));
+          }
+        });
+    }
+    
+    // Run tests on load
+    window.addEventListener('DOMContentLoaded', runTests);
+  </script>
+</body>
+</html>

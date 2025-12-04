@@ -97,6 +97,22 @@
       opacity: 0.5;
       pointer-events: none;
     }
+    /* Reload indicator overlay */
+    #reloadIndicator {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(74, 158, 255, 0.95);
+      color: white;
+      padding: 2rem 3rem;
+      border-radius: 1rem;
+      font-size: 2rem;
+      font-weight: bold;
+      z-index: 10000;
+      display: none;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
   </style>
 </head>
 <body>
@@ -106,6 +122,7 @@
   </header>
   <div id="specials">Loading…</div>
   <div class="version">314Sign v0.9.1 | © 2025 J Stekervetz | CC BY-NC 4.0</div>
+  <div id="reloadIndicator">🔄 Reloading...</div>
 
   <script>
   const specialsDiv = document.getElementById('specials');
@@ -197,7 +214,10 @@
     // --------------------------------------------------------------------
     // 1. Load config.json (once)
     // --------------------------------------------------------------------
-    fetch('config.json?' + Date.now())
+    fetch('config.json?' + Date.now(), {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' }
+    })
       .then(r => r.ok ? r.json() : {})
       .then(cfg => {
         // Apply background/font from config if present
@@ -309,8 +329,9 @@
             // First load, just store the token
             lastReloadToken = token.trim();
           } else if (token && token.trim() !== lastReloadToken) {
-            // Token changed, force hard reload to bypass cache
-            location.reload(true);
+            // Token changed, show indicator and force hard reload to bypass cache
+            showReloadIndicator();
+            setTimeout(() => location.reload(true), 1000);
           }
         })
         .catch(() => {});
@@ -355,6 +376,14 @@
           }
         })
         .catch(() => {});
+    }
+    
+    function showReloadIndicator() {
+      const indicator = document.getElementById('reloadIndicator');
+      if (indicator) {
+        indicator.style.display = 'block';
+        console.log('[UI] Reload indicator shown - page will reload in 1 second');
+      }
     }
 
     function pollSpecials() {
