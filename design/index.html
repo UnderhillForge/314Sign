@@ -371,15 +371,30 @@
       // Skip generateIndexHTML - config.json changes are enough
       // The live index.html reads config dynamically at runtime
       .then(() => {
-        status.textContent = 'Saved! Kiosk updated.';
+        status.textContent = 'Saved! Triggering reload...';
         // Show mobile-friendly toast as confirmation
-        if (window.showToast) showToast('Saved — kiosk updated');
+        if (window.showToast) showToast('Saved — triggering reload');
         
         // Trigger kiosk reload immediately
-        fetch('../trigger-reload.php', {
+        return fetch('../trigger-reload.php', {
           method: 'POST'
-        }).catch(() => {});
-        
+        })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) {
+            status.textContent = 'Saved! Kiosk will reload in ~10s';
+            if (window.showToast) showToast('✓ Reload triggered', 2000);
+          } else {
+            status.textContent = 'Saved, but reload trigger failed';
+            console.error('Reload trigger failed:', data);
+          }
+        })
+        .catch(err => {
+          status.textContent = 'Saved, but reload trigger failed';
+          console.error('Reload trigger error:', err);
+        });
+      })
+      .then(() => {
         setTimeout(() => status.textContent = '', 3000);
       })
       .catch(err => {
