@@ -10,12 +10,24 @@
     * { margin:0; padding:0; box-sizing:border-box; }
     html, body { height:100%; overflow:hidden; }
     body {
-      background: url('bg/backgd.jpg') center/cover no-repeat;
       font-family: 'Comic Sans MS', cursive;
       color: #fff;
       text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
       display: flex;
       flex-direction: column;
+      position: relative;
+    }
+    /* Background with brightness filter support */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('bg/backgd.jpg') center/cover no-repeat;
+      z-index: -1;
+      filter: brightness(1);
     }
     header {
       background: rgba(0,0,0,0.5);
@@ -254,9 +266,12 @@
           
           // Load and apply background brightness
           if (Number.isFinite(cfg.bgBrightness)) {
-            document.body.style.filter = 'brightness(' + cfg.bgBrightness + ')';
-          } else {
-            document.body.style.filter = 'brightness(1)';
+            const style = document.createElement('style');
+            style.id = 'bg-brightness-style';
+            style.textContent = 'body::before { filter: brightness(' + cfg.bgBrightness + ') !important; }';
+            const existing = document.getElementById('bg-brightness-style');
+            if (existing) existing.remove();
+            document.head.appendChild(style);
           }
         }
       })
@@ -321,11 +336,12 @@
           
           // Check if background brightness changed
           if (Number.isFinite(cfg.bgBrightness)) {
-            const currentFilter = document.body.style.filter;
-            const newFilter = 'brightness(' + cfg.bgBrightness + ')';
-            if (currentFilter !== newFilter) {
-              document.body.style.filter = newFilter;
-            }
+            const style = document.createElement('style');
+            style.id = 'bg-brightness-style';
+            style.textContent = 'body::before { filter: brightness(' + cfg.bgBrightness + ') !important; }';
+            const existing = document.getElementById('bg-brightness-style');
+            if (existing) existing.remove();
+            document.head.appendChild(style);
           }
         })
         .catch(() => {});
