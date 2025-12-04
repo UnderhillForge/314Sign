@@ -289,20 +289,27 @@
             // Parse Markdown and render as HTML
             const trimmed = newText.trim() || 'No specials today.';
             
-            // Process color tags BEFORE Markdown parsing
-            // This way each line's color stays on that line
-            const colorMap = {
-              r: '#ff4444', y: '#ffdd44', g: '#44ff44', b: '#4488ff',
-              o: '#ff8844', p: '#ff44ff', w: '#ffffff'
-            };
-            
-            let processedText = trimmed;
-            Object.keys(colorMap).forEach(colorKey => {
-              const color = colorMap[colorKey];
-              // Match {color} and text until end of line
-              const regex = new RegExp('\\{' + colorKey + '\\}([^\n\r]*)', 'gi');
-              processedText = processedText.replace(regex, '<span style="color:' + color + '">$1</span>');
+            // Process color tags line by line to prevent bleeding
+            const lines = trimmed.split('\n');
+            const processedLines = lines.map(line => {
+              let processed = line;
+              // Apply color tags within this line only
+              const colorMap = {
+                r: '#ff4444', y: '#ffdd44', g: '#44ff44', b: '#4488ff',
+                o: '#ff8844', p: '#ff44ff', w: '#ffffff'
+              };
+              
+              Object.keys(colorMap).forEach(colorKey => {
+                const color = colorMap[colorKey];
+                // Replace {color} with opening span, text continues to end of line
+                const regex = new RegExp('\\{' + colorKey + '\\}(.*)$', 'i');
+                processed = processed.replace(regex, '<span style="color:' + color + '">$1</span>');
+              });
+              
+              return processed;
             });
+            
+            const processedText = processedLines.join('\n');
             
             // Convert custom bullet syntax after color processing
             const withBullets = processedText.replace(/^- /gm, '• ');
