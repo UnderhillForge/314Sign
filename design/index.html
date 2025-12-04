@@ -71,7 +71,11 @@
     <div class="section">
       <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
         <input type="checkbox" id="showClock" style="width:auto;margin:0" />
-        <span>Show Clock (hh:mm)</span>
+        <span>Show Clock</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;margin-top:0.5rem;margin-left:1.5rem">
+        <input type="checkbox" id="clock24Hour" style="width:auto;margin:0" />
+        <span>24-Hour Format</span>
       </label>
     </div>
 
@@ -82,7 +86,7 @@
     <div class="status" id="status"></div>
     <!-- Toast notification (mobile friendly) -->
     <div id="toast" class="toast" aria-live="polite" role="status" style="display:none"></div>
-    <div style="position:fixed;bottom:0.5rem;right:0.5rem;font-size:0.7rem;color:#999;opacity:0.6;pointer-events:none">314Sign v0.8.0</div>
+    <div style="position:fixed;bottom:0.5rem;right:0.5rem;font-size:0.7rem;color:#999;opacity:0.6;pointer-events:none">314Sign v0.9.0</div>
   </div>
 
   <script>
@@ -92,6 +96,7 @@
     const fontSelect = document.getElementById('font');
     const headerTextInput = document.getElementById('headerText');
     const showClockCheckbox = document.getElementById('showClock');
+    const clock24HourCheckbox = document.getElementById('clock24Hour');
     const status = document.getElementById('status');
 
   let backgrounds = [];        // Filled from server
@@ -203,6 +208,11 @@
           if (cfg.showClock) {
             showClockCheckbox.checked = true;
           }
+          
+          // Load clock format (default to 24-hour)
+          if (cfg.clock24Hour !== false) {
+            clock24HourCheckbox.checked = true;
+          }
         })
         .catch(err => {
           console.error('Failed to load config:', err);
@@ -237,7 +247,8 @@
             bg: selectedBg === 'uploaded' ? uploadedDataUrl : selectedBg,
             font: fontSelect.value,
             headerText: headerTextInput.value.trim() || 'Specials',
-            showClock: showClockCheckbox.checked
+            showClock: showClockCheckbox.checked,
+            clock24Hour: clock24HourCheckbox.checked
           };
 
           // Save config.json
@@ -395,7 +406,7 @@
       html += '<body>\n';
       html += '  <header>Specials</header>\n';
       html += '  <div id="specials">Loading…</div>\n';
-      html += '  <div class="version">314Sign v0.8.0</div>\n';
+      html += '  <div class="version">314Sign v0.9.0</div>\n';
       html += '  <script>\n';
       html += '    const specialsDiv = document.getElementById("specials");\n';
       html += '    let currentMenu = localStorage.getItem("currentMenu") || "menus/dinner.txt";\n';

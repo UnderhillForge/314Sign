@@ -1,6 +1,6 @@
 # 314Sign — The Dead-Simple Digital Menu Board
 
-**Version 0.8.0** | [License: CC BY-NC 4.0](LICENSE)
+**Version 0.9.0** | [License: CC BY-NC 4.0](LICENSE)
 
 > **No apps. No logins. No tech skills.**  
 > Just point a mobile browser at edit.html, make changes, and **watch it update instantly** on screen.

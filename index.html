@@ -90,7 +90,7 @@
     <span id="clock" class="hidden">00:00</span>
   </header>
   <div id="specials">Loading…</div>
-  <div class="version">314Sign v0.8.0</div>
+  <div class="version">314Sign v0.9.0</div>
 
   <script>
   const specialsDiv = document.getElementById('specials');
@@ -101,13 +101,22 @@
   let lastEtag = null;
   let rulesCheckInterval = null;
   let clockInterval = null;
+  let clock24Hour = true; // Default to 24-hour format
 
   // Update clock display
   function updateClock() {
     const now = new Date();
-    const hours = now.getHours().toString().padStart(2, '0');
+    let hours = now.getHours();
     const minutes = now.getMinutes().toString().padStart(2, '0');
-    clockEl.textContent = `${hours}:${minutes}`;
+    
+    if (clock24Hour) {
+      clockEl.textContent = `${hours.toString().padStart(2, '0')}:${minutes}`;
+    } else {
+      // 12-hour format with AM/PM
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12; // Convert 0 to 12 for midnight
+      clockEl.textContent = `${hours}:${minutes} ${ampm}`;
+    }
   }
 
   // Poll interval in milliseconds. Default to 3000ms (3s).
@@ -188,6 +197,8 @@
         // Show/hide clock based on config
         if (cfg.showClock) {
           clockEl.classList.remove('hidden');
+          // Set clock format (default to 24-hour if not specified)
+          clock24Hour = cfg.clock24Hour !== false;
           updateClock();
           if (clockInterval) clearInterval(clockInterval);
           clockInterval = setInterval(updateClock, 1000);
