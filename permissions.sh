@@ -53,6 +53,7 @@ sudo chmod 755 "$WEB_ROOT/check-updates.php" 2>/dev/null || true
 sudo chmod 755 "$WEB_ROOT/apply-updates.php" 2>/dev/null || true
 sudo chmod 755 "$WEB_ROOT/restart-server.php" 2>/dev/null || true
 sudo chmod 755 "$WEB_ROOT/create-backup.php" 2>/dev/null || true
+sudo chmod 755 "$WEB_ROOT/trigger-reload.php" 2>/dev/null || true
 sudo chmod 755 "$WEB_ROOT/save-menu-history.php" 2>/dev/null || true
 sudo chmod 755 "$WEB_ROOT/get-menu-history.php" 2>/dev/null || true
 

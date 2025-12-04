@@ -134,6 +134,7 @@ declare -a UPDATE_FILES=(
   "apply-updates.php"
   "restart-server.php"
   "create-backup.php"
+  "trigger-reload.php"
   "save-menu-history.php"
   "get-menu-history.php"
   "scripts/backup.sh"

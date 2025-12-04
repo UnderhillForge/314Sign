@@ -133,6 +133,12 @@ sudo mkdir -p /var/www/html/scripts
 sudo mkdir -p /var/www/html/start
 sudo mkdir -p /var/www/html/history
 
+# Create reload.txt if it doesn't exist (used by edit page to trigger kiosk reload)
+if [ ! -f /var/www/html/reload.txt ]; then
+  echo "0" | sudo tee /var/www/html/reload.txt > /dev/null
+  echo "Created reload.txt"
+fi
+
 # === 5. Set ownership & permissions ===
 echo ""
 echo "Setting permissions..."

@@ -816,13 +816,17 @@
     
     // Reload kiosk button
     document.getElementById('reloadKiosk').addEventListener('click', () => {
-      const token = Date.now().toString();
-      fetch('../reload.txt', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'text/plain' },
-        body: token
+      fetch('../trigger-reload.php', {
+        method: 'POST'
       })
-        .then(() => showToast('Kiosk will reload in ~10 seconds', 'success'))
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) {
+            showToast('Kiosk will reload in ~10 seconds', 'success');
+          } else {
+            showToast('Failed to trigger reload', 'error');
+          }
+        })
         .catch(() => showToast('Failed to trigger reload', 'error'));
     });
 
@@ -868,11 +872,8 @@
             }).catch(() => {}); // Silent fail if history save fails
             
             // Trigger kiosk reload
-            const token = Date.now().toString();
-            fetch('../reload.txt', {
-              method: 'PUT',
-              headers: { 'Content-Type': 'text/plain' },
-              body: token
+            fetch('../trigger-reload.php', {
+              method: 'POST'
             }).catch(() => {});
             
             try { parent.location.reload(); } catch(e) {}

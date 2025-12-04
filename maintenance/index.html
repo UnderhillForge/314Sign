@@ -490,18 +490,21 @@
       logMessage('Triggering kiosk reload...', 'info');
       
       try {
-        const token = Date.now().toString();
-        const response = await fetch('../reload.txt', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'text/plain' },
-          body: token
+        const response = await fetch('../trigger-reload.php', {
+          method: 'POST'
         });
         
         if (response.ok) {
-          logMessage('✓ Kiosk reload triggered', 'success');
-          showToast('Kiosk will reload in ~10 seconds', 'success');
+          const data = await response.json();
+          
+          if (data.success) {
+            logMessage('✓ Kiosk reload triggered', 'success');
+            showToast('Kiosk will reload in ~10 seconds', 'success');
+          } else {
+            throw new Error(data.error || 'Failed to trigger reload');
+          }
         } else {
-          throw new Error('Failed to write reload token');
+          throw new Error('HTTP ' + response.status);
         }
         
       } catch (error) {
