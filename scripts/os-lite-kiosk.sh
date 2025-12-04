@@ -190,6 +190,11 @@ Section "Device"
 EndSection
 
 Section "Monitor"
+  Identifier "HDMI-1"
+  Option "Rotate" "$XROTATE"
+EndSection
+
+Section "Monitor"
   Identifier "HDMI-2"
   Option "Rotate" "$XROTATE"
 EndSection
