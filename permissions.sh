@@ -43,5 +43,16 @@ sudo chmod 664 "$WEB_ROOT/rules/index.html" 2>/dev/null || true
 # PHP scripts should be executable
 sudo chmod 755 "$WEB_ROOT/bg/index.php" 2>/dev/null || true
 sudo chmod 755 "$WEB_ROOT/design/upload-bg.php" 2>/dev/null || true
+sudo chmod 755 "$WEB_ROOT/status.php" 2>/dev/null || true
+
+# Make all scripts in scripts/ directory executable
+if [ -d "$WEB_ROOT/scripts" ]; then
+  sudo find "$WEB_ROOT/scripts" -type f -name "*.sh" -exec chmod 755 {} \;
+fi
+
+# Make setup scripts in root executable
+sudo chmod 755 "$WEB_ROOT/setup-kiosk.sh" 2>/dev/null || true
+sudo chmod 755 "$WEB_ROOT/permissions.sh" 2>/dev/null || true
+sudo chmod 755 "$WEB_ROOT/create-webdav-user.sh" 2>/dev/null || true
 
 echo "Permissions set successfully!"
