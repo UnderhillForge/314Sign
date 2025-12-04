@@ -164,6 +164,16 @@ else
   echo "Warning: Boot config not found, skipping console rotation"
 fi
 
+echo "Configuring X11 to use correct GPU..."
+sudo mkdir -p /etc/X11/xorg.conf.d
+sudo tee /etc/X11/xorg.conf.d/99-v3d.conf > /dev/null <<'XCONF'
+Section "Device"
+  Identifier "vc4"
+  Driver "modesetting"
+  Option "kmsdev" "/dev/dri/card1"
+EndSection
+XCONF
+
 echo "Setting up X11 auto-start..."
 cat > ~/.xinitrc <<'EOF'
 #!/bin/sh
