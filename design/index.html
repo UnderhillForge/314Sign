@@ -63,6 +63,11 @@
       </select>
     </div>
 
+    <div class="section">
+      <label>3. Header Text</label>
+      <input type="text" id="headerText" placeholder="Specials" maxlength="50" />
+    </div>
+
     <div class="actions">
       <button onclick="saveDesign()">Save & Update Kiosk</button>
       <button class="secondary" onclick="location.reload()">Cancel</button>
@@ -78,6 +83,7 @@
     const upload = document.getElementById('upload');
     const preview = document.getElementById('preview');
     const fontSelect = document.getElementById('font');
+    const headerTextInput = document.getElementById('headerText');
     const status = document.getElementById('status');
 
   let backgrounds = [];        // Filled from server
@@ -179,6 +185,11 @@
             fontSelect.value = cfg.font;
             console.log('Font set to:', cfg.font);
           }
+          
+          // Load header text
+          if (cfg.headerText) {
+            headerTextInput.value = cfg.headerText;
+          }
         })
         .catch(err => {
           console.error('Failed to load config:', err);
@@ -204,21 +215,28 @@
 
       status.textContent = 'Saving...';
 
-      const config = {
-        bg: selectedBg === 'uploaded' ? uploadedDataUrl : selectedBg,
-        font: fontSelect.value
-      };
+      // Read existing config first to preserve all settings
+      fetch('../config.json')
+        .then(r => r.ok ? r.json() : {})
+        .then(existingConfig => {
+          const updatedConfig = {
+            ...existingConfig,
+            bg: selectedBg === 'uploaded' ? uploadedDataUrl : selectedBg,
+            font: fontSelect.value,
+            headerText: headerTextInput.value.trim() || 'Specials'
+          };
 
-      // Save config.json
-      fetch('../config.json', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config)
-      })
-      .then(r => {
-        if (!r.ok) return r.text().then(t => Promise.reject('Config save failed: ' + (t || r.statusText)));
-        return uploadImageIfNeeded();
-      })
+          // Save config.json
+          return fetch('../config.json', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedConfig, null, 2)
+          });
+        })
+        .then(r => {
+          if (!r.ok) return r.text().then(t => Promise.reject('Config save failed: ' + (t || r.statusText)));
+          return uploadImageIfNeeded();
+        })
       .then(() => generateIndexHTML())
       .then(() => {
         status.textContent = 'Saved! Kiosk updated.';

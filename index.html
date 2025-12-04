@@ -73,12 +73,13 @@
   </style>
 </head>
 <body>
-  <header>Specials</header>
+  <header id="header">Specials</header>
   <div id="specials">Loading…</div>
   <div class="version">314Sign v0.8.0</div>
 
   <script>
   const specialsDiv = document.getElementById('specials');
+  const headerEl = document.getElementById('header');
   let currentMenu = localStorage.getItem('currentMenu') || 'menus/dinner.txt';
   let lastText = '';
   let lastEtag = null;
@@ -153,6 +154,11 @@
         // Apply background/font from config if present
         if (cfg.bg)   document.body.style.backgroundImage = `url('bg/${cfg.bg}')`;
         if (cfg.font) document.body.style.fontFamily = cfg.font;
+        
+        // Apply header text if set (default 'Specials')
+        if (cfg.headerText) {
+          headerEl.textContent = cfg.headerText;
+        }
 
         // Configure poll interval from config (supports multiple keys)
         if (cfg && typeof cfg === 'object') {
