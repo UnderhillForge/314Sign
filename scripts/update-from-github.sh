@@ -119,6 +119,7 @@ fi
 # Exclude config.json, rules.json, menus/*.txt, and uploaded images
 declare -a UPDATE_FILES=(
   "index.html"
+  "favicon.svg"
   "edit/index.html"
   "design/index.html"
   "design/upload-bg.php"
@@ -127,6 +128,7 @@ declare -a UPDATE_FILES=(
   "status.php"
   "scripts/backup.sh"
   "scripts/os-lite-kiosk.sh"
+  "scripts/update-from-github.sh"
   "permissions.sh"
   "setup-kiosk.sh"
   "create-webdav-user.sh"
