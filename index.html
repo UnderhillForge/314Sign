@@ -434,14 +434,10 @@
             fetch('config.json?' + Date.now(), { cache: 'no-store' })
               .then(r => r.ok ? r.json() : {})
               .then(cfg => {
-                // Check if font scale changed
-                if (Number.isFinite(cfg.fontScalePercent) && cfg.fontScalePercent !== fontScalePercent) {
-                  fontScalePercent = cfg.fontScalePercent;
-                  const specials = document.getElementById('specials');
-                  if (specials) {
-                    specials.style.fontSize = 'clamp(1rem, ' + fontScalePercent + 'vw, 6rem)';
-                  }
-                }
+                // NOTE: Don't check fontScalePercent here!
+                // Per-menu font scales (from menus-config.json) override global config
+                // and are only applied during boot/menu switching.
+                // Checking here would cause global config to overwrite per-menu scales.
                 
                 // Check if header size changed
                 if (Number.isFinite(cfg.headerSizePercent) && cfg.headerSizePercent !== lastHeaderSizePercent) {
