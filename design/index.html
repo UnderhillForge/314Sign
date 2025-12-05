@@ -229,7 +229,6 @@
                 console.log('Custom fonts loaded:', customFonts.length);
               }
               
-              fontSelect.innerHTML = '';
               headerFontSelect.innerHTML = '';
               Object.entries(fonts).forEach(([name, value]) => {                
                 const headerOption = document.createElement('option');
@@ -253,18 +252,13 @@
             }
           }
           
-          // Set the selected font after options are populated
-          if (cfg.font) {
-            fontSelect.value = cfg.font;
-            console.log('Font set to:', cfg.font);
-          }
-          
           // Set the header font (defaults to body font if not set)
           if (cfg.headerFont) {
             headerFontSelect.value = cfg.headerFont;
             console.log('Header font set to:', cfg.headerFont);
           } else if (cfg.font) {
             headerFontSelect.value = cfg.font;
+            console.log('Header font defaulted to body font:', cfg.font);
           }
           
           // Load header text
@@ -298,9 +292,9 @@
         .catch(err => {
           console.error('Failed to load config:', err);
           // Provide fallback fonts if config fails
-          fontSelect.innerHTML = '<option value="Arial, sans-serif">Arial</option>' +
-                                 '<option value="Georgia, serif">Georgia</option>' +
-                                 '<option value="\'Comic Sans MS\', cursive">Comic Sans</option>';
+          headerFontSelect.innerHTML = '<option value="Arial, sans-serif">Arial</option>' +
+                                       '<option value="Georgia, serif">Georgia</option>' +
+                                       '<option value="\'Comic Sans MS\', cursive">Comic Sans</option>';
         });
     }
 
