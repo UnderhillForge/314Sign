@@ -14,8 +14,8 @@
 - **Edit from anything**: iPhone, Android, iPad, laptop — if it has a browser, it works.
 - **See changes instantly**: Hit save → kiosk updates in under 3 seconds. No refresh button, no waiting.
 
-### 💰 Zero Recurring Costs
-- **No subscriptions**: Pay once for a Raspberry Pi (~$100), own it forever.
+### 💰 No Monthly Fees
+- **No subscriptions**: One-time hardware investment, own it forever.
 - **No cloud fees**: Everything runs locally on your network. No internet needed after setup.
 - **No licensing surprises**: Free for personal and non-profit use under Creative Commons.
 
@@ -56,8 +56,8 @@ http://YOUR-HOSTNAME.local/design/    # Customize appearance
 http://YOUR-HOSTNAME.local/rules/     # Schedule auto-switching
 ```
 
-### Optional: Auto-Boot to Kiosk Display (Pi OS Lite)
-If you want the Pi to automatically show the menu on boot without manual browser launch:
+### Recommended: Auto-Boot to Kiosk Display (Pi OS Lite)
+For Pi OS Lite installations, configure the Pi to automatically show your menu on boot:
 
 ```bash
 # Install minimal X11 + Chromium kiosk mode
@@ -69,6 +69,8 @@ sudo reboot
 # - Auto-detects Chromium or Firefox ESR
 # - Re-runnable to change rotation without reinstalling
 ```
+
+**Note**: FullpageOS users skip this step — kiosk mode is built-in.
 
 ---
 
