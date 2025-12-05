@@ -192,54 +192,28 @@
 
     // === 4. Load saved config and populate fonts ===
     function loadConfig() {
-      // First, load custom fonts from fonts/ directory
-      fetch('../fonts/index.php')
-        .then(r => r.ok ? r.json() : [])
-        .then(customFonts => {
-          // Load config
-          return fetch('../config.json')
-            .then(r => r.ok ? r.json() : {})
-            .then(cfg => {
-              // Start with config fonts
-              const fonts = cfg.availableFonts || {
-                "Lato": "Lato, sans-serif",
-                "DejaVu Sans": "'DejaVu Sans', sans-serif"
-              };
-              
-              // Add custom fonts from fonts/ directory
-              customFonts.forEach(font => {
-                const fontFamily = `'${font.filename}', sans-serif`;
-                fonts[`${font.name} (Custom)`] = fontFamily;
-              });
-              
-              // Generate @font-face rules for custom fonts
-              if (customFonts.length > 0) {
-                let fontFaceCSS = '';
-                customFonts.forEach(font => {
-                  fontFaceCSS += `
-@font-face {
-  font-family: '${font.filename}';
-  src: url('../fonts/${font.file}') format('truetype');
-  font-display: swap;
-}`;
-                });
-                const style = document.createElement('style');
-                style.textContent = fontFaceCSS;
-                document.head.appendChild(style);
-                console.log('Custom fonts loaded:', customFonts.length);
-              }
-              
-              headerFontSelect.innerHTML = '';
-              Object.entries(fonts).forEach(([name, value]) => {                
-                const headerOption = document.createElement('option');
-                headerOption.value = value;
-                headerOption.textContent = name;
-                headerFontSelect.appendChild(headerOption);
-              });
-              console.log('Fonts loaded:', Object.keys(fonts).length + ' fonts');
-              
-              if (cfg.bg) {
-                if (cfg.bg.startsWith('data:')) {
+      // Load config to get fonts list
+      fetch('../config.json')
+        .then(r => r.ok ? r.json() : {})
+        .then(cfg => {
+          // Get fonts from config (already includes custom fonts with nice names)
+          const fonts = cfg.availableFonts || {
+            "Lato": "Lato, sans-serif",
+            "DejaVu Sans": "'DejaVu Sans', sans-serif"
+          };
+          
+          // Populate font dropdown
+          headerFontSelect.innerHTML = '';
+          Object.entries(fonts).forEach(([name, value]) => {                
+            const headerOption = document.createElement('option');
+            headerOption.value = value;
+            headerOption.textContent = name;
+            headerFontSelect.appendChild(headerOption);
+          });
+          console.log('Fonts loaded:', Object.keys(fonts).length + ' fonts');
+          
+          if (cfg.bg) {
+            if (cfg.bg.startsWith('data:')) {
               // Uploaded image
               selectedBg = 'uploaded';
               uploadedDataUrl = cfg.bg;
@@ -287,7 +261,6 @@
             bgBrightnessInput.value = cfg.bgBrightness * 100;
             bgBrightnessValue.textContent = Math.round(cfg.bgBrightness * 100) + '%';
           }
-            });
         })
         .catch(err => {
           console.error('Failed to load config:', err);
