@@ -713,43 +713,73 @@
     function loadConfig() {
       const menuName = currentFile.replace('menus/', '').replace('.txt', '');
       
-      // Load global config to populate font dropdown
-      fetch('../config.json')
-        .then(r => r.ok ? r.json() : {})
-        .then(cfg => {
-          // Populate font dropdown from availableFonts
-          if (cfg.availableFonts) {
-            fontSelect.innerHTML = '';
-            Object.entries(cfg.availableFonts).forEach(([name, value]) => {
-              const option = document.createElement('option');
-              option.value = value;
-              option.textContent = name;
-              fontSelect.appendChild(option);
+      // Load custom fonts from fonts/ directory first
+      fetch('../fonts/index.php')
+        .then(r => r.ok ? r.json() : [])
+        .then(customFonts => {
+          // Generate @font-face rules for custom fonts
+          if (customFonts.length > 0) {
+            let fontFaceCSS = '';
+            customFonts.forEach(font => {
+              fontFaceCSS += `
+@font-face {
+  font-family: '${font.filename}';
+  src: url('../fonts/${font.file}') format('truetype');
+  font-display: swap;
+}`;
             });
+            const style = document.createElement('style');
+            style.textContent = fontFaceCSS;
+            document.head.appendChild(style);
           }
           
-          // Load per-menu settings from menus-config.json
-          return fetch('../menus-config.json')
+          // Load global config to populate font dropdown
+          return fetch('../config.json')
             .then(r => r.ok ? r.json() : {})
-            .then(menusConfig => {
-              // Load per-menu font scale
-              if (menusConfig[menuName] && menusConfig[menuName].fontScalePercent) {
-                fontScaleInput.value = menusConfig[menuName].fontScalePercent;
-                fontScaleValue.textContent = menusConfig[menuName].fontScalePercent + '%';
-              } else if (cfg.fontScalePercent) {
-                fontScaleInput.value = cfg.fontScalePercent;
-                fontScaleValue.textContent = cfg.fontScalePercent + '%';
-              }
+            .then(cfg => {
+              // Start with config fonts
+              const fonts = cfg.availableFonts || {
+                "Lato": "Lato, sans-serif"
+              };
               
-              // Load per-menu font or fall back to global
-              if (menusConfig[menuName] && menusConfig[menuName].font) {
-                fontSelect.value = menusConfig[menuName].font;
-              } else if (cfg.font) {
-                fontSelect.value = cfg.font;
-              }
+              // Add custom fonts from fonts/ directory
+              customFonts.forEach(font => {
+                const fontFamily = `'${font.filename}', sans-serif`;
+                fonts[`${font.name} (Custom)`] = fontFamily;
+              });
               
-              // Apply font to preview
-              applyFontToPreview();
+              // Populate font dropdown
+              fontSelect.innerHTML = '';
+              Object.entries(fonts).forEach(([name, value]) => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = name;
+                fontSelect.appendChild(option);
+              });
+              
+              // Load per-menu settings from menus-config.json
+              return fetch('../menus-config.json')
+                .then(r => r.ok ? r.json() : {})
+                .then(menusConfig => {
+                  // Load per-menu font scale
+                  if (menusConfig[menuName] && menusConfig[menuName].fontScalePercent) {
+                    fontScaleInput.value = menusConfig[menuName].fontScalePercent;
+                    fontScaleValue.textContent = menusConfig[menuName].fontScalePercent + '%';
+                  } else if (cfg.fontScalePercent) {
+                    fontScaleInput.value = cfg.fontScalePercent;
+                    fontScaleValue.textContent = cfg.fontScalePercent + '%';
+                  }
+                  
+                  // Load per-menu font or fall back to global
+                  if (menusConfig[menuName] && menusConfig[menuName].font) {
+                    fontSelect.value = menusConfig[menuName].font;
+                  } else if (cfg.font) {
+                    fontSelect.value = cfg.font;
+                  }
+                  
+                  // Apply font to preview
+                  applyFontToPreview();
+                });
             });
         })
         .catch(() => {
