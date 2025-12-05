@@ -628,25 +628,27 @@
               }
             }
             
-            // Process color tags line by line using helper function
-            const lines = trimmed.split('\n');
-            const processedLines = lines.map(line => processColorTags(line));
+            // Convert custom bullet syntax first (before markdown)
+            const withBullets = trimmed.replace(/^- /gm, '• ');
             
-            let processedText = processedLines.join('\n');
+            // Parse Markdown FIRST to convert **bold**, *italic*, etc.
+            let html = marked.parse(withBullets);
+            
+            // Now apply custom tags to the HTML output
+            // Process color tags
+            const lines = html.split('\n');
+            const colorProcessedLines = lines.map(line => processColorTags(line));
+            html = colorProcessedLines.join('\n');
             
             // Check for font size override tags [sX]...[/s] where X is percentage
             const sizeRegex = /\[s(\d+(?:\.\d+)?)\]([\s\S]*?)\[\/s\]/gi;
-            processedText = processedText.replace(sizeRegex, (match, percent, content) => {
+            html = html.replace(sizeRegex, (match, percent, content) => {
               return `<span style="font-size: ${percent}vw">${content}</span>`;
             });
             
             // Check for alignment tags [center]...[/center] and [right]...[/right]
-            processedText = processedText.replace(/\[center\]([\s\S]*?)\[\/center\]/gi, '<div style="text-align: center">$1</div>');
-            processedText = processedText.replace(/\[right\]([\s\S]*?)\[\/right\]/gi, '<div style="text-align: right">$1</div>');
-            
-            // Convert custom bullet syntax after color processing
-            const withBullets = processedText.replace(/^- /gm, '• ');
-            let html = marked.parse(withBullets);
+            html = html.replace(/\[center\]([\s\S]*?)\[\/center\]/gi, '<div style="text-align: center">$1</div>');
+            html = html.replace(/\[right\]([\s\S]*?)\[\/right\]/gi, '<div style="text-align: right">$1</div>');
             
             specialsDiv.innerHTML = html;
           }
