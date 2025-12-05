@@ -1,33 +1,6 @@
 # 314Sign Formatting Guide
 
-Quick reference for formatting your menu specials with Markdown and color tags.
-
----
-
-## Per-Menu Font Size
-
-Set a custom font size for each menu file by adding this directive at the **very first line**:
-
-```
-[FONTSCALE:X]
-```
-
-Where X is the percentage of screen width (5-20). For example:
-- `[FONTSCALE:5]` - Small text (default)
-- `[FONTSCALE:7]` - Medium text
-- `[FONTSCALE:10]` - Large text
-- `[FONTSCALE:15]` - Extra large text
-
-**Example menu file:**
-```
-[FONTSCALE:8]
-## Today's Specials
-
-**Burger** - {y}$8.95
-**Pizza** - {y}$12.95
-```
-
-**Note:** This line will not be displayed to customers - it's automatically removed.
+Quick reference for text formatting in your daily specials. All formatting happens in the edit page — just type naturally and use these simple codes.
 
 ---
 
@@ -39,7 +12,13 @@ Where X is the percentage of screen width (5-20). For example:
 ### Medium Heading
 ```
 
-Use headings to organize sections like "Today's Specials" or "Appetizers"
+Use headings to organize sections like "Today's Specials" or "Desserts"
+
+**Example:**
+```
+## Dinner Menu
+### Entrees
+```
 
 ---
 
@@ -93,7 +72,7 @@ Add color to prices, specials, or any text. Color applies until the end of the l
 {o}Ask about our daily dessert special!
 ```
 
-**Tip:** You don't need closing tags - the color lasts until the end of the line!
+**Tip:** You don't need closing tags — color lasts until the end of the line!
 
 ---
 
