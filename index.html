@@ -163,9 +163,15 @@
   let fontScalePercent = 5;
   let lastHeaderSizePercent = null;
   let lastBgBrightness = null;
+  let demoModeActive = false; // Disable auto-switching when demo commands are used
 
     // Check schedule rules and auto-switch menu if enabled
     function checkScheduleRules() {
+      // Skip auto-switching if demo mode is active
+      if (demoModeActive) {
+        console.log('[Rules] Skipped - demo mode active');
+        return;
+      }
       fetch('rules.json?' + Date.now())
         .then(r => r.ok ? r.json() : null)
         .then(data => {
@@ -499,12 +505,21 @@
     }
 
     function executeDemoCommand(command) {
-      // Parse command format: "menu:breakfast" or "slideshow:example" or "page:edit" or "reload"
+      // Parse command format: "menu:breakfast" or "slideshow:example" or "page:edit" or "reload" or "auto"
       console.log('[Demo] Executing command:', command);
       
       if (command === 'reload') {
         showReloadIndicator();
         setTimeout(() => location.reload(true), 500);
+        return;
+      }
+      
+      if (command === 'auto') {
+        // Re-enable automatic schedule-based switching
+        demoModeActive = false;
+        console.log('[Demo] Auto-switching re-enabled - rules will apply');
+        // Immediately check rules to switch to scheduled menu
+        checkScheduleRules();
         return;
       }
 
@@ -515,15 +530,19 @@
         if (isSlideshow) {
           stopSlideshow();
         }
+        // Enable demo mode to disable auto-switching
+        demoModeActive = true;
         // Switch to menu
         currentMenu = 'menus/' + value + '.txt';
         localStorage.setItem('selectedMenu', value);
         fetchMenu();
-        console.log('[Demo] Switched to menu:', value);
+        console.log('[Demo] Switched to menu:', value, '(auto-switching disabled)');
       } else if (type === 'slideshow' && value) {
+        // Enable demo mode to disable auto-switching
+        demoModeActive = true;
         // Load slideshow
         loadSlideshow('slideshows/sets/' + value + '.json');
-        console.log('[Demo] Loading slideshow:', value);
+        console.log('[Demo] Loading slideshow:', value, '(auto-switching disabled)');
       } else if (type === 'page' && value) {
         // Load a different page (editor, start menu, etc)
         console.log('[Demo] Loading page:', value);
