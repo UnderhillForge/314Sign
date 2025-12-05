@@ -369,6 +369,7 @@
             const header = document.querySelector('header');
             if (header) {
               header.style.fontSize = 'clamp(1.5rem, ' + cfg.headerSizePercent + 'vw, 8rem)';
+              lastHeaderSizePercent = cfg.headerSizePercent;
             }
           }
           
@@ -380,6 +381,7 @@
             const existing = document.getElementById('bg-brightness-style');
             if (existing) existing.remove();
             document.head.appendChild(style);
+            lastBgBrightness = cfg.bgBrightness;
           }
         }
       })
