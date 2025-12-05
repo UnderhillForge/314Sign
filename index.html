@@ -259,14 +259,21 @@
           document.head.appendChild(style);
           console.log('[Fonts] Loaded', customFonts.length, 'custom fonts');
         }
+        
+        // Return promise for font loading
+        if (customFonts.length > 0 && document.fonts) {
+          // Wait for fonts to actually load before continuing
+          return document.fonts.ready;
+        }
       })
-      .catch(err => console.warn('[Fonts] Could not load custom fonts:', err));
-    
-    // Then load config
-    fetch('config.json?' + Date.now(), {
-      cache: 'no-store',
-      headers: { 'Cache-Control': 'no-cache' }
-    })
+      .catch(err => console.warn('[Fonts] Could not load custom fonts:', err))
+      .then(() => {
+        // Now load config after fonts are ready
+        return fetch('config.json?' + Date.now(), {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' }
+        });
+      })
       .then(r => r.ok ? r.json() : {})
       .then(cfg => {
         // Apply background/font from config if present
