@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>314Sign Demo Control Panel</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Control Panel */
+    .control-panel {
+      width: 350px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 1.5rem;
+      overflow-y: auto;
+      box-shadow: 2px 0 20px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .logo {
+      text-align: center;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    .logo h1 {
+      font-size: 2rem;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+    }
+
+    .logo p {
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    .section {
+      background: white;
+      padding: 1rem;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .section h2 {
+      font-size: 1.1rem;
+      color: #333;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .button-grid {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    button {
+      padding: 0.75rem 1rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: white;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .btn-kiosk {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .btn-menu {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+
+    .btn-editor {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    .btn-design {
+      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+
+    .btn-slideshow {
+      background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      color: #333;
+    }
+
+    .btn-utility {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+      font-size: 0.85rem;
+    }
+
+    /* Kiosk Display */
+    .kiosk-display {
+      flex: 1;
+      position: relative;
+      background: #000;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 2rem;
+      color: white;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .overlay.hidden {
+      display: none;
+    }
+
+    .overlay-icon {
+      font-size: 5rem;
+    }
+
+    .overlay h2 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .overlay p {
+      font-size: 1.2rem;
+      color: #ccc;
+      max-width: 600px;
+    }
+
+    .fullscreen-btn {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(255,255,255,0.3);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      z-index: 100;
+      transition: all 0.2s;
+    }
+
+    .fullscreen-btn:hover {
+      background: rgba(255,255,255,0.3);
+      transform: translateY(-2px);
+    }
+
+    .status-bar {
+      background: #f8f9fa;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    .current-view {
+      font-weight: 600;
+      color: #667eea;
+    }
+
+    .tips {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: #856404;
+    }
+
+    .tips strong {
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      body {
+        flex-direction: column;
+      }
+      
+      .control-panel {
+        width: 100%;
+        max-height: 40vh;
+        border-bottom: 2px solid #e0e0e0;
+      }
+      
+      .kiosk-display {
+        flex: 1;
+      }
+    }
+
+    .feature-list {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .feature-list li {
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 0.9rem;
+    }
+
+    .feature-list li:last-child {
+      border-bottom: none;
+    }
+
+    .feature-list li::before {
+      content: "✓";
+      color: #38ef7d;
+      font-weight: bold;
+      margin-right: 0.5rem;
+    }
+
+    .demo-scenario {
+      background: #e7f3ff;
+      border-left: 4px solid #2196F3;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-top: 1rem;
+    }
+
+    .demo-scenario h3 {
+      font-size: 0.95rem;
+      color: #1976D2;
+      margin-bottom: 0.5rem;
+    }
+
+    .demo-scenario ol {
+      margin-left: 1.5rem;
+      font-size: 0.85rem;
+      color: #555;
+    }
+
+    .demo-scenario li {
+      margin-bottom: 0.25rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="control-panel">
+    <div class="logo">
+      <h1>📺 314Sign</h1>
+      <p>Demo Control Panel</p>
+    </div>
+
+    <div class="status-bar">
+      Current View: <span class="current-view" id="currentView">Welcome Screen</span>
+    </div>
+
+    <!-- Kiosk Display -->
+    <div class="section">
+      <h2>🖥️ Kiosk Display</h2>
+      <div class="button-grid">
+        <button class="btn-kiosk" onclick="loadView('../', 'Main Kiosk Display')">
+          📺 Main Display
+        </button>
+      </div>
+    </div>
+
+    <!-- Menus -->
+    <div class="section">
+      <h2>📋 Menu Views</h2>
+      <div class="button-grid">
+        <button class="btn-menu" onclick="loadMenu('breakfast', 'Breakfast Menu')">
+          🌅 Breakfast Menu
+        </button>
+        <button class="btn-menu" onclick="loadMenu('lunch', 'Lunch Menu')">
+          🌞 Lunch Menu
+        </button>
+        <button class="btn-menu" onclick="loadMenu('dinner', 'Dinner Menu')">
+          🌙 Dinner Menu
+        </button>
+        <button class="btn-menu" onclick="loadMenu('closed', 'Closed Sign')">
+          🚫 Closed Sign
+        </button>
+      </div>
+    </div>
+
+    <!-- Editors -->
+    <div class="section">
+      <h2>✏️ Editor Pages</h2>
+      <div class="button-grid">
+        <button class="btn-editor" onclick="loadView('../edit/', 'Menu Editor')">
+          📝 Menu Editor
+        </button>
+        <button class="btn-design" onclick="loadView('../design/', 'Design Studio')">
+          🎨 Design Studio
+        </button>
+        <button class="btn-editor" onclick="loadView('../rules/', 'Rules Scheduler')">
+          ⏰ Schedule Rules
+        </button>
+        <button class="btn-slideshow" onclick="loadView('../slideshows/', 'Slideshow Editor')">
+          📽️ Slideshow Editor
+        </button>
+      </div>
+    </div>
+
+    <!-- Slideshows -->
+    <div class="section">
+      <h2>📽️ Test Slideshows</h2>
+      <div class="button-grid">
+        <button class="btn-slideshow" onclick="loadSlideshow('example', 'Example Slideshow')">
+          🎬 Example Slideshow
+        </button>
+        <button class="btn-secondary" onclick="createTestSlideshow()">
+          + Create Test Slideshow
+        </button>
+      </div>
+    </div>
+
+    <!-- Utilities -->
+    <div class="section">
+      <h2>🔧 Utilities</h2>
+      <div class="button-grid">
+        <button class="btn-utility" onclick="loadView('../start/', 'Start Page')">
+          🏠 Start Page
+        </button>
+        <button class="btn-secondary" onclick="resetView()">
+          ↺ Reset View
+        </button>
+        <button class="btn-secondary" onclick="toggleFullscreen()">
+          ⛶ Toggle Fullscreen
+        </button>
+      </div>
+    </div>
+
+    <!-- Demo Scenarios -->
+    <div class="section">
+      <h2>🎯 Demo Scenarios</h2>
+      <div class="demo-scenario">
+        <h3>Restaurant Tour (5 min)</h3>
+        <ol>
+          <li>Show Main Kiosk Display</li>
+          <li>Switch through Breakfast/Lunch/Dinner menus</li>
+          <li>Open Menu Editor - edit live</li>
+          <li>Open Design Studio - change background</li>
+          <li>Open Schedule Rules - set auto-switching</li>
+          <li>Show Slideshow for closed hours</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Key Features -->
+    <div class="section">
+      <h2>⭐ Key Features to Highlight</h2>
+      <ul class="feature-list">
+        <li>Edit from any phone - zero apps</li>
+        <li>Auto-schedule by time of day</li>
+        <li>Per-menu styling & fonts</li>
+        <li>Multimedia slideshows</li>
+        <li>7-day history restore</li>
+        <li>Works completely offline</li>
+        <li>One-command setup</li>
+      </ul>
+    </div>
+
+    <!-- Tips -->
+    <div class="tips">
+      <strong>💡 Demo Tips:</strong>
+      • Use fullscreen for presentations<br>
+      • Toggle between views quickly<br>
+      • Show editing on phone mockup<br>
+      • Emphasize zero-training simplicity
+    </div>
+
+    <div style="text-align: center; color: #999; font-size: 0.75rem; padding-top: 1rem;">
+      314Sign v0.9.1 | Demo Mode
+    </div>
+  </div>
+
+  <div class="kiosk-display">
+    <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+    
+    <div class="overlay" id="overlay">
+      <div class="overlay-icon">📺</div>
+      <h2>314Sign Demo</h2>
+      <p>
+        Select a view from the control panel to preview how 314Sign looks and works.
+        Perfect for sales demonstrations and testing different configurations.
+      </p>
+    </div>
+    
+    <iframe id="kioskFrame" style="display: none;"></iframe>
+  </div>
+
+  <script>
+    const frame = document.getElementById('kioskFrame');
+    const overlay = document.getElementById('overlay');
+    const currentViewEl = document.getElementById('currentView');
+
+    function loadView(url, name) {
+      frame.src = url;
+      frame.style.display = 'block';
+      overlay.classList.add('hidden');
+      currentViewEl.textContent = name;
+      
+      // Store current view
+      localStorage.setItem('demoLastView', url);
+      localStorage.setItem('demoLastViewName', name);
+    }
+
+    function loadMenu(menu, name) {
+      const url = `../?menu=menus/${menu}.txt`;
+      loadView(url, name);
+    }
+
+    function loadSlideshow(name, displayName) {
+      const url = `../?slideshow=slideshows/sets/${name}.json`;
+      loadView(url, displayName);
+    }
+
+    function resetView() {
+      frame.src = '';
+      frame.style.display = 'none';
+      overlay.classList.remove('hidden');
+      currentViewEl.textContent = 'Welcome Screen';
+      localStorage.removeItem('demoLastView');
+      localStorage.removeItem('demoLastViewName');
+    }
+
+    function toggleFullscreen() {
+      const displayEl = document.querySelector('.kiosk-display');
+      
+      if (!document.fullscreenElement) {
+        if (displayEl.requestFullscreen) {
+          displayEl.requestFullscreen();
+        } else if (displayEl.webkitRequestFullscreen) {
+          displayEl.webkitRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      }
+    }
+
+    function createTestSlideshow() {
+      alert('💡 Tip: Use the Slideshow Editor to create custom slideshows.\n\nClick "Slideshow Editor" above to get started!');
+    }
+
+    // Restore last view on page load
+    window.addEventListener('load', () => {
+      const lastView = localStorage.getItem('demoLastView');
+      const lastViewName = localStorage.getItem('demoLastViewName');
+      
+      if (lastView && lastViewName) {
+        loadView(lastView, lastViewName);
+      }
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      // F11 for fullscreen
+      if (e.key === 'F11') {
+        e.preventDefault();
+        toggleFullscreen();
+      }
+      
+      // Escape to reset
+      if (e.key === 'Escape' && !document.fullscreenElement) {
+        resetView();
+      }
+      
+      // Number keys for quick access
+      if (e.key >= '1' && e.key <= '4' && !document.fullscreenElement) {
+        const menus = ['breakfast', 'lunch', 'dinner', 'closed'];
+        const names = ['Breakfast Menu', 'Lunch Menu', 'Dinner Menu', 'Closed Sign'];
+        const index = parseInt(e.key) - 1;
+        if (menus[index]) {
+          loadMenu(menus[index], names[index]);
+        }
+      }
+    });
+
+    // Show keyboard shortcuts on Ctrl+?
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === '/') {
+        alert(`Keyboard Shortcuts:
+        
+1-4: Load menus (Breakfast/Lunch/Dinner/Closed)
+F11: Toggle fullscreen
+Esc: Reset view (when not in fullscreen)
+        
+💡 Use the control panel for full demo functionality!`);
+      }
+    });
+  </script>
+</body>
+</html>
