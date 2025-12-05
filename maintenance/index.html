@@ -251,9 +251,6 @@
         <button class="action-button warning" onclick="reloadKiosk()">
           <span>↻</span> Reload Kiosk
         </button>
-        <button class="action-button danger" onclick="restartServer()">
-          <span>🔄</span> Restart Server
-        </button>
       </div>
     </div>
     
@@ -510,61 +507,6 @@
       } catch (error) {
         logMessage('✗ Failed to trigger reload: ' + error.message, 'error');
         showToast('Reload trigger failed', 'error');
-      }
-    }
-    
-    // Restart server
-    async function restartServer() {
-      if (!confirm('Restart the web server?\n\nThis will briefly disconnect all users and reload this page.\n\nContinue?')) {
-        return;
-      }
-      
-      const btn = event.target.closest('button');
-      const originalHTML = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner"></span> Restarting...';
-      
-      logMessage('Restarting web server...', 'warning');
-      
-      try {
-        const response = await fetch('../restart-server.php');
-        
-        if (response.ok) {
-          const data = await response.json();
-          
-          if (data.success) {
-            logMessage('✓ Server restarted successfully', 'success');
-            showToast('Server restarted! Reloading...', 'success');
-            
-            // Reload page after short delay
-            setTimeout(() => {
-              location.reload();
-            }, 2000);
-          } else {
-            logMessage('✗ Restart failed: ' + (data.error || data.message), 'error');
-            if (data.output) {
-              logMessage(data.output, 'error');
-            }
-            
-            // If sudo permission issue, show instructions
-            if (data.error && data.error.includes('sudo')) {
-              logMessage('To enable web restart, add this to /etc/sudoers.d/www-data:', 'info');
-              logMessage('www-data ALL=(ALL) NOPASSWD: /bin/systemctl restart lighttpd', 'info');
-            }
-            
-            showToast('Restart failed - use SSH', 'error');
-          }
-        } else {
-          throw new Error('HTTP ' + response.status);
-        }
-        
-      } catch (error) {
-        logMessage('Restart failed: ' + error.message, 'error');
-        logMessage('Use SSH: sudo systemctl restart lighttpd', 'info');
-        showToast('Use SSH to restart', 'error');
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalHTML;
       }
     }
     
