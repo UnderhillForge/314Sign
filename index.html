@@ -410,6 +410,25 @@
         // Run all checks in parallel with timeout protection
         await Promise.race([
           Promise.all([
+            // Check for reload.txt changes (triggered by editor saves)
+            fetch('reload.txt?' + Date.now(), { cache: 'no-store' })
+              .then(r => r.ok ? r.text() : '')
+              .then(token => {
+                token = token.trim();
+                if (!token) return;
+                
+                if (lastReloadToken === null) {
+                  lastReloadToken = token;
+                  console.log('[Reload] Baseline set:', token);
+                } else if (token !== lastReloadToken) {
+                  console.log('[Reload] Token changed:', lastReloadToken, '->', token);
+                  lastReloadToken = token;
+                  showReloadIndicator();
+                  setTimeout(() => location.reload(true), 1000);
+                }
+              })
+              .catch(() => {}),
+            
             // Check for demo commands (remote control from demo panel)
             fetch('demo-command.txt?' + Date.now(), { cache: 'no-store' })
               .then(r => r.ok ? r.text() : '')
