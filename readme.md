@@ -14,10 +14,10 @@
 - **Edit from anything**: iPhone, Android, iPad, laptop — if it has a browser, it works.
 - **See changes instantly**: Hit save → kiosk updates in under 3 seconds. No refresh button, no waiting.
 
-### 💰 No Monthly Fees
-- **No subscriptions**: One-time hardware investment, own it forever.
-- **No cloud fees**: Everything runs locally on your network. No internet needed after setup.
-- **No licensing surprises**: Free for personal and non-profit use under Creative Commons.
+### 🚀 Self-Hosted & Private
+- **Runs on your network**: Everything local — no cloud dependencies, no internet required after setup.
+- **You own the hardware**: Raspberry Pi-based solution with full control.
+- **Privacy first**: Your menus stay on your premises. No data sent to third parties.
 
 ### 🎨 Customization That Makes Sense
 - **Per-menu styling**: Each meal period (breakfast/lunch/dinner) gets its own font and size. Breakfast can be fun and casual, dinner elegant.
