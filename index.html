@@ -405,86 +405,67 @@
     let lastReloadToken = null;
     let lastDemoCommand = 'idle';
     
-    function checkConfigChanges() {
-      // DISABLED: reload.txt checking temporarily disabled for debugging
-      // Will re-enable once we figure out why it's triggering constantly
-      /*
-      fetch('reload.txt?' + Date.now(), { cache: 'no-store' })
-        .then(r => {
-          if (!r.ok) return Promise.reject('fetch failed');
-          return r.text();
-        })
-        .then(token => {
-          token = token.trim();
-          if (!token) return;
-          
-          if (lastReloadToken === null) {
-            lastReloadToken = token;
-            console.log('[Reload] Baseline set:', token);
-          } else if (token !== lastReloadToken) {
-            console.log('[Reload] Token changed:', lastReloadToken, '->', token);
-            lastReloadToken = token;
-            showReloadIndicator();
-            setTimeout(() => location.reload(true), 1000);
-          }
-        })
-        .catch(err => {
-          console.log('[Reload] Check failed (ignored):', err);
-        });
-      */
-      
-      // Check for demo commands (remote control from demo panel)
-      fetch('demo-command.txt?' + Date.now(), { cache: 'no-store' })
-        .then(r => r.ok ? r.text() : '')
-        .then(command => {
-          command = command.trim();
-          console.log('[Demo] Polled command:', JSON.stringify(command), 'Last:', JSON.stringify(lastDemoCommand));
-          if (command && command !== 'idle' && command !== lastDemoCommand) {
-            lastDemoCommand = command;
-            console.log('[Demo] Command received:', command);
-            executeDemoCommand(command);
-          }
-        })
-        .catch(() => {});
-      
-      // Check for font scale changes
-      fetch('config.json?' + Date.now(), { cache: 'no-store' })
-        .then(r => r.ok ? r.json() : {})
-        .then(cfg => {
-          // Note: Don't check font/headerFont/background changes here
-          // The design page triggers reload.txt when those change
-          // Checking them here causes infinite reload loops due to CSS normalization
-          
-          // Check if font scale changed
-          if (Number.isFinite(cfg.fontScalePercent) && cfg.fontScalePercent !== fontScalePercent) {
-            fontScalePercent = cfg.fontScalePercent;
-            const specials = document.getElementById('specials');
-            if (specials) {
-              specials.style.fontSize = 'clamp(1rem, ' + fontScalePercent + 'vw, 6rem)';
-            }
-          }
-          
-          // Check if header size changed (only apply if actually different)
-          if (Number.isFinite(cfg.headerSizePercent) && cfg.headerSizePercent !== lastHeaderSizePercent) {
-            const header = document.querySelector('header');
-            if (header) {
-              header.style.fontSize = 'clamp(1.5rem, ' + cfg.headerSizePercent + 'vw, 8rem)';
-              lastHeaderSizePercent = cfg.headerSizePercent;
-            }
-          }
-          
-          // Check if background brightness changed (only apply if actually different)
-          if (Number.isFinite(cfg.bgBrightness) && cfg.bgBrightness !== lastBgBrightness) {
-            const style = document.createElement('style');
-            style.id = 'bg-brightness-style';
-            style.textContent = 'body::before { filter: brightness(' + cfg.bgBrightness + ') !important; }';
-            const existing = document.getElementById('bg-brightness-style');
-            if (existing) existing.remove();
-            document.head.appendChild(style);
-            lastBgBrightness = cfg.bgBrightness;
-          }
-        })
-        .catch(() => {});
+    async function checkConfigChanges() {
+      try {
+        // Run all checks in parallel with timeout protection
+        await Promise.race([
+          Promise.all([
+            // Check for demo commands (remote control from demo panel)
+            fetch('demo-command.txt?' + Date.now(), { cache: 'no-store' })
+              .then(r => r.ok ? r.text() : '')
+              .then(command => {
+                command = command.trim();
+                if (command && command !== 'idle' && command !== lastDemoCommand) {
+                  lastDemoCommand = command;
+                  console.log('[Demo] Command received:', command);
+                  executeDemoCommand(command);
+                }
+              })
+              .catch(() => {}),
+            
+            // Check for config changes (font scale, header size, brightness)
+            fetch('config.json?' + Date.now(), { cache: 'no-store' })
+              .then(r => r.ok ? r.json() : {})
+              .then(cfg => {
+                // Check if font scale changed
+                if (Number.isFinite(cfg.fontScalePercent) && cfg.fontScalePercent !== fontScalePercent) {
+                  fontScalePercent = cfg.fontScalePercent;
+                  const specials = document.getElementById('specials');
+                  if (specials) {
+                    specials.style.fontSize = 'clamp(1rem, ' + fontScalePercent + 'vw, 6rem)';
+                  }
+                }
+                
+                // Check if header size changed
+                if (Number.isFinite(cfg.headerSizePercent) && cfg.headerSizePercent !== lastHeaderSizePercent) {
+                  const header = document.querySelector('header');
+                  if (header) {
+                    header.style.fontSize = 'clamp(1.5rem, ' + cfg.headerSizePercent + 'vw, 8rem)';
+                    lastHeaderSizePercent = cfg.headerSizePercent;
+                  }
+                }
+                
+                // Check if background brightness changed
+                if (Number.isFinite(cfg.bgBrightness) && cfg.bgBrightness !== lastBgBrightness) {
+                  const style = document.createElement('style');
+                  style.id = 'bg-brightness-style';
+                  style.textContent = 'body::before { filter: brightness(' + cfg.bgBrightness + ') !important; }';
+                  const existing = document.getElementById('bg-brightness-style');
+                  if (existing) existing.remove();
+                  document.head.appendChild(style);
+                  lastBgBrightness = cfg.bgBrightness;
+                }
+              })
+              .catch(() => {})
+          ]),
+          // Timeout after 5 seconds to prevent blocking
+          new Promise((_, reject) => setTimeout(() => reject('timeout'), 5000))
+        ]);
+      } catch (err) {
+        if (err === 'timeout') {
+          console.warn('[Config] Check timed out after 5s');
+        }
+      }
     }
     
     function showReloadIndicator() {
