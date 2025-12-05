@@ -11,19 +11,20 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      display: flex;
-      height: 100vh;
-      overflow: hidden;
+      min-height: 100vh;
+      padding: 2rem;
+      box-sizing: border-box;
     }
 
     /* Control Panel */
     .control-panel {
-      width: 350px;
+      max-width: 800px;
+      margin: 0 auto;
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(10px);
-      padding: 1.5rem;
-      overflow-y: auto;
-      box-shadow: 2px 0 20px rgba(0,0,0,0.2);
+      padding: 2rem;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
       display: flex;
       flex-direction: column;
       gap: 1.5rem;
@@ -290,19 +291,22 @@
   <div class="control-panel">
     <div class="logo">
       <h1>📺 314Sign</h1>
-      <p>Demo Control Panel</p>
+      <p>Demo Control Panel - Remote Mode</p>
+      <div style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
+        Controls the main kiosk display
+      </div>
     </div>
 
     <div class="status-bar">
-      Current View: <span class="current-view" id="currentView">Welcome Screen</span>
+      Kiosk Status: <span class="current-view" id="currentView">Ready</span>
     </div>
 
     <!-- Kiosk Display -->
     <div class="section">
       <h2>🖥️ Kiosk Display</h2>
       <div class="button-grid">
-        <button class="btn-kiosk" onclick="loadView('../', 'Main Kiosk Display')">
-          📺 Main Display
+        <button class="btn-kiosk" onclick="sendCommand('reload')">
+          📺 Reload Kiosk
         </button>
       </div>
     </div>
@@ -311,16 +315,16 @@
     <div class="section">
       <h2>📋 Menu Views</h2>
       <div class="button-grid">
-        <button class="btn-menu" onclick="loadMenu('breakfast', 'Breakfast Menu')">
+        <button class="btn-menu" onclick="sendCommand('menu:breakfast')">
           🌅 Breakfast Menu
         </button>
-        <button class="btn-menu" onclick="loadMenu('lunch', 'Lunch Menu')">
+        <button class="btn-menu" onclick="sendCommand('menu:lunch')">
           🌞 Lunch Menu
         </button>
-        <button class="btn-menu" onclick="loadMenu('dinner', 'Dinner Menu')">
+        <button class="btn-menu" onclick="sendCommand('menu:dinner')">
           🌙 Dinner Menu
         </button>
-        <button class="btn-menu" onclick="loadMenu('closed', 'Closed Sign')">
+        <button class="btn-menu" onclick="sendCommand('menu:closed')">
           🚫 Closed Sign
         </button>
       </div>
@@ -328,48 +332,39 @@
 
     <!-- Editors -->
     <div class="section">
-      <h2>✏️ Editor Pages</h2>
+      <h2>✏️ Quick Links</h2>
       <div class="button-grid">
-        <button class="btn-editor" onclick="loadView('../edit/', 'Menu Editor')">
-          📝 Menu Editor
+        <button class="btn-editor" onclick="window.open('../edit/', '_blank')">
+          📝 Menu Editor (New Tab)
         </button>
-        <button class="btn-design" onclick="loadView('../design/', 'Design Studio')">
-          🎨 Design Studio
+        <button class="btn-design" onclick="window.open('../design/', '_blank')">
+          🎨 Design Studio (New Tab)
         </button>
-        <button class="btn-editor" onclick="loadView('../rules/', 'Rules Scheduler')">
-          ⏰ Schedule Rules
+        <button class="btn-editor" onclick="window.open('../rules/', '_blank')">
+          ⏰ Schedule Rules (New Tab)
         </button>
-        <button class="btn-slideshow" onclick="loadView('../slideshows/', 'Slideshow Editor')">
-          📽️ Slideshow Editor
+        <button class="btn-slideshow" onclick="window.open('../slideshows/', '_blank')">
+          🎬 Slideshow Editor (New Tab)
         </button>
       </div>
     </div>
 
     <!-- Slideshows -->
     <div class="section">
-      <h2>📽️ Test Slideshows</h2>
+      <h2>🎬 Slideshows</h2>
       <div class="button-grid">
-        <button class="btn-slideshow" onclick="loadSlideshow('example', 'Example Slideshow')">
-          🎬 Example Slideshow
-        </button>
-        <button class="btn-secondary" onclick="createTestSlideshow()">
-          + Create Test Slideshow
+        <button class="btn-slideshow" onclick="sendCommand('slideshow:example')">
+          🎞️ Example Slideshow
         </button>
       </div>
     </div>
 
-    <!-- Utilities -->
+    <!-- Quick Links -->
     <div class="section">
-      <h2>🔧 Utilities</h2>
+      <h2>⚙️ Utilities</h2>
       <div class="button-grid">
-        <button class="btn-utility" onclick="loadView('../start/', 'Start Page')">
-          🏠 Start Page
-        </button>
-        <button class="btn-secondary" onclick="resetView()">
-          ↺ Reset View
-        </button>
-        <button class="btn-secondary" onclick="toggleFullscreen()">
-          ⛶ Toggle Fullscreen
+        <button class="btn-utility" onclick="window.open('../start/', '_blank')">
+          🏠 Start Menu (New Tab)
         </button>
       </div>
     </div>
@@ -406,136 +401,105 @@
 
     <!-- Tips -->
     <div class="tips">
-      <strong>💡 Demo Tips:</strong>
-      • Use fullscreen for presentations<br>
-      • Toggle between views quickly<br>
-      • Show editing on phone mockup<br>
-      • Emphasize zero-training simplicity
+      <strong>💡 Remote Control Tips:</strong>
+      • Access this page on your phone/tablet<br>
+      • Buttons send commands to the kiosk TV<br>
+      • Kiosk updates in 1-2 seconds<br>
+      • Perfect for live demonstrations
     </div>
 
     <div style="text-align: center; color: #999; font-size: 0.75rem; padding-top: 1rem;">
-      314Sign v0.9.1 | Demo Mode
+      314Sign v0.9.1 | Remote Demo Control
     </div>
-  </div>
-
-  <div class="kiosk-display">
-    <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
-    
-    <div class="overlay" id="overlay">
-      <div class="overlay-icon">📺</div>
-      <h2>314Sign Demo</h2>
-      <p>
-        Select a view from the control panel to preview how 314Sign looks and works.
-        Perfect for sales demonstrations and testing different configurations.
-      </p>
-    </div>
-    
-    <iframe id="kioskFrame" style="display: none;"></iframe>
   </div>
 
   <script>
-    const frame = document.getElementById('kioskFrame');
-    const overlay = document.getElementById('overlay');
     const currentViewEl = document.getElementById('currentView');
+    let lastStatus = '';
 
-    function loadView(url, name) {
-      frame.src = url;
-      frame.style.display = 'block';
-      overlay.classList.add('hidden');
-      currentViewEl.textContent = name;
+    function sendCommand(command) {
+      const statusText = getStatusText(command);
+      currentViewEl.textContent = 'Sending: ' + statusText;
       
-      // Store current view
-      localStorage.setItem('demoLastView', url);
-      localStorage.setItem('demoLastViewName', name);
+      fetch('../demo-command.txt', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'text/plain' },
+        body: command
+      })
+        .then(response => {
+          if (response.ok) {
+            currentViewEl.textContent = statusText;
+            lastStatus = statusText;
+            showToast('✓ Command sent to kiosk', 'success');
+          } else {
+            throw new Error('Failed to send command');
+          }
+        })
+        .catch(error => {
+          console.error('Command failed:', error);
+          currentViewEl.textContent = 'Error - ' + lastStatus;
+          showToast('✗ Failed to send command', 'error');
+        });
     }
 
-    function loadMenu(menu, name) {
-      const url = `../?menu=menus/${menu}.txt`;
-      loadView(url, name);
-    }
-
-    function loadSlideshow(name, displayName) {
-      const url = `../?slideshow=slideshows/sets/${name}.json`;
-      loadView(url, displayName);
-    }
-
-    function resetView() {
-      frame.src = '';
-      frame.style.display = 'none';
-      overlay.classList.remove('hidden');
-      currentViewEl.textContent = 'Welcome Screen';
-      localStorage.removeItem('demoLastView');
-      localStorage.removeItem('demoLastViewName');
-    }
-
-    function toggleFullscreen() {
-      const displayEl = document.querySelector('.kiosk-display');
+    function getStatusText(command) {
+      if (command === 'reload') return 'Reloading Kiosk';
       
-      if (!document.fullscreenElement) {
-        if (displayEl.requestFullscreen) {
-          displayEl.requestFullscreen();
-        } else if (displayEl.webkitRequestFullscreen) {
-          displayEl.webkitRequestFullscreen();
-        }
-      } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-          document.webkitExitFullscreen();
-        }
+      const [type, value] = command.split(':');
+      if (type === 'menu') {
+        const names = {
+          'breakfast': 'Breakfast Menu',
+          'lunch': 'Lunch Menu',
+          'dinner': 'Dinner Menu',
+          'closed': 'Closed Sign'
+        };
+        return names[value] || value;
+      } else if (type === 'slideshow') {
+        return 'Slideshow: ' + value;
       }
+      return command;
     }
 
-    function createTestSlideshow() {
-      alert('💡 Tip: Use the Slideshow Editor to create custom slideshows.\n\nClick "Slideshow Editor" above to get started!');
+    function showToast(message, type) {
+      // Create toast element
+      const toast = document.createElement('div');
+      toast.className = 'toast toast-' + type;
+      toast.textContent = message;
+      toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        background: ${type === 'success' ? '#38ef7d' : '#ff6b6b'};
+        color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 10000;
+        font-weight: 600;
+        animation: slideIn 0.3s ease;
+      `;
+      
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 2000);
     }
 
-    // Restore last view on page load
-    window.addEventListener('load', () => {
-      const lastView = localStorage.getItem('demoLastView');
-      const lastViewName = localStorage.getItem('demoLastViewName');
-      
-      if (lastView && lastViewName) {
-        loadView(lastView, lastViewName);
+    // Add animation keyframes
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideIn {
+        from { transform: translateX(400px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
       }
-    });
-
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-      // F11 for fullscreen
-      if (e.key === 'F11') {
-        e.preventDefault();
-        toggleFullscreen();
+      @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(400px); opacity: 0; }
       }
-      
-      // Escape to reset
-      if (e.key === 'Escape' && !document.fullscreenElement) {
-        resetView();
-      }
-      
-      // Number keys for quick access
-      if (e.key >= '1' && e.key <= '4' && !document.fullscreenElement) {
-        const menus = ['breakfast', 'lunch', 'dinner', 'closed'];
-        const names = ['Breakfast Menu', 'Lunch Menu', 'Dinner Menu', 'Closed Sign'];
-        const index = parseInt(e.key) - 1;
-        if (menus[index]) {
-          loadMenu(menus[index], names[index]);
-        }
-      }
-    });
-
-    // Show keyboard shortcuts on Ctrl+?
-    document.addEventListener('keydown', (e) => {
-      if (e.ctrlKey && e.key === '/') {
-        alert(`Keyboard Shortcuts:
-        
-1-4: Load menus (Breakfast/Lunch/Dinner/Closed)
-F11: Toggle fullscreen
-Esc: Reset view (when not in fullscreen)
-        
-💡 Use the control panel for full demo functionality!`);
-      }
-    });
+    `;
+    document.head.appendChild(style);
   </script>
 </body>
 </html>

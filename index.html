@@ -399,6 +399,7 @@
     }
     
     let lastReloadToken = null;
+    let lastDemoCommand = 'idle';
     
     function checkConfigChanges() {
       // Check for reload trigger
@@ -412,6 +413,19 @@
             // Token changed, show indicator and force hard reload to bypass cache
             showReloadIndicator();
             setTimeout(() => location.reload(true), 1000);
+          }
+        })
+        .catch(() => {});
+      
+      // Check for demo commands (remote control from demo panel)
+      fetch('demo-command.txt?' + Date.now(), { cache: 'no-store' })
+        .then(r => r.ok ? r.text() : '')
+        .then(command => {
+          command = command.trim();
+          if (command && command !== 'idle' && command !== lastDemoCommand) {
+            lastDemoCommand = command;
+            console.log('Demo command received:', command);
+            executeDemoCommand(command);
           }
         })
         .catch(() => {});
@@ -463,6 +477,35 @@
       if (indicator) {
         indicator.style.display = 'block';
         console.log('[UI] Reload indicator shown - page will reload in 1 second');
+      }
+    }
+
+    function executeDemoCommand(command) {
+      // Parse command format: "menu:breakfast" or "slideshow:example" or "reload"
+      console.log('[Demo] Executing command:', command);
+      
+      if (command === 'reload') {
+        showReloadIndicator();
+        setTimeout(() => location.reload(true), 500);
+        return;
+      }
+
+      const [type, value] = command.split(':');
+      
+      if (type === 'menu' && value) {
+        // Stop any running slideshow
+        if (isSlideshow) {
+          stopSlideshow();
+        }
+        // Switch to menu
+        currentMenu = 'menus/' + value + '.txt';
+        localStorage.setItem('selectedMenu', value);
+        fetchMenu();
+        console.log('[Demo] Switched to menu:', value);
+      } else if (type === 'slideshow' && value) {
+        // Load slideshow
+        loadSlideshow('slideshows/sets/' + value + '.json');
+        console.log('[Demo] Loading slideshow:', value);
       }
     }
 
