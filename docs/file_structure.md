@@ -18,7 +18,7 @@
 │   └── index.html              # Links to edit/design/rules pages
 │
 ├── edit/                       # Menu editor interface
-│   └── index.html              # Edit breakfast/lunch/dinner/closed menus
+│   └── index.html              # Edit menus (tabs populated from rules.json)
 │
 ├── design/                     # Style configuration
 │   ├── index.html              # Background, font, header, brightness

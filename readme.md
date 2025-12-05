@@ -20,13 +20,13 @@
 - **Privacy first**: Your menus stay on your premises. No data sent to third parties.
 
 ### 🎨 Customization That Makes Sense
-- **Per-menu styling**: Each meal period (breakfast/lunch/dinner) gets its own font and size. Breakfast can be fun and casual, dinner elegant.
+- **Per-menu styling**: Each menu gets its own font and size. Perfect for any use case—food menus, event schedules, promotional content—each can have a distinct look.
 - **Upload backgrounds from your phone**: Snap a photo of today's special → upload → done. No desktop computer needed.
 - **6+ professional fonts included**: From clean and modern (Lato, Bebas Neue) to handwritten fun (Caveat, Walter Turncoat). Add your own TTF fonts anytime.
 - **Brightness control**: Darken backgrounds (20-150%) so text pops without editing images.
 
 ### ⚡ Smart Features That Save Time
-- **Auto-schedule menus**: Set breakfast for 7-11am, lunch 11am-3pm, dinner 5-10pm. Kiosk switches automatically.
+- **Auto-schedule menus**: Define time-based rules (e.g., breakfast 7-11am, lunch 11am-3pm, dinner 5-10pm). Kiosk switches automatically.
 - **7-day menu history**: Made a mistake? Restore yesterday's menu with one tap.
 - **Active rule display**: Edit page shows which menu is currently live on the kiosk.
 - **Color tags**: `{y}$8.95` for yellow prices, `{r}` for red text, and more.
@@ -81,7 +81,7 @@ sudo reboot
 | **Edit from any phone** | Staff use their own devices — zero training required |
 | **Live preview** | See changes as you type before saving |
 | **7-day history** | Restore previous versions with one click |
-| **Auto-schedule** | Breakfast/lunch/dinner switch by time of day |
+| **Auto-schedule** | Content switches by time of day based on rules you define |
 | **Per-menu fonts & sizes** | Each menu gets its own style (font + size) |
 | **Upload photos** | Snap → upload → instant background |
 | **Color tags** | `{r}` red `{y}` yellow `{g}` green `{b}` blue `{o}` orange `{p}` pink `{w}` white |

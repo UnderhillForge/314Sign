@@ -1,6 +1,6 @@
 # 314Sign Formatting Guide
 
-Quick reference for text formatting in your daily specials. All formatting happens in the edit page — just type naturally and use these simple codes.
+Quick reference for text formatting in your content. All formatting happens in the edit page — just type naturally and use these simple codes.
 
 ---
 

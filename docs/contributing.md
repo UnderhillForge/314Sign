@@ -3,7 +3,7 @@
 **Thank you** for your interest in making **314Sign** better!  
 Whether you're a Raspberry Pi tinkerer, a kitchen staff hero, or a full-stack wizard — **your help is welcome**.
 
-314Sign is a **dead-simple digital signage system** for Raspberry Pi 5 + fullpageOS. It lets **non-tech staff edit daily specials from their phone**, with **zero apps**, **zero fuss**, and **instant updates**.
+314Sign is a **dead-simple digital signage system** for Raspberry Pi 5 + fullpageOS. It lets **non-tech staff edit content from their phone**, with **zero apps**, **zero fuss**, and **instant updates**.
 
 We’re building something **practical, fun, and open** — and we’d love your help.
 

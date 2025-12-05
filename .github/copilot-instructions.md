@@ -18,7 +18,7 @@
 - **Gotcha**: `index.html` never writes config—it's read-only. `design/index.html` writes `bg`/`font`, `edit/index.html` writes `fontScalePercent`. All must tolerate missing keys gracefully.
 
 ### `edit/index.html` (mobile menu editor)
-- **Multi-menu tabs**: Switches between breakfast/lunch/dinner/closed.txt via localStorage; each tab PUTs to its own file using `../menus/{name}.txt` relative paths.
+- **Dynamic menu tabs**: Automatically populates tabs from `rules.json` using each rule's `name` property as the button label. Extracts unique menu files from all rules, making the editor agnostic to use case (food menus, event schedules, ad rotations, etc.). Falls back to breakfast/lunch/dinner/closed if rules.json missing. Each tab PUTs to its own file using `../menus/{name}.txt` relative paths via localStorage.
 - **Active rule display**: Shows which menu is currently active on kiosk based on rules.json schedule. Updates menu tab styling and displays status bar with active rule name and time range. Refreshes every 60s.
 - **Font scale slider**: Adjusts `fontScalePercent` (5-20%) in `config.json` via PUT; `index.html` reads this to set `clamp()` font sizes dynamically. Merges into existing config to avoid clobbering `bg`/`font`.
 - **Menu history**: Auto-saves to `save-menu-history.php` on every save, creates one file per day in `history/` directory (format: MENUNAME_YYYY-MM-DD_DayOfWeek.txt). Modal displays 7-day history via `get-menu-history.php` with restore capability. History files auto-prune after 7 days. Multiple saves on same day overwrite the daily file.
@@ -105,7 +105,7 @@
 - **Local dev**: Run `php -S localhost:8000` from repo root; PUT/WebDAV won't work (use browser DevTools Network tab to inspect fetch calls). Test read-only features like menu rendering and config parsing.
 - **Full testing**: Deploy to Pi with lighttpd + WebDAV, then verify:
   1. `index.html` loads menu, applies bg/font from `config.json`, polls within `pollIntervalMs`.
-  2. `edit/` saves changes to all four menu tabs; kiosk updates within poll window.
+  2. `edit/` dynamically loads tabs from rules.json, saves changes to menu files; kiosk updates within poll window.
   3. `design/` uploads image, persists to `bg/`, updates `config.json`, and kiosk reloads bg on next 5-min cycle.
   4. `rules/` enables schedule, kiosk auto-switches menus at specified times.
 - **Logs**: Upload failures → `logs/uploads.log` (JSON lines); WebDAV errors → lighttpd error log (`/var/log/lighttpd/error.log`).
