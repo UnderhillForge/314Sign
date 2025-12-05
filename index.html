@@ -410,11 +410,16 @@
       fetch('reload.txt?' + Date.now(), { cache: 'no-store' })
         .then(r => r.ok ? r.text() : '')
         .then(token => {
-          if (token && lastReloadToken === null) {
+          token = token.trim();
+          if (!token) return; // Ignore empty responses
+          
+          if (lastReloadToken === null) {
             // First load, just store the token
-            lastReloadToken = token.trim();
-          } else if (token && token.trim() !== lastReloadToken) {
+            lastReloadToken = token;
+            console.log('[Reload] Initial token stored:', token);
+          } else if (token !== lastReloadToken) {
             // Token changed, show indicator and force hard reload to bypass cache
+            console.log('[Reload] Token changed from', lastReloadToken, 'to', token);
             showReloadIndicator();
             setTimeout(() => location.reload(true), 1000);
           }
