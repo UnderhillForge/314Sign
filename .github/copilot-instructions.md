@@ -15,6 +15,7 @@
 - **Polling mechanism**: ETag-aware fetch every `pollIntervalMs` (default 3000ms); compares ETag header → if changed, parses menu as Markdown via marked.js → renders with color tag replacements (`{r}` → red span, `{y}` → yellow, etc. — see `FORMATTING.md`). Falls back to text comparison if ETag missing.
 - **Auto-switching**: Checks `rules.json` every 60s → if a rule matches current day/time, calls `switchMenu()` to load new menu file and update localStorage.
 - **Hard reload**: Full page reload every 5 minutes to catch background/font changes that don't affect menu files.
+- **Remote control**: Polls `demo-command.txt` every 2 seconds for remote commands from `demo/index.html`. Commands like `menu:breakfast` or `slideshow:example` trigger instant view changes without page reload.
 - **Gotcha**: `index.html` never writes config—it's read-only. `design/index.html` writes `bg`/`font`, `edit/index.html` writes `fontScalePercent`. All must tolerate missing keys gracefully.
 
 ### `edit/index.html` (mobile menu editor)
@@ -54,6 +55,14 @@
 - **Navigation hub**: Simple, mobile-friendly landing page with large buttons linking to edit/, design/, rules/, slideshows/, and the main kiosk display.
 - **Visual design**: Gradient background, colorful card-style buttons with icons, responsive grid layout.
 - **Purpose**: Provides easy access for staff who need to quickly navigate to editing/configuration tools without remembering URLs.
+
+### `demo/index.html` (remote control panel) - UNDOCUMENTED FEATURE
+- **Remote control**: Phone/tablet interface for controlling kiosk TV during demonstrations. Not linked from start menu - accessed directly via `/demo/` URL.
+- **Command system**: Sends commands via PUT to `demo-command.txt`; kiosk polls file every 2 seconds and executes commands instantly.
+- **Supported commands**: `menu:breakfast|lunch|dinner|closed`, `slideshow:example`, `reload` for full page reload.
+- **Touch-optimized UI**: Large buttons (60px min-height, 1.1rem font) for easy tapping on phones/tablets. Toast notifications confirm command delivery.
+- **Use case**: Sales demonstrations where presenter controls kiosk TV from phone while audience watches display. Perfect for showcasing menu switching, slideshows, and instant updates.
+- **Setup**: Open demo/index.html on phone, open index.html fullscreen on TV. Commands take 1-2 seconds to execute on kiosk.
 
 ### PHP Backends
 - **`design/upload-bg.php`**: Validates MIME type (`image/*`), file extension (jpg/png/gif/webp), renames to `uploaded_YYYYMMDD_HHMMSS.{ext}`, saves to `../bg/`, logs to `logs/uploads.log`. Returns JSON `{filename}` on success or `{error}` with HTTP 4xx/5xx on failure. Check logs for permission/quota issues.
