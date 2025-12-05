@@ -152,7 +152,7 @@ declare -a UPDATE_FILES=(
 
 # Optional documentation files (won't fail if missing)
 declare -a DOC_FILES=(
-  "docs/readme.md"
+  "readme.md"
   "docs/FORMATTING.md"
   "docs/troubleshooting.md"
   "docs/requirements.md"
