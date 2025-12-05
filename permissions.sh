@@ -33,6 +33,7 @@ sudo chmod 664 "$WEB_ROOT/config.json" 2>/dev/null || true
 sudo chmod 664 "$WEB_ROOT/rules.json" 2>/dev/null || true
 sudo chmod 664 "$WEB_ROOT/menus-config.json" 2>/dev/null || true
 sudo chmod 664 "$WEB_ROOT/reload.txt" 2>/dev/null || true
+sudo chmod 664 "$WEB_ROOT/demo-command.txt" 2>/dev/null || true
 
 # Menu files
 sudo chmod 664 "$WEB_ROOT/menus/breakfast.txt" 2>/dev/null || true

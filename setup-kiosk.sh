@@ -142,6 +142,12 @@ if [ ! -f /var/www/html/reload.txt ]; then
   echo "Created reload.txt"
 fi
 
+# Create demo-command.txt if it doesn't exist (used by demo panel for remote control)
+if [ ! -f /var/www/html/demo-command.txt ]; then
+  echo "idle" | sudo tee /var/www/html/demo-command.txt > /dev/null
+  echo "Created demo-command.txt"
+fi
+
 # === 5. Set ownership & permissions ===
 echo ""
 echo "Setting permissions..."
@@ -254,7 +260,7 @@ sudo tee "$WEBDAV_CONF" > /dev/null << 'EOF'
 server.modules += ( "mod_webdav" )
 
 # Enable WebDAV for specific editable files
-$HTTP["url"] =~ "^/(index\.html|config\.json|rules\.json|menus-config\.json|reload\.txt)$" {
+$HTTP["url"] =~ "^/(index\.html|config\.json|rules\.json|menus-config\.json|reload\.txt|demo-command\.txt)$" {
     webdav.activate = "enable"
     webdav.is-readonly = "disable"
 }
