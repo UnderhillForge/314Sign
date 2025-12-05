@@ -222,7 +222,7 @@
         </div>
         <div class="info-item">
           <span class="info-label">Version</span>
-          <span class="info-value" id="versionInfo">0.9.1</span>
+          <span class="info-value" id="versionInfo">0.9.2</span>
         </div>
         <div class="info-item">
           <span class="info-label">Disk Space</span>
@@ -270,7 +270,7 @@
       <a href="../start/" class="back-button">← Back to Menu</a>
     </div>
     
-    <div class="version">314Sign v0.9.1 | © 2025 J Stekervetz | CC BY-NC 4.0</div>
+    <div class="version">314Sign v0.9.2 | © 2025 J Stekervetz | CC BY-NC 4.0</div>
   </div>
   
   <div id="toast" class="toast" aria-live="polite" role="status"></div>
@@ -323,7 +323,7 @@
         document.getElementById('serverStatus').textContent = 'Online';
         document.getElementById('serverStatus').className = 'info-value good';
         
-        document.getElementById('versionInfo').textContent = data.version || '0.9.1';
+        document.getElementById('versionInfo').textContent = data.version || '0.9.2';
         
         if (data.uptime) {
           document.getElementById('uptime').textContent = data.uptime;

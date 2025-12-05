@@ -1,6 +1,6 @@
 # 314Sign — The Dead-Simple Digital Menu Board
 
-**Version 0.9.1** | [License: CC BY-NC 4.0](LICENSE)
+**Version 0.9.2** | [License: CC BY-NC 4.0](LICENSE)
 
 > **No apps. No subscriptions. No learning curve.**  
 > Point your phone at http://your-pi.local/start → edit → see changes **instantly** on screen.
@@ -145,7 +145,7 @@ curl http://YOUR-HOSTNAME.local/status.php
 
 ## License & Credits
 
-**314Sign v0.9.1**  
+**314Sign v0.9.2**  
 Licensed under [Creative Commons Attribution-NonCommercial 4.0 International](LICENSE)
 
 - ✅ Free for personal, educational, and non-profit use

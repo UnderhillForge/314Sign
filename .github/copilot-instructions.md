@@ -193,4 +193,4 @@
 5. **Ignoring ETag**: `index.html` relies on lighttpd's ETag header for fast change detection; disabling ETags (via `server.etag = "disable"`) forces text comparisons on every poll (slower but functional).
 
 ## Version Management
-- Current version: **0.9.1** (hardcoded in HTML footer divs, `status.php`, README). Increment when releasing breaking changes or major features; update all instances via find/replace.
+- Current version: **0.9.2** (hardcoded in HTML footer divs, `status.php`, README). Increment when releasing breaking changes or major features; update all instances via find/replace.
