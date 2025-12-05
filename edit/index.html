@@ -441,11 +441,8 @@
 <body>
   <div class="container">
     <h2>Daily Specials Editor</h2>
-    <div class="menu-tabs">
-      <button class="menu-tab active" data-file="menus/breakfast.txt">Breakfast</button>
-      <button class="menu-tab" data-file="menus/lunch.txt">Lunch</button>
-      <button class="menu-tab" data-file="menus/dinner.txt">Dinner</button>
-      <button class="menu-tab" data-file="menus/closed.txt">Closed</button>
+    <div class="menu-tabs" id="menuTabs">
+      <!-- Dynamically populated from rules.json -->
     </div>
     <div class="controls">
       <label for="fontSelect">Font Style:</label>
@@ -567,11 +564,75 @@
     const fontSelect = document.getElementById('fontSelect');
     const fontScaleInput = document.getElementById('fontScale');
     const fontScaleValue = document.getElementById('fontScaleValue');
-    const menuTabs = document.querySelectorAll('.menu-tab');
+    const menuTabsContainer = document.getElementById('menuTabs');
+    let menuTabs = []; // Will be populated dynamically
     const viewButtons = document.querySelectorAll('.view-btn');
 
     // Remember which menu was last edited
     let currentFile = localStorage.getItem('editCurrentMenu') || 'menus/breakfast.txt';
+
+    // Populate menu tabs from rules.json
+    function initializeMenuTabs() {
+      return fetch('../rules.json')
+        .then(r => r.ok ? r.json() : { rules: [] })
+        .then(rulesData => {
+          // Extract unique menu files and their names from rules
+          const menuMap = new Map();
+          
+          if (rulesData.rules && rulesData.rules.length > 0) {
+            rulesData.rules.forEach(rule => {
+              if (rule.menu && !menuMap.has(rule.menu)) {
+                // Use rule name as button label
+                menuMap.set(rule.menu, rule.name);
+              }
+            });
+          }
+          
+          // If no rules found, use defaults
+          if (menuMap.size === 0) {
+            menuMap.set('menus/breakfast.txt', 'Breakfast');
+            menuMap.set('menus/lunch.txt', 'Lunch');
+            menuMap.set('menus/dinner.txt', 'Dinner');
+            menuMap.set('menus/closed.txt', 'Closed');
+          }
+          
+          // Generate buttons
+          menuTabsContainer.innerHTML = '';
+          let isFirst = true;
+          menuMap.forEach((name, file) => {
+            const button = document.createElement('button');
+            button.className = 'menu-tab';
+            button.dataset.file = file;
+            button.textContent = name;
+            
+            // Set first button or saved menu as active
+            if (file === currentFile || (isFirst && !localStorage.getItem('editCurrentMenu'))) {
+              button.classList.add('active');
+              currentFile = file; // Update currentFile if using default
+            }
+            
+            button.addEventListener('click', () => switchMenu(file));
+            menuTabsContainer.appendChild(button);
+            isFirst = false;
+          });
+          
+          // Update menuTabs array
+          menuTabs = document.querySelectorAll('.menu-tab');
+        })
+        .catch(() => {
+          // Fallback to defaults if rules.json fails
+          menuTabsContainer.innerHTML = `
+            <button class="menu-tab active" data-file="menus/breakfast.txt">Breakfast</button>
+            <button class="menu-tab" data-file="menus/lunch.txt">Lunch</button>
+            <button class="menu-tab" data-file="menus/dinner.txt">Dinner</button>
+            <button class="menu-tab" data-file="menus/closed.txt">Closed</button>
+          `;
+          menuTabs = document.querySelectorAll('.menu-tab');
+          menuTabs.forEach(tab => {
+            tab.addEventListener('click', () => switchMenu(tab.dataset.file));
+          });
+        });
+    }
 
     // View switching
     function switchView(viewName) {
@@ -704,10 +765,7 @@
     // Listen for input changes
     textarea.addEventListener('input', updatePreview);
 
-    // Setup tab click handlers
-    menuTabs.forEach(tab => {
-      tab.addEventListener('click', () => switchMenu(tab.dataset.file));
-    });
+    // Setup tab click handlers - now handled in initializeMenuTabs()
 
     // Load config and set initial font scale + font selection
     function loadConfig() {
@@ -936,20 +994,23 @@
         .catch(() => showToast('Failed to trigger reload', 'error'));
     });
 
-    // Initialize: set active tab based on currentFile from localStorage
-    menuTabs.forEach(tab => {
-      if (tab.dataset.file === currentFile) {
-        tab.classList.add('active');
-      } else {
-        tab.classList.remove('active');
-      }
+    // Initialize menu tabs first, then load content
+    initializeMenuTabs().then(() => {
+      // Set active tab based on currentFile from localStorage
+      menuTabs.forEach(tab => {
+        if (tab.dataset.file === currentFile) {
+          tab.classList.add('active');
+        } else {
+          tab.classList.remove('active');
+        }
+      });
+
+      // Load current file on startup
+      loadFile(currentFile);
+
+      // Load config on page load
+      loadConfig();
     });
-
-    // Load current file on startup
-    loadFile(currentFile);
-
-    // Load config on page load
-    loadConfig();
 
     // Save with PUT
     function save() {
