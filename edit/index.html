@@ -448,7 +448,11 @@
       <button class="menu-tab" data-file="menus/closed.txt">Closed</button>
     </div>
     <div class="controls">
-      <label for="fontScale">Font Size:</label>
+      <label for="fontSelect">Font Style:</label>
+      <select id="fontSelect" style="padding: 0.5rem; border-radius: 6px; border: 1px solid #ccc; background: white; font-size: 0.9rem;">
+        <!-- Populated from config.json -->
+      </select>
+      <label for="fontScale" style="margin-left: 1rem;">Font Size:</label>
       <input type="range" id="fontScale" min="5" max="20" value="5" step="0.5" />
       <span id="fontScaleValue">5%</span>
       <button id="reloadKiosk" style="padding: 0.5rem 0.75rem; background: #28a745; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; white-space: nowrap; font-size: 0.9rem;">↻ Reload</button>
@@ -560,6 +564,7 @@
     const textarea = document.getElementById('content');
     const preview = document.getElementById('preview');
     const status = document.getElementById('status');
+    const fontSelect = document.getElementById('fontSelect');
     const fontScaleInput = document.getElementById('fontScale');
     const fontScaleValue = document.getElementById('fontScaleValue');
     const menuTabs = document.querySelectorAll('.menu-tab');
@@ -704,35 +709,51 @@
       tab.addEventListener('click', () => switchMenu(tab.dataset.file));
     });
 
-    // Load config and set initial font scale
-    // Note: Font selection is configured in design.html; this page only controls font size
+    // Load config and set initial font scale + font selection
     function loadConfig() {
-      // Load per-menu font scale from menus-config.json
       const menuName = currentFile.replace('menus/', '').replace('.txt', '');
-      fetch('../menus-config.json')
+      
+      // Load global config to populate font dropdown
+      fetch('../config.json')
         .then(r => r.ok ? r.json() : {})
-        .then(menusConfig => {
-          if (menusConfig[menuName] && menusConfig[menuName].fontScalePercent) {
-            fontScaleInput.value = menusConfig[menuName].fontScalePercent;
-            fontScaleValue.textContent = menusConfig[menuName].fontScalePercent + '%';
-          } else {
-            // Fall back to global config if per-menu setting not found
-            fetch('../config.json')
-              .then(r => r.ok ? r.json() : {})
-              .then(cfg => {
-                if (cfg.fontScalePercent) {
-                  fontScaleInput.value = cfg.fontScalePercent;
-                  fontScaleValue.textContent = cfg.fontScalePercent + '%';
-                }
-              })
-              .catch(() => {
-                // Use default if both configs fail
-                fontScaleValue.textContent = fontScaleInput.value + '%';
-              });
+        .then(cfg => {
+          // Populate font dropdown from availableFonts
+          if (cfg.availableFonts) {
+            fontSelect.innerHTML = '';
+            Object.entries(cfg.availableFonts).forEach(([name, value]) => {
+              const option = document.createElement('option');
+              option.value = value;
+              option.textContent = name;
+              fontSelect.appendChild(option);
+            });
           }
+          
+          // Load per-menu settings from menus-config.json
+          return fetch('../menus-config.json')
+            .then(r => r.ok ? r.json() : {})
+            .then(menusConfig => {
+              // Load per-menu font scale
+              if (menusConfig[menuName] && menusConfig[menuName].fontScalePercent) {
+                fontScaleInput.value = menusConfig[menuName].fontScalePercent;
+                fontScaleValue.textContent = menusConfig[menuName].fontScalePercent + '%';
+              } else if (cfg.fontScalePercent) {
+                fontScaleInput.value = cfg.fontScalePercent;
+                fontScaleValue.textContent = cfg.fontScalePercent + '%';
+              }
+              
+              // Load per-menu font or fall back to global
+              if (menusConfig[menuName] && menusConfig[menuName].font) {
+                fontSelect.value = menusConfig[menuName].font;
+              } else if (cfg.font) {
+                fontSelect.value = cfg.font;
+              }
+              
+              // Apply font to preview
+              applyFontToPreview();
+            });
         })
         .catch(() => {
-          // Use default if config fails
+          // Use defaults if config fails
           fontScaleValue.textContent = fontScaleInput.value + '%';
         });
       
@@ -837,6 +858,37 @@
         })
         .catch(err => console.error('Failed to save font scale:', err));
     });
+    
+    // Font select change - save to menus-config and apply to preview
+    fontSelect.addEventListener('change', () => {
+      const menuName = currentFile.replace('menus/', '').replace('.txt', '');
+      fetch('../menus-config.json')
+        .then(r => r.ok ? r.json() : {})
+        .then(menusConfig => {
+          // Initialize menu config if it doesn't exist
+          if (!menusConfig[menuName]) {
+            menusConfig[menuName] = {};
+          }
+          menusConfig[menuName].font = fontSelect.value;
+          return fetch('../menus-config.json', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(menusConfig, null, 2)
+          });
+        })
+        .then(() => {
+          // Apply font to preview
+          applyFontToPreview();
+        })
+        .catch(err => console.error('Failed to save font:', err));
+    });
+    
+    // Apply selected font to preview panel
+    function applyFontToPreview() {
+      if (preview && fontSelect.value) {
+        preview.style.fontFamily = fontSelect.value;
+      }
+    }
     
     // Reload kiosk button
     document.getElementById('reloadKiosk').addEventListener('click', () => {

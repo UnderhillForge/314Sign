@@ -205,18 +205,25 @@
       currentMenu = filename;
       localStorage.setItem('currentMenu', filename);
       
-      // Load per-menu font scale from menus-config.json
+      // Load per-menu settings from menus-config.json
       const menuName = filename.replace('menus/', '').replace('.txt', '');
       fetch('menus-config.json')
         .then(r => r.ok ? r.json() : {})
         .then(menusConfig => {
+          const specialsDiv = document.getElementById('specials');
+          
+          // Apply per-menu font scale
           if (menusConfig[menuName] && Number.isFinite(menusConfig[menuName].fontScalePercent)) {
             fontScalePercent = Number(menusConfig[menuName].fontScalePercent);
-            
-            // Apply font scale to specials div
-            const specialsDiv = document.getElementById('specials');
             if (specialsDiv) {
               specialsDiv.style.fontSize = `clamp(1rem, ${fontScalePercent}vw, 3rem)`;
+            }
+          }
+          
+          // Apply per-menu font
+          if (menusConfig[menuName] && menusConfig[menuName].font) {
+            if (specialsDiv) {
+              specialsDiv.style.fontFamily = menusConfig[menuName].font;
             }
           }
         })
@@ -329,13 +336,20 @@
           fetch('menus-config.json')
             .then(r => r.ok ? r.json() : {})
             .then(menusConfig => {
+              const specials = document.getElementById('specials');
+              
+              // Apply per-menu font scale
               if (menusConfig[menuName] && Number.isFinite(menusConfig[menuName].fontScalePercent)) {
                 fontScalePercent = Number(menusConfig[menuName].fontScalePercent);
-                
-                // Apply per-menu font scale
-                const specials = document.getElementById('specials');
                 if (specials) {
                   specials.style.fontSize = 'clamp(1rem, ' + fontScalePercent + 'vw, 6rem)';
+                }
+              }
+              
+              // Apply per-menu font
+              if (menusConfig[menuName] && menusConfig[menuName].font) {
+                if (specials) {
+                  specials.style.fontFamily = menusConfig[menuName].font;
                 }
               }
             })
