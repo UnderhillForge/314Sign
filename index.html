@@ -404,27 +404,51 @@
     
     let lastReloadToken = null;
     let lastDemoCommand = 'idle';
+    let reloadCheckCount = 0;
     
     function checkConfigChanges() {
-      // Check for reload trigger
-      fetch('reload.txt?' + Date.now(), { cache: 'no-store' })
-        .then(r => r.ok ? r.text() : '')
-        .then(token => {
-          token = token.trim();
-          if (!token) return; // Ignore empty responses
-          
-          if (lastReloadToken === null) {
-            // First load, just store the token
-            lastReloadToken = token;
-            console.log('[Reload] Initial token stored:', token);
-          } else if (token !== lastReloadToken) {
-            // Token changed, show indicator and force hard reload to bypass cache
-            console.log('[Reload] Token changed from', lastReloadToken, 'to', token);
-            showReloadIndicator();
-            setTimeout(() => location.reload(true), 1000);
-          }
-        })
-        .catch(() => {});
+      reloadCheckCount++;
+      
+      // Check for reload trigger (but skip first check to establish baseline)
+      if (reloadCheckCount > 1) {
+        fetch('reload.txt?' + Date.now(), { cache: 'no-store' })
+          .then(r => {
+            if (!r.ok) return Promise.reject('fetch failed');
+            return r.text();
+          })
+          .then(token => {
+            token = token.trim();
+            if (!token) return; // Ignore empty responses
+            
+            if (lastReloadToken === null) {
+              // First successful read, store the token
+              lastReloadToken = token;
+              console.log('[Reload] Baseline set:', token);
+            } else if (token !== lastReloadToken) {
+              // Token changed, show indicator and force hard reload
+              console.log('[Reload] Token changed:', lastReloadToken, '->', token);
+              lastReloadToken = token; // Update to prevent repeated reloads
+              showReloadIndicator();
+              setTimeout(() => location.reload(true), 1000);
+            }
+          })
+          .catch(err => {
+            // Silently ignore fetch errors - don't reload on network issues
+            console.log('[Reload] Check failed (ignored):', err);
+          });
+      } else {
+        // First check - just establish the baseline without checking for changes
+        fetch('reload.txt?' + Date.now(), { cache: 'no-store' })
+          .then(r => r.ok ? r.text() : '')
+          .then(token => {
+            token = token.trim();
+            if (token) {
+              lastReloadToken = token;
+              console.log('[Reload] Initial baseline:', token);
+            }
+          })
+          .catch(() => {});
+      }
       
       // Check for demo commands (remote control from demo panel)
       fetch('demo-command.txt?' + Date.now(), { cache: 'no-store' })
