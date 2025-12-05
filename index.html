@@ -161,11 +161,43 @@
   // Font scale percentage. Default to 5% of viewport width.
   // Can be overridden via fontScalePercent in config.json.
   let fontScalePercent = 5;
-  let lastHeaderSizePercent = null;
+    let lastHeaderSizePercent = null;
   let lastBgBrightness = null;
   let demoModeActive = false; // Disable auto-switching when demo commands are used
 
-    // Check schedule rules and auto-switch menu if enabled
+  // Process color tags in text (used for both header and content)
+  function processColorTags(text) {
+    const colorMap = {
+      r: '#ff4444', y: '#ffdd44', g: '#44ff44', b: '#4488ff',
+      o: '#ff8844', p: '#ff44ff', w: '#ffffff', lg: '#aaaaaa'
+    };
+    
+    const colorPattern = /\{(r|y|g|b|o|p|w|lg)\}/gi;
+    let lastIndex = 0;
+    let result = '';
+    let currentColor = null;
+    
+    text.replace(colorPattern, (match, colorKey, offset) => {
+      const textBefore = text.substring(lastIndex, offset);
+      if (currentColor) {
+        result += '<span style="color:' + currentColor + '">' + textBefore + '</span>';
+      } else {
+        result += textBefore;
+      }
+      currentColor = colorMap[colorKey.toLowerCase()];
+      lastIndex = offset + match.length;
+      return '';
+    });
+    
+    const textAfter = text.substring(lastIndex);
+    if (currentColor) {
+      result += '<span style="color:' + currentColor + '">' + textAfter + '</span>';
+    } else {
+      result += textAfter;
+    }
+    
+    return result || text;
+  }    // Check schedule rules and auto-switch menu if enabled
     function checkScheduleRules() {
       // Skip auto-switching if demo mode is active
       if (demoModeActive) {
@@ -296,7 +328,8 @@
         
         // Apply header text if set (default 'Specials')
         if (cfg.headerText) {
-          headerEl.textContent = cfg.headerText;
+          // Use innerHTML to support color tags in header
+          headerEl.innerHTML = processColorTags(cfg.headerText);
         }
         
         // Show/hide clock based on config (default hidden)
@@ -595,48 +628,9 @@
               }
             }
             
-            // Process color tags line by line to prevent bleeding
+            // Process color tags line by line using helper function
             const lines = trimmed.split('\n');
-            const processedLines = lines.map(line => {
-              let processed = line;
-              // Apply color tags with support for multiple colors per line
-              const colorMap = {
-                r: '#ff4444', y: '#ffdd44', g: '#44ff44', b: '#4488ff',
-                o: '#ff8844', p: '#ff44ff', w: '#ffffff'
-              };
-              
-              // Process all color tags in order they appear
-              // Each {color} applies until the next {color} or end of line
-              const colorPattern = /\{([rygbopw])\}/gi;
-              let lastIndex = 0;
-              let result = '';
-              let currentColor = null;
-              
-              processed.replace(colorPattern, (match, colorKey, offset) => {
-                // Add text before this color tag
-                const textBefore = processed.substring(lastIndex, offset);
-                if (currentColor) {
-                  result += '<span style="color:' + currentColor + '">' + textBefore + '</span>';
-                } else {
-                  result += textBefore;
-                }
-                
-                // Set new color
-                currentColor = colorMap[colorKey.toLowerCase()];
-                lastIndex = offset + match.length;
-                return '';
-              });
-              
-              // Add remaining text
-              const textAfter = processed.substring(lastIndex);
-              if (currentColor) {
-                result += '<span style="color:' + currentColor + '">' + textAfter + '</span>';
-              } else {
-                result += textAfter;
-              }
-              
-              return result || processed;
-            });
+            const processedLines = lines.map(line => processColorTags(line));
             
             let processedText = processedLines.join('\n');
             

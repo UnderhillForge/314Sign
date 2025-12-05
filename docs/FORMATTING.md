@@ -137,20 +137,6 @@ Open Daily 11am - 9pm
 
 ---
 
-## Emoji Support
-
-Add emoji directly in your menu text using the emoji toolbar buttons or copy-paste from your device:
-- 🍔 Burgers
-- 🍕 Pizza  
-- 🍗 Chicken
-- 🥗 Salads
-- 🍰 Desserts
-- ☕ Coffee
-- 🍺 Beer
-- 🍷 Wine
-
----
-
 ## Complete Menu Example
 
 ```markdown
