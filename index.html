@@ -580,20 +580,43 @@
             const lines = trimmed.split('\n');
             const processedLines = lines.map(line => {
               let processed = line;
-              // Apply color tags within this line only
+              // Apply color tags with support for multiple colors per line
               const colorMap = {
                 r: '#ff4444', y: '#ffdd44', g: '#44ff44', b: '#4488ff',
                 o: '#ff8844', p: '#ff44ff', w: '#ffffff'
               };
               
-              Object.keys(colorMap).forEach(colorKey => {
-                const color = colorMap[colorKey];
-                // Replace {color} with opening span, text continues to end of line
-                const regex = new RegExp('\\{' + colorKey + '\\}(.*)$', 'i');
-                processed = processed.replace(regex, '<span style="color:' + color + '">$1</span>');
+              // Process all color tags in order they appear
+              // Each {color} applies until the next {color} or end of line
+              const colorPattern = /\{([rygbopw])\}/gi;
+              let lastIndex = 0;
+              let result = '';
+              let currentColor = null;
+              
+              processed.replace(colorPattern, (match, colorKey, offset) => {
+                // Add text before this color tag
+                const textBefore = processed.substring(lastIndex, offset);
+                if (currentColor) {
+                  result += '<span style="color:' + currentColor + '">' + textBefore + '</span>';
+                } else {
+                  result += textBefore;
+                }
+                
+                // Set new color
+                currentColor = colorMap[colorKey.toLowerCase()];
+                lastIndex = offset + match.length;
+                return '';
               });
               
-              return processed;
+              // Add remaining text
+              const textAfter = processed.substring(lastIndex);
+              if (currentColor) {
+                result += '<span style="color:' + currentColor + '">' + textAfter + '</span>';
+              } else {
+                result += textAfter;
+              }
+              
+              return result || processed;
             });
             
             let processedText = processedLines.join('\n');
