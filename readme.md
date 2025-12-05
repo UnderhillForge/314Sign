@@ -29,7 +29,7 @@
 - **Auto-schedule menus**: Set breakfast for 7-11am, lunch 11am-3pm, dinner 5-10pm. Kiosk switches automatically.
 - **7-day menu history**: Made a mistake? Restore yesterday's menu with one tap.
 - **Active rule display**: Edit page shows which menu is currently live on the kiosk.
-- **Color tags & emoji toolbar**: `{y}$8.95` for yellow prices, quick-insert 🍔🍕🍗 buttons.
+- **Color tags**: `{y}$8.95` for yellow prices, `{r}` for red text, and more.
 - **Live preview**: See exactly how your menu looks before saving.
 
 ### 🛠️ Built for Real-World Use
@@ -85,7 +85,6 @@ sudo reboot
 | **Per-menu fonts & sizes** | Each menu gets its own style (font + size) |
 | **Upload photos** | Snap → upload → instant background |
 | **Color tags** | `{r}` red `{y}` yellow `{g}` green `{b}` blue `{o}` orange `{p}` pink `{w}` white |
-| **Emoji toolbar** | Quick-insert 🍔🍕🍗🥗🍰☕🍺🍷 |
 | **Text alignment** | `[center]...[/center]` and `[right]...[/right]` tags |
 | **Size overrides** | `[s15]bigger text[/s]` for emphasis |
 | **Background brightness** | Adjust 20-150% for text readability |
