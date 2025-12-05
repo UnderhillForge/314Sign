@@ -48,6 +48,7 @@ sudo chmod 664 "$WEB_ROOT/rules/index.html" 2>/dev/null || true
 sudo chmod 664 "$WEB_ROOT/slideshows/index.html" 2>/dev/null || true
 sudo chmod 664 "$WEB_ROOT/maintenance/index.html" 2>/dev/null || true
 sudo chmod 664 "$WEB_ROOT/start/index.html" 2>/dev/null || true
+sudo chmod 664 "$WEB_ROOT/demo/index.html" 2>/dev/null || true
 
 # PHP scripts should be executable
 sudo chmod 755 "$WEB_ROOT/bg/index.php" 2>/dev/null || true
