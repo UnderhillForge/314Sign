@@ -396,8 +396,8 @@
       checkScheduleRules();
       rulesCheckInterval = setInterval(checkScheduleRules, 60000);
       
-      // Check config for font scale changes every 10 seconds
-      setInterval(checkConfigChanges, 10000);
+      // Check config, reload triggers, and demo commands every 2 seconds for responsiveness
+      setInterval(checkConfigChanges, 2000);
       
       pollSpecials();
     }
