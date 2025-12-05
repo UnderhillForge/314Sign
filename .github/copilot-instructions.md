@@ -37,16 +37,27 @@
 - **CRITICAL SYNC**: `generateIndexHTML()` (L314-430) creates a **simplified** version of `index.html` when saving themes. This generator **intentionally omits** ETag polling, rules checking, and fontScalePercent logic to avoid complexity. Prefer writing only `config.json` instead of regenerating `index.html` unless the user explicitly requests full HTML rewrites. If you add kiosk features (e.g., new polling behaviors), update both the live `index.html` and the generator or document why they diverge.
 
 ### `rules/index.html` (schedule configurator)
-- **Rules engine**: Writes `rules.json` with `{enabled: bool, rules: [{name, days[], startTime, endTime, menu}]}`. `index.html` checks this every minute.
+- **Rules engine**: Writes `rules.json` with `{enabled: bool, rules: [{name, days[], startTime, endTime, menu?, slideshow?}]}`. `index.html` checks this every minute.
+- **Content type selection**: Rules can specify either `menu` (traditional text menu) or `slideshow` (multimedia presentation). Only one per rule.
 - **Time range logic**: Handles midnight crossings (e.g., startTime "22:00" → endTime "07:00" spans two days); see `checkScheduleRules()` in `index.html` for implementation.
 
+### `slideshows/index.html` (slideshow editor)
+- **Multi-set management**: Create/edit multiple slideshow sets (JSON files in `slideshows/sets/`). Each set contains array of slides.
+- **Slide types**: Text (markdown + background), Image (with captions), Video (with loop/mute controls).
+- **Visual editor**: Form-based slide editing with live preview panel. Upload media directly or specify paths.
+- **Transitions**: 6 effects (fade, slide-left/right/up/down, zoom, none). Per-slide duration control (0 = video length).
+- **Reordering**: Up/down buttons to change slide sequence. Delete button removes slides.
+- **Media uploads**: POST to `upload-media.php` → saves to `slideshows/media/` with timestamped filenames.
+- **Test mode**: Opens slideshow in new window via `?slideshow=path` URL parameter.
+
 ### `start/index.html` (quick start landing page)
-- **Navigation hub**: Simple, mobile-friendly landing page with large buttons linking to edit/, design/, rules/, and the main kiosk display.
+- **Navigation hub**: Simple, mobile-friendly landing page with large buttons linking to edit/, design/, rules/, slideshows/, and the main kiosk display.
 - **Visual design**: Gradient background, colorful card-style buttons with icons, responsive grid layout.
 - **Purpose**: Provides easy access for staff who need to quickly navigate to editing/configuration tools without remembering URLs.
 
 ### PHP Backends
 - **`design/upload-bg.php`**: Validates MIME type (`image/*`), file extension (jpg/png/gif/webp), renames to `uploaded_YYYYMMDD_HHMMSS.{ext}`, saves to `../bg/`, logs to `logs/uploads.log`. Returns JSON `{filename}` on success or `{error}` with HTTP 4xx/5xx on failure. Check logs for permission/quota issues.
+- **`slideshows/upload-media.php`**: Similar to upload-bg.php but accepts images + videos (mp4/webm/mov). Saves to `slideshows/media/` with `slide_YYYYMMDD_HHMMSS.{ext}` naming. Logs to `logs/slideshow-uploads.log`.
 - **`bg/index.php`**: Scans `bg/` directory, filters for image extensions, sorts naturally, returns JSON array of filenames. No pagination; assumes <100 images.
 - **`save-menu-history.php`**: Receives POST with menu name and content, creates one file per day in `history/` directory (format: MENUNAME_YYYY-MM-DD_DayOfWeek.txt). Overwrites existing file if saving multiple times same day. Auto-prunes files older than 7 days, logs to `logs/history.log`.
 - **`get-menu-history.php`**: Returns menu history as JSON. action=list returns array sorted by timestamp descending, action=get returns specific file content.
@@ -84,14 +95,62 @@
       "startTime": "07:00",                 // HH:MM 24-hour
       "endTime": "11:00",
       "menu": "menus/breakfast.txt"
+    },
+    {
+      "name": "Closed - Show Ads",
+      "days": ["monday", "tuesday", ...],
+      "startTime": "22:00",
+      "endTime": "07:00",
+      "slideshow": "slideshows/sets/upcoming-events.json"  // alternative to menu
     }
   ]
 }
 ```
 - **Matching logic**: Current day + time must fall within `days[]` and `startTime`/`endTime` range. First matching rule wins; order matters.
+- **Content types**: Rules specify either `menu` (text file) or `slideshow` (JSON file). Only one per rule.
+
+### `slideshows/sets/*.json`
+```json
+{
+  "name": "Example Slideshow",
+  "description": "Optional description",
+  "defaultDuration": 5000,
+  "defaultTransition": "fade",
+  "slides": [
+    {
+      "type": "text",                      // or "image", "video"
+      "duration": 5000,                    // milliseconds (0 = video length)
+      "transition": "fade",                // fade|slide-left|slide-right|slide-up|slide-down|zoom|none
+      "background": "../bg/image.jpg",     // for text slides
+      "content": "# Title\n\nMarkdown text with {r}color{/r} tags",
+      "font": "Lato, sans-serif",
+      "fontSize": 5                        // viewport width percentage
+    },
+    {
+      "type": "image",
+      "duration": 7000,
+      "transition": "slide-left",
+      "media": "media/slide_20251204_140532.jpg",
+      "caption": "Optional caption text",
+      "captionPosition": "bottom"          // top|bottom|center
+    },
+    {
+      "type": "video",
+      "duration": 0,
+      "transition": "fade",
+      "media": "media/slide_20251204_141203.mp4",
+      "loop": false,
+      "muted": false
+    }
+  ]
+}
+```
+- **Slide types**: Text (markdown + background), Image (with caption), Video (loop/mute controls).
+- **Transitions**: Applied when entering slide; 6 options available.
+- **Duration**: Time in milliseconds; 0 for videos = play to completion.
 
 ## WebDAV Security Model
-- **Allowed paths**: `/etc/lighttpd/conf-enabled/10-webdav.conf` restricts PUT to: `index.html`, `config.json`, `rules.json`, `menus/*.txt`, `edit/design/rules/index.html`. Lighttpd rejects PUTs to other paths with 403/501.
+- **Allowed paths**: `/etc/lighttpd/conf-enabled/10-webdav.conf` restricts PUT to: `index.html`, `config.json`, `rules.json`, `menus/*.txt`, `slideshows/sets/*.json`, `edit/design/rules/slideshows/index.html`. Lighttpd rejects PUTs to other paths with 403/501.
 - **No authentication by default**: Intended for trusted local networks (e.g., restaurant staff Wi-Fi). `create-webdav-user.sh` exists for advanced setups but is **not required**—skip for simplicity unless exposing to internet (discouraged).
 - **Permission failures**: Usually manifest as 501 errors in browser; check lighttpd error log and re-run `permissions.sh` if edits fail.
 

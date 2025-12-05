@@ -27,6 +27,7 @@
 
 ### ⚡ Smart Features That Save Time
 - **Auto-schedule menus**: Define time-based rules (e.g., breakfast 7-11am, lunch 11am-3pm, dinner 5-10pm). Kiosk switches automatically.
+- **Slideshow system**: Create multimedia presentations with images, videos, and text. Schedule ads during closed hours or rotate promotional content.
 - **7-day menu history**: Made a mistake? Restore yesterday's menu with one tap.
 - **Active rule display**: Edit page shows which menu is currently live on the kiosk.
 - **Color tags**: `{y}$8.95` for yellow prices, `{r}` for red text, and more.
@@ -54,6 +55,7 @@ http://YOUR-HOSTNAME.local/start/     # Quick access landing page
 http://YOUR-HOSTNAME.local/edit/      # Edit daily specials
 http://YOUR-HOSTNAME.local/design/    # Customize appearance
 http://YOUR-HOSTNAME.local/rules/     # Schedule auto-switching
+http://YOUR-HOSTNAME.local/slideshows/ # Create multimedia slideshows
 ```
 
 ### Recommended: Auto-Boot to Kiosk Display (Pi OS Lite)
@@ -82,6 +84,7 @@ sudo reboot
 | **Live preview** | See changes as you type before saving |
 | **7-day history** | Restore previous versions with one click |
 | **Auto-schedule** | Content switches by time of day based on rules you define |
+| **Slideshows** | Create multimedia presentations with images, videos, and text overlays |
 | **Per-menu fonts & sizes** | Each menu gets its own style (font + size) |
 | **Upload photos** | Snap → upload → instant background |
 | **Color tags** | `{r}` red `{y}` yellow `{g}` green `{b}` blue `{o}` orange `{p}` pink `{w}` white |
@@ -90,6 +93,7 @@ sudo reboot
 | **Background brightness** | Adjust 20-150% for text readability |
 | **Custom fonts** | Drop TTF files in fonts/ directory — auto-loads |
 | **Remote reload** | Force kiosk refresh from edit page |
+| **Transition effects** | 6 slideshow transitions: fade, slide, zoom |
 
 ---
 
@@ -132,6 +136,7 @@ curl http://YOUR-HOSTNAME.local/status.php
 ## Documentation
 
 - **[Formatting Guide](docs/FORMATTING.md)** — Color tags, alignment, size overrides
+- **[Slideshow Guide](docs/SLIDESHOWS.md)** — Create multimedia presentations with images, videos, and text
 - **[Troubleshooting](docs/troubleshooting.md)** — Common issues and fixes
 - **[Requirements](docs/requirements.md)** — Hardware, software, network setup
 - **[Contributing](docs/contributing.md)** — How to improve 314Sign
