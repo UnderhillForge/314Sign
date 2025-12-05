@@ -305,8 +305,11 @@
     <div class="section">
       <h2>🖥️ Kiosk Display</h2>
       <div class="button-grid">
+        <button class="btn-kiosk" onclick="sendCommand('page:.')">
+          📺 Main Kiosk Display
+        </button>
         <button class="btn-kiosk" onclick="sendCommand('reload')">
-          📺 Reload Kiosk
+          🔄 Reload Kiosk
         </button>
       </div>
     </div>
@@ -332,19 +335,19 @@
 
     <!-- Editors -->
     <div class="section">
-      <h2>✏️ Quick Links</h2>
+      <h2>✏️ Editor Pages</h2>
       <div class="button-grid">
-        <button class="btn-editor" onclick="window.open('../edit/', '_blank')">
-          📝 Menu Editor (New Tab)
+        <button class="btn-editor" onclick="sendCommand('page:edit')">
+          📝 Menu Editor
         </button>
-        <button class="btn-design" onclick="window.open('../design/', '_blank')">
-          🎨 Design Studio (New Tab)
+        <button class="btn-design" onclick="sendCommand('page:design')">
+          🎨 Design Studio
         </button>
-        <button class="btn-editor" onclick="window.open('../rules/', '_blank')">
-          ⏰ Schedule Rules (New Tab)
+        <button class="btn-editor" onclick="sendCommand('page:rules')">
+          ⏰ Schedule Rules
         </button>
-        <button class="btn-slideshow" onclick="window.open('../slideshows/', '_blank')">
-          🎬 Slideshow Editor (New Tab)
+        <button class="btn-slideshow" onclick="sendCommand('page:slideshows')">
+          🎬 Slideshow Editor
         </button>
       </div>
     </div>
@@ -359,12 +362,15 @@
       </div>
     </div>
 
-    <!-- Quick Links -->
+    <!-- Utilities -->
     <div class="section">
       <h2>⚙️ Utilities</h2>
       <div class="button-grid">
-        <button class="btn-utility" onclick="window.open('../start/', '_blank')">
-          🏠 Start Menu (New Tab)
+        <button class="btn-utility" onclick="sendCommand('page:start')">
+          🏠 Start Menu
+        </button>
+        <button class="btn-utility" onclick="sendCommand('page:maintenance')">
+          🔧 Maintenance
         </button>
       </div>
     </div>
@@ -456,6 +462,17 @@
         return names[value] || value;
       } else if (type === 'slideshow') {
         return 'Slideshow: ' + value;
+      } else if (type === 'page') {
+        const names = {
+          '.': 'Main Kiosk Display',
+          'edit': 'Menu Editor',
+          'design': 'Design Studio',
+          'rules': 'Schedule Rules',
+          'slideshows': 'Slideshow Editor',
+          'start': 'Start Menu',
+          'maintenance': 'Maintenance'
+        };
+        return names[value] || value;
       }
       return command;
     }
