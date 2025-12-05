@@ -667,41 +667,58 @@
     function updatePreview() {
       const markdown = textarea.value || 'No specials yet...';
       
-      // Process color tags line by line (before markdown parsing)
-      const lines = markdown.split('\n');
-      const processedLines = lines.map(line => {
-        let processed = line;
-        // Apply color tags within this line only
-        const colorMap = {
-          r: '#ff4444', y: '#ffdd44', g: '#44ff44', b: '#4488ff',
-          o: '#ff8844', p: '#ff44ff', w: '#ffffff'
-        };
+      // Convert custom bullet syntax first (before markdown)
+      const withBullets = markdown.replace(/^- /gm, '• ');
+      
+      // Parse Markdown FIRST to convert **bold**, *italic*, etc.
+      let html = marked.parse(withBullets);
+      
+      // Now apply custom tags to the HTML output
+      // Process color tags (using same helper logic as main kiosk)
+      const colorMap = {
+        r: '#ff4444', y: '#ffdd44', g: '#44ff44', b: '#4488ff',
+        o: '#ff8844', p: '#ff44ff', w: '#ffffff', lg: '#aaaaaa'
+      };
+      
+      const lines = html.split('\n');
+      const colorProcessedLines = lines.map(line => {
+        const colorPattern = /\{(r|y|g|b|o|p|w|lg)\}/gi;
+        let lastIndex = 0;
+        let result = '';
+        let currentColor = null;
         
-        Object.keys(colorMap).forEach(colorKey => {
-          const color = colorMap[colorKey];
-          // Replace {color} with opening span, text continues to end of line
-          const regex = new RegExp('\\{' + colorKey + '\\}(.*)$', 'i');
-          processed = processed.replace(regex, '<span style="color:' + color + '">$1</span>');
+        line.replace(colorPattern, (match, colorKey, offset) => {
+          const textBefore = line.substring(lastIndex, offset);
+          if (currentColor) {
+            result += '<span style="color:' + currentColor + '">' + textBefore + '</span>';
+          } else {
+            result += textBefore;
+          }
+          currentColor = colorMap[colorKey.toLowerCase()];
+          lastIndex = offset + match.length;
+          return '';
         });
         
-        return processed;
+        const textAfter = line.substring(lastIndex);
+        if (currentColor) {
+          result += '<span style="color:' + currentColor + '">' + textAfter + '</span>';
+        } else {
+          result += textAfter;
+        }
+        
+        return result || line;
       });
-      
-      let processedText = processedLines.join('\n');
+      html = colorProcessedLines.join('\n');
       
       // Check for font size override tags [sX]...[/s] where X is percentage
       const sizeRegex = /\[s(\d+(?:\.\d+)?)\]([\s\S]*?)\[\/s\]/gi;
-      processedText = processedText.replace(sizeRegex, (match, percent, content) => {
+      html = html.replace(sizeRegex, (match, percent, content) => {
         return `<span style="font-size: ${percent}vw">${content}</span>`;
       });
       
       // Check for alignment tags [center]...[/center] and [right]...[/right]
-      processedText = processedText.replace(/\[center\]([\s\S]*?)\[\/center\]/gi, '<div style="text-align: center">$1</div>');
-      processedText = processedText.replace(/\[right\]([\s\S]*?)\[\/right\]/gi, '<div style="text-align: right">$1</div>');
-      
-      // Convert custom bullet syntax after color processing
-      const withBullets = processedText.replace(/^- /gm, '• ');
-      let html = marked.parse(withBullets);
+      html = html.replace(/\[center\]([\s\S]*?)\[\/center\]/gi, '<div style="text-align: center">$1</div>');
+      html = html.replace(/\[right\]([\s\S]*?)\[\/right\]/gi, '<div style="text-align: right">$1</div>');
       
       preview.innerHTML = html;
     }
