@@ -24,6 +24,8 @@ sudo chmod 775 "$WEB_ROOT/bg" 2>/dev/null || true
 sudo chmod 775 "$WEB_ROOT/menus" 2>/dev/null || true
 sudo chmod 775 "$WEB_ROOT/logs" 2>/dev/null || true
 sudo chmod 775 "$WEB_ROOT/history" 2>/dev/null || true
+sudo chmod 775 "$WEB_ROOT/slideshows/media" 2>/dev/null || true
+sudo chmod 775 "$WEB_ROOT/slideshows/sets" 2>/dev/null || true
 
 # Editable files (need WebDAV write access)
 sudo chmod 664 "$WEB_ROOT/index.html" 2>/dev/null || true
@@ -42,6 +44,7 @@ sudo chmod 664 "$WEB_ROOT/menus/closed.txt" 2>/dev/null || true
 sudo chmod 664 "$WEB_ROOT/edit/index.html" 2>/dev/null || true
 sudo chmod 664 "$WEB_ROOT/design/index.html" 2>/dev/null || true
 sudo chmod 664 "$WEB_ROOT/rules/index.html" 2>/dev/null || true
+sudo chmod 664 "$WEB_ROOT/slideshows/index.html" 2>/dev/null || true
 sudo chmod 664 "$WEB_ROOT/maintenance/index.html" 2>/dev/null || true
 sudo chmod 664 "$WEB_ROOT/start/index.html" 2>/dev/null || true
 
@@ -58,6 +61,7 @@ sudo chmod 755 "$WEB_ROOT/trigger-reload.php" 2>/dev/null || true
 sudo chmod 755 "$WEB_ROOT/save-menu-history.php" 2>/dev/null || true
 sudo chmod 755 "$WEB_ROOT/get-menu-history.php" 2>/dev/null || true
 sudo chmod 755 "$WEB_ROOT/fonts/index.php" 2>/dev/null || true
+sudo chmod 755 "$WEB_ROOT/slideshows/upload-media.php" 2>/dev/null || true
 
 # Set permissions for fonts directory (needs to be writable for uploads)
 if [ -d "$WEB_ROOT/fonts" ]; then

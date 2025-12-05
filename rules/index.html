@@ -320,6 +320,14 @@
         </div>
 
         <div class="rule-field">
+          <label>Content Type</label>
+          <select onchange="updateRuleContentType(${index}, this.value)">
+            <option value="menu" ${!rule.slideshow ? 'selected' : ''}>Menu</option>
+            <option value="slideshow" ${rule.slideshow ? 'selected' : ''}>Slideshow</option>
+          </select>
+        </div>
+
+        <div class="rule-field" id="menuField${index}" style="${rule.slideshow ? 'display:none' : ''}">
           <label>Display Menu</label>
           <select onchange="updateRuleMenu(${index}, this.value)">
             ${availableMenus.map(menu => `
@@ -328,6 +336,14 @@
               </option>
             `).join('')}
           </select>
+        </div>
+
+        <div class="rule-field" id="slideshowField${index}" style="${!rule.slideshow ? 'display:none' : ''}">
+          <label>Slideshow Set</label>
+          <input type="text" value="${rule.slideshow || ''}" 
+                 placeholder="slideshows/sets/example.json"
+                 onchange="updateRuleSlideshow(${index}, this.value)"
+                 style="padding: 0.5rem; border-radius: 6px; border: 1px solid #555; background: #1a1a1a; color: #e0e0e0; font-size: 0.9rem; width: 100%;">
         </div>
       `;
       
@@ -376,6 +392,21 @@
 
     function updateRuleMenu(index, value) {
       rules[index].menu = value;
+    }
+
+    function updateRuleContentType(index, value) {
+      if (value === 'slideshow') {
+        rules[index].slideshow = 'slideshows/sets/example.json';
+        delete rules[index].menu;
+      } else {
+        rules[index].menu = 'menus/breakfast.txt';
+        delete rules[index].slideshow;
+      }
+      renderRules();
+    }
+
+    function updateRuleSlideshow(index, value) {
+      rules[index].slideshow = value;
     }
 
     // Save rules

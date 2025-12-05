@@ -133,7 +133,8 @@ sudo mkdir -p /var/www/html/history
 sudo mkdir -p /var/www/html/menus
 sudo mkdir -p /var/www/html/scripts
 sudo mkdir -p /var/www/html/start
-sudo mkdir -p /var/www/html/history
+sudo mkdir -p /var/www/html/slideshows/media
+sudo mkdir -p /var/www/html/slideshows/sets
 
 # Create reload.txt if it doesn't exist (used by edit page to trigger kiosk reload)
 if [ ! -f /var/www/html/reload.txt ]; then
@@ -264,8 +265,19 @@ $HTTP["url"] =~ "^/menus/(breakfast|lunch|dinner|closed)\.txt$" {
     webdav.is-readonly = "disable"
 }
 
+# Enable WebDAV for slideshow files
+$HTTP["url"] =~ "^/slideshows/(index\.html|upload-media\.php)$" {
+    webdav.activate = "enable"
+    webdav.is-readonly = "disable"
+}
+
+$HTTP["url"] =~ "^/slideshows/sets/.*\.json$" {
+    webdav.activate = "enable"
+    webdav.is-readonly = "disable"
+}
+
 # Enable WebDAV for editor pages
-$HTTP["url"] =~ "^/(edit|design|rules|maintenance|start)/index\.html$" {
+$HTTP["url"] =~ "^/(edit|design|rules|slideshows|maintenance|start)/index\.html$" {
     webdav.activate = "enable"
     webdav.is-readonly = "disable"
 }

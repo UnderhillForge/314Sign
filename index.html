@@ -565,6 +565,343 @@
     // 3. Full reload every 5 minutes (catches config/background changes)
     // --------------------------------------------------------------------
     setInterval(() => location.reload(true), 5 * 60 * 1000);
+
+    // ====================================================================
+    // SLIDESHOW PLAYER
+    // ====================================================================
+    
+    let slideshowData = null;
+    let currentSlideIndex = 0;
+    let slideTimeout = null;
+    let isPlayingSlideshow = false;
+
+    // Check if URL has slideshow parameter or if rule specifies slideshow
+    function checkForSlideshow() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const slideshowPath = urlParams.get('slideshow');
+      
+      if (slideshowPath) {
+        loadSlideshow(slideshowPath);
+      }
+    }
+
+    // Load slideshow JSON
+    function loadSlideshow(path) {
+      fetch(path)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data && data.slides && data.slides.length > 0) {
+            slideshowData = data;
+            isPlayingSlideshow = true;
+            
+            // Hide header and specials div
+            if (headerEl) headerEl.style.display = 'none';
+            if (clockEl) clockEl.style.display = 'none';
+            if (specialsDiv) specialsDiv.style.display = 'none';
+            
+            // Start slideshow
+            currentSlideIndex = 0;
+            playSlide(0);
+          }
+        })
+        .catch(err => {
+          console.error('Failed to load slideshow:', err);
+        });
+    }
+
+    // Load slideshow from rule
+    function loadSlideshowFromRule(slideshowPath) {
+      if (!slideshowPath) return;
+      
+      // Stop regular menu polling
+      if (isPlayingSlideshow) return; // Already playing
+      
+      loadSlideshow(slideshowPath);
+    }
+
+    // Play a specific slide
+    function playSlide(index) {
+      if (!slideshowData || !slideshowData.slides[index]) {
+        console.error('Invalid slide index:', index);
+        return;
+      }
+
+      const slide = slideshowData.slides[index];
+      currentSlideIndex = index;
+
+      // Clear existing slide content
+      specialsDiv.innerHTML = '';
+      specialsDiv.style.display = 'flex';
+      specialsDiv.style.alignItems = 'center';
+      specialsDiv.style.justifyContent = 'center';
+      specialsDiv.style.overflow = 'hidden';
+      
+      // Create slide container
+      const slideContainer = document.createElement('div');
+      slideContainer.style.width = '100%';
+      slideContainer.style.height = '100%';
+      slideContainer.style.position = 'relative';
+      slideContainer.style.display = 'flex';
+      slideContainer.style.alignItems = 'center';
+      slideContainer.style.justifyContent = 'center';
+
+      // Apply transition
+      applyTransition(slideContainer, slide.transition || 'fade');
+
+      // Render slide based on type
+      if (slide.type === 'text') {
+        renderTextSlide(slideContainer, slide);
+      } else if (slide.type === 'image') {
+        renderImageSlide(slideContainer, slide);
+      } else if (slide.type === 'video') {
+        renderVideoSlide(slideContainer, slide);
+      }
+
+      specialsDiv.appendChild(slideContainer);
+
+      // Schedule next slide
+      const duration = slide.duration || slideshowData.defaultDuration || 5000;
+      
+      if (slide.type === 'video' && duration === 0) {
+        // Wait for video to finish
+        const video = slideContainer.querySelector('video');
+        if (video) {
+          video.addEventListener('ended', () => {
+            nextSlide();
+          });
+        }
+      } else {
+        // Use specified duration
+        if (slideTimeout) clearTimeout(slideTimeout);
+        slideTimeout = setTimeout(() => {
+          nextSlide();
+        }, duration);
+      }
+    }
+
+    // Render text slide
+    function renderTextSlide(container, slide) {
+      // Set background
+      if (slide.background) {
+        container.style.backgroundImage = `url('${slide.background}')`;
+        container.style.backgroundSize = 'cover';
+        container.style.backgroundPosition = 'center';
+      } else {
+        container.style.background = '#000';
+      }
+
+      // Create text overlay
+      const textDiv = document.createElement('div');
+      textDiv.style.padding = '2rem';
+      textDiv.style.textAlign = 'center';
+      textDiv.style.color = 'white';
+      textDiv.style.textShadow = '2px 2px 4px rgba(0,0,0,0.8)';
+      textDiv.style.fontFamily = slide.font || 'Lato, sans-serif';
+      textDiv.style.fontSize = `${slide.fontSize || 5}vw`;
+      textDiv.style.maxWidth = '90%';
+
+      // Parse markdown content with color tags
+      let content = slide.content || '';
+      
+      // Process color tags
+      const colorMap = {
+        r: '#ff4444', y: '#ffdd44', g: '#44ff44', b: '#4488ff',
+        o: '#ff8844', p: '#ff44ff', w: '#ffffff'
+      };
+      
+      const lines = content.split('\n');
+      const processedLines = lines.map(line => {
+        let processed = line;
+        Object.keys(colorMap).forEach(colorKey => {
+          const color = colorMap[colorKey];
+          const regex = new RegExp('\\{' + colorKey + '\\}(.*)$', 'i');
+          processed = processed.replace(regex, '<span style="color:' + color + '">$1</span>');
+        });
+        return processed;
+      });
+      
+      content = processedLines.join('\n');
+      
+      // Convert markdown
+      textDiv.innerHTML = marked.parse(content);
+      
+      container.appendChild(textDiv);
+    }
+
+    // Render image slide
+    function renderImageSlide(container, slide) {
+      container.style.background = '#000';
+      
+      const img = document.createElement('img');
+      img.src = slide.media;
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '100%';
+      img.style.objectFit = 'contain';
+      
+      container.appendChild(img);
+      
+      // Add caption if present
+      if (slide.caption) {
+        const caption = document.createElement('div');
+        caption.textContent = slide.caption;
+        caption.style.position = 'absolute';
+        caption.style.width = '100%';
+        caption.style.padding = '1rem 2rem';
+        caption.style.background = 'rgba(0,0,0,0.7)';
+        caption.style.color = 'white';
+        caption.style.textAlign = 'center';
+        caption.style.fontSize = 'clamp(1rem, 3vw, 2.5rem)';
+        
+        if (slide.captionPosition === 'top') {
+          caption.style.top = '0';
+        } else if (slide.captionPosition === 'center') {
+          caption.style.top = '50%';
+          caption.style.transform = 'translateY(-50%)';
+        } else {
+          caption.style.bottom = '0';
+        }
+        
+        container.appendChild(caption);
+      }
+    }
+
+    // Render video slide
+    function renderVideoSlide(container, slide) {
+      container.style.background = '#000';
+      
+      const video = document.createElement('video');
+      video.src = slide.media;
+      video.style.maxWidth = '100%';
+      video.style.maxHeight = '100%';
+      video.style.objectFit = 'contain';
+      
+      if (slide.loop) video.loop = true;
+      if (slide.muted) video.muted = true;
+      
+      video.autoplay = true;
+      video.play().catch(err => console.warn('Video autoplay failed:', err));
+      
+      container.appendChild(video);
+    }
+
+    // Apply transition effect
+    function applyTransition(element, transition) {
+      element.style.animation = '';
+      
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes slide-fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slide-left-in {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slide-right-in {
+          from { transform: translateX(-100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slide-up-in {
+          from { transform: translateY(100%); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes slide-down-in {
+          from { transform: translateY(-100%); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes zoom-in {
+          from { transform: scale(0.8); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+      `;
+      if (!document.getElementById('slideshow-animations')) {
+        style.id = 'slideshow-animations';
+        document.head.appendChild(style);
+      }
+
+      switch (transition) {
+        case 'fade':
+          element.style.animation = 'slide-fade-in 0.8s ease-in-out';
+          break;
+        case 'slide-left':
+          element.style.animation = 'slide-left-in 0.8s ease-in-out';
+          break;
+        case 'slide-right':
+          element.style.animation = 'slide-right-in 0.8s ease-in-out';
+          break;
+        case 'slide-up':
+          element.style.animation = 'slide-up-in 0.8s ease-in-out';
+          break;
+        case 'slide-down':
+          element.style.animation = 'slide-down-in 0.8s ease-in-out';
+          break;
+        case 'zoom':
+          element.style.animation = 'zoom-in 0.8s ease-in-out';
+          break;
+        case 'none':
+        default:
+          element.style.animation = 'none';
+      }
+    }
+
+    // Next slide
+    function nextSlide() {
+      if (!slideshowData) return;
+      
+      currentSlideIndex++;
+      if (currentSlideIndex >= slideshowData.slides.length) {
+        currentSlideIndex = 0; // Loop back to start
+      }
+      
+      playSlide(currentSlideIndex);
+    }
+
+    // Enhanced schedule rules checking to support slideshows
+    const originalCheckScheduleRules = checkScheduleRules;
+    checkScheduleRules = function() {
+      fetch('rules.json?' + Date.now())
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (!data || !data.enabled || !data.rules) return;
+          
+          const now = new Date();
+          const currentDay = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][now.getDay()];
+          const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+          
+          // Find matching rule
+          for (const rule of data.rules) {
+            if (!rule.days.includes(currentDay)) continue;
+            
+            const startTime = rule.startTime || '00:00';
+            const endTime = rule.endTime || '23:59';
+            
+            let matches = false;
+            if (startTime <= endTime) {
+              matches = currentTime >= startTime && currentTime < endTime;
+            } else {
+              matches = currentTime >= startTime || currentTime < endTime;
+            }
+            
+            if (matches) {
+              // Check if rule specifies a slideshow
+              if (rule.slideshow && !isPlayingSlideshow) {
+                console.log('Auto-starting slideshow:', rule.slideshow, 'based on rule:', rule.name);
+                loadSlideshowFromRule(rule.slideshow);
+                break;
+              } else if (rule.menu && rule.menu !== currentMenu && !isPlayingSlideshow) {
+                console.log('Auto-switching to', rule.menu, 'based on rule:', rule.name);
+                switchMenu(rule.menu);
+                break;
+              }
+            }
+          }
+        })
+        .catch(err => console.warn('Rules check failed:', err));
+    };
+
+    // Check for slideshow on load
+    checkForSlideshow();
   </script>
 </body>
 </html>
