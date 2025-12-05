@@ -205,6 +205,23 @@
       currentMenu = filename;
       localStorage.setItem('currentMenu', filename);
       
+      // Load per-menu font scale from menus-config.json
+      const menuName = filename.replace('menus/', '').replace('.txt', '');
+      fetch('menus-config.json')
+        .then(r => r.ok ? r.json() : {})
+        .then(menusConfig => {
+          if (menusConfig[menuName] && Number.isFinite(menusConfig[menuName].fontScalePercent)) {
+            fontScalePercent = Number(menusConfig[menuName].fontScalePercent);
+            
+            // Apply font scale to specials div
+            const specialsDiv = document.getElementById('specials');
+            if (specialsDiv) {
+              specialsDiv.style.fontSize = `clamp(1rem, ${fontScalePercent}vw, 3rem)`;
+            }
+          }
+        })
+        .catch(err => console.warn('Failed to load menu config:', err));
+      
       // Reset state and poll immediately
       lastText = '';
       lastEtag = null;
@@ -306,6 +323,23 @@
               specials.style.fontSize = 'clamp(1rem, ' + fontScalePercent + 'vw, 6rem)';
             }
           }
+          
+          // Load per-menu font scale from menus-config.json (overrides global setting)
+          const menuName = currentMenu.replace('menus/', '').replace('.txt', '');
+          fetch('menus-config.json')
+            .then(r => r.ok ? r.json() : {})
+            .then(menusConfig => {
+              if (menusConfig[menuName] && Number.isFinite(menusConfig[menuName].fontScalePercent)) {
+                fontScalePercent = Number(menusConfig[menuName].fontScalePercent);
+                
+                // Apply per-menu font scale
+                const specials = document.getElementById('specials');
+                if (specials) {
+                  specials.style.fontSize = 'clamp(1rem, ' + fontScalePercent + 'vw, 6rem)';
+                }
+              }
+            })
+            .catch(err => console.warn('Failed to load menu config:', err));
           
           // Load and apply header size
           if (Number.isFinite(cfg.headerSizePercent)) {

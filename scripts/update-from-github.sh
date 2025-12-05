@@ -21,6 +21,8 @@
 #
 # What gets preserved:
 #   - config.json (your settings)
+#   - menus-config.json (per-menu settings)
+#   - rules.json (your schedule)
 #   - rules.json (your schedule)
 #   - menus/*.txt (your menu content)
 #   - bg/uploaded_* (your uploaded images)
@@ -116,7 +118,7 @@ if [[ "$CREATE_BACKUP" == true ]] && [[ "$DRY_RUN" == false ]]; then
 fi
 
 # Files to update (relative to web root)
-# Exclude config.json, rules.json, menus/*.txt, and uploaded images
+# Exclude config.json, menus-config.json, rules.json, menus/*.txt, and uploaded images
 declare -a UPDATE_FILES=(
   "index.html"
   "favicon.svg"

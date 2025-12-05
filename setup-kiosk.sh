@@ -253,7 +253,7 @@ sudo tee "$WEBDAV_CONF" > /dev/null << 'EOF'
 server.modules += ( "mod_webdav" )
 
 # Enable WebDAV for specific editable files
-$HTTP["url"] =~ "^/(index\.html|config\.json|rules\.json|reload\.txt)$" {
+$HTTP["url"] =~ "^/(index\.html|config\.json|rules\.json|menus-config\.json|reload\.txt)$" {
     webdav.activate = "enable"
     webdav.is-readonly = "disable"
 }

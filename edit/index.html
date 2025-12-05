@@ -672,6 +672,9 @@
       
       // Load the selected file
       loadFile(filename);
+      
+      // Load font scale for this menu
+      loadConfig();
     }
 
     // Load file content
@@ -704,12 +707,28 @@
     // Load config and set initial font scale
     // Note: Font selection is configured in design.html; this page only controls font size
     function loadConfig() {
-      fetch('../config.json')
+      // Load per-menu font scale from menus-config.json
+      const menuName = currentFile.replace('menus/', '').replace('.txt', '');
+      fetch('../menus-config.json')
         .then(r => r.ok ? r.json() : {})
-        .then(cfg => {
-          if (cfg.fontScalePercent) {
-            fontScaleInput.value = cfg.fontScalePercent;
-            fontScaleValue.textContent = cfg.fontScalePercent + '%';
+        .then(menusConfig => {
+          if (menusConfig[menuName] && menusConfig[menuName].fontScalePercent) {
+            fontScaleInput.value = menusConfig[menuName].fontScalePercent;
+            fontScaleValue.textContent = menusConfig[menuName].fontScalePercent + '%';
+          } else {
+            // Fall back to global config if per-menu setting not found
+            fetch('../config.json')
+              .then(r => r.ok ? r.json() : {})
+              .then(cfg => {
+                if (cfg.fontScalePercent) {
+                  fontScaleInput.value = cfg.fontScalePercent;
+                  fontScaleValue.textContent = cfg.fontScalePercent + '%';
+                }
+              })
+              .catch(() => {
+                // Use default if both configs fail
+                fontScaleValue.textContent = fontScaleInput.value + '%';
+              });
           }
         })
         .catch(() => {
@@ -800,15 +819,20 @@
       const val = fontScaleInput.value;
       fontScaleValue.textContent = val + '%';
       
-      // Save font scale to config.json
-      fetch('../config.json')
+      // Save font scale to menus-config.json for current menu only
+      const menuName = currentFile.replace('menus/', '').replace('.txt', '');
+      fetch('../menus-config.json')
         .then(r => r.ok ? r.json() : {})
-        .then(cfg => {
-          cfg.fontScalePercent = parseFloat(val);
-          return fetch('../config.json', {
+        .then(menusConfig => {
+          // Initialize menu config if it doesn't exist
+          if (!menusConfig[menuName]) {
+            menusConfig[menuName] = {};
+          }
+          menusConfig[menuName].fontScalePercent = parseFloat(val);
+          return fetch('../menus-config.json', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(cfg)
+            body: JSON.stringify(menusConfig, null, 2)
           });
         })
         .catch(err => console.error('Failed to save font scale:', err));

@@ -7,7 +7,7 @@
 #   ./scripts/backup.sh [backup_directory]
 #
 # Default backup location: /var/backups/314sign/
-# Backs up: menus/, config.json, rules.json, bg/ (uploaded images only)
+# Backs up: menus/, config.json, menus-config.json, rules.json, bg/ (uploaded images only)
 ###############################################################################
 
 set -e
@@ -34,6 +34,12 @@ fi
 if [ -f "${WEB_ROOT}/config.json" ]; then
   echo "Backing up config.json..."
   cp "${WEB_ROOT}/config.json" "${BACKUP_DIR}/"
+fi
+
+# Backup menu configuration
+if [ -f "${WEB_ROOT}/menus-config.json" ]; then
+  echo "Backing up menus-config.json..."
+  cp "${WEB_ROOT}/menus-config.json" "${BACKUP_DIR}/"
 fi
 
 # Backup schedule rules
