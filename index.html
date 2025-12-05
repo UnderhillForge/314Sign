@@ -568,7 +568,8 @@
         // Switch to menu
         currentMenu = 'menus/' + value + '.txt';
         localStorage.setItem('selectedMenu', value);
-        fetchMenu();
+        localStorage.setItem('currentMenu', currentMenu);
+        pollSpecials();
         console.log('[Demo] Switched to menu:', value, '(auto-switching disabled)');
       } else if (type === 'slideshow' && value) {
         // Enable demo mode to disable auto-switching
