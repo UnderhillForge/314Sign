@@ -55,13 +55,14 @@ Add color to prices, specials, or any text. Color applies until the end of the l
 
 ### Available Colors
 ```
-{r}  Red text
-{y}  Yellow text (perfect for prices!)
-{g}  Green text
-{b}  Blue text
-{o}  Orange text (great for callouts)
-{p}  Pink text
-{w}  White text
+{r}   Red text
+{y}   Yellow text (perfect for prices!)
+{g}   Green text
+{b}   Blue text
+{o}   Orange text (great for callouts)
+{p}   Pink text
+{w}   White text
+{lg}  Light Grey text (good for fine print)
 ```
 
 ### Examples
@@ -70,9 +71,24 @@ Add color to prices, specials, or any text. Color applies until the end of the l
 **Steak** - {y}$16.95
 
 {o}Ask about our daily dessert special!
+
+{lg}Prices subject to change without notice
 ```
 
-**Tip:** You don't need closing tags — color lasts until the end of the line!
+### Multiple Colors Per Line
+You can use multiple color tags on the same line:
+```
+**Steaks** - NY Strip {y}$15.95 {w}Ribeye {y}$18.95
+```
+
+### Colors in Header
+Color tags also work in the header text (configured in Design page):
+```
+Today's {y}Specials
+{w}Welcome to {o}314 Diner
+```
+
+**Tip:** You don't need closing tags — color lasts until the end of the line or next color tag!
 
 ---
 
