@@ -438,9 +438,10 @@
         .then(r => r.ok ? r.text() : '')
         .then(command => {
           command = command.trim();
+          console.log('[Demo] Polled command:', JSON.stringify(command), 'Last:', JSON.stringify(lastDemoCommand));
           if (command && command !== 'idle' && command !== lastDemoCommand) {
             lastDemoCommand = command;
-            console.log('Demo command received:', command);
+            console.log('[Demo] Command received:', command);
             executeDemoCommand(command);
           }
         })
