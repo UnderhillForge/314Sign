@@ -419,6 +419,13 @@
                   lastDemoCommand = command;
                   console.log('[Demo] Command received:', command);
                   executeDemoCommand(command);
+                  
+                  // Reset command file to 'idle' after executing
+                  fetch('demo-command.txt', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: 'idle'
+                  }).catch(() => {});
                 }
               })
               .catch(() => {}),
