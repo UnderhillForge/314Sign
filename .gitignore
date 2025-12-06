@@ -7,3 +7,7 @@ Thumbs.db
 *~
 .vscode/
 .idea/
+
+# Runtime state files (modified by kiosk/editors at runtime)
+reload.txt
+demo-command.txt

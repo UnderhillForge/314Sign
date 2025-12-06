@@ -118,11 +118,10 @@ if [[ "$CREATE_BACKUP" == true ]] && [[ "$DRY_RUN" == false ]]; then
 fi
 
 # Files to update (relative to web root)
-# Exclude config.json, menus-config.json, rules.json, menus/*.txt, and uploaded images
+# Exclude config.json, menus-config.json, rules.json, menus/*.txt, uploaded images, and runtime state files
 declare -a UPDATE_FILES=(
   "index.html"
   "favicon.svg"
-  "reload.txt"
   "edit/index.html"
   "design/index.html"
   "design/upload-bg.php"
