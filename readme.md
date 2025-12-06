@@ -26,6 +26,7 @@
 - **Brightness control**: Darken backgrounds (20-150%) so text pops without editing images.
 
 ### ⚡ Smart Features That Save Time
+- **Auto-format button**: ✨ One-click color styling for menu items, prices, and descriptions.
 - **Auto-schedule menus**: Define time-based rules (e.g., breakfast 7-11am, lunch 11am-3pm, dinner 5-10pm). Kiosk switches automatically.
 - **Slideshow system**: Create multimedia presentations with images, videos, and text. Schedule ads during closed hours or rotate promotional content.
 - **7-day menu history**: Made a mistake? Restore yesterday's menu with one tap.
@@ -81,13 +82,14 @@ sudo reboot
 | Feature | Description |
 |---------|-------------|
 | **Edit from any phone** | Staff use their own devices — zero training required |
+| **✨ Auto-format** | One-click styling for items, prices, and descriptions with customizable colors |
 | **Live preview** | See changes as you type before saving |
 | **7-day history** | Restore previous versions with one click |
 | **Auto-schedule** | Content switches by time of day based on rules you define |
 | **Slideshows** | Create multimedia presentations with images, videos, and text overlays |
 | **Per-menu fonts & sizes** | Each menu gets its own style (font + size) |
 | **Upload photos** | Snap → upload → instant background |
-| **Color tags** | `{r}` red `{y}` yellow `{g}` green `{b}` blue `{o}` orange `{p}` pink `{w}` white |
+| **Color tags** | `{r}` red `{y}` yellow `{g}` green `{b}` blue `{o}` orange `{p}` pink `{w}` white `{lg}` light grey |
 | **Text alignment** | `[center]...[/center]` and `[right]...[/right]` tags |
 | **Size overrides** | `[s15]bigger text[/s]` for emphasis |
 | **Background brightness** | Adjust 20-150% for text readability |

@@ -25,6 +25,7 @@
 - **Menu history**: Auto-saves to `save-menu-history.php` on every save, creates one file per day in `history/` directory (format: MENUNAME_YYYY-MM-DD_DayOfWeek.txt). Modal displays 7-day history via `get-menu-history.php` with restore capability. History files auto-prune after 7 days. Multiple saves on same day overwrite the daily file.
 - **Reload trigger**: Button writes timestamp to `reload.txt`; kiosk checks every 10s and reloads on change. Also auto-triggers on menu save.
 - **Markdown toolbar**: Inserts formatting (`**bold**`, color tags like `{r}`, list bullets, alignment tags, size overrides) and shows live preview via marked.js.
+- **Auto-format feature**: ✨ Auto-Format button (purple gradient) analyzes menu text line-by-line, detects item names, prices ($X.XX), and descriptions (in quotes), then applies color tags automatically. Async function loads color preferences from `config.json` (keys: `autoFormatItemColor`, `autoFormatPriceColor`, `autoFormatDescColor`). Defaults: white items, yellow prices, light grey descriptions. Skips already-formatted lines, headers (##), and separators (---). Colors customizable via design page.
 - **Emoji toolbar**: Quick-insert buttons for 🍔🍕🍗🥗🍰☕🍺🍷.
 - **Toast UX**: Shows success/error notifications using `.toast` CSS + `showToast()` helper; all editor pages follow this pattern (aria-live for accessibility).
 
@@ -35,6 +36,7 @@
 - **Header controls**: Text input for custom header text, size slider (5-20%) for header font size.
 - **Brightness slider**: Adjusts background brightness (20-150%, default 100%) saved as `bgBrightness` (0.2-1.5) in config.json. Applied via CSS filter on body element.
 - **Clock settings**: Toggles for showClock and clock24Hour format.
+- **Auto-format color picker**: Section 6 with three dropdowns (item names, prices, descriptions) for customizing ✨ Auto-Format button colors. 8 color options each: white, red, yellow, green, blue, orange, pink, light grey. Saves to `config.json` as `autoFormatItemColor`, `autoFormatPriceColor`, `autoFormatDescColor`. Loaded in editor's `autoFormatMenu()` function.
 - **CRITICAL SYNC**: `generateIndexHTML()` (L314-430) creates a **simplified** version of `index.html` when saving themes. This generator **intentionally omits** ETag polling, rules checking, and fontScalePercent logic to avoid complexity. Prefer writing only `config.json` instead of regenerating `index.html` unless the user explicitly requests full HTML rewrites. If you add kiosk features (e.g., new polling behaviors), update both the live `index.html` and the generator or document why they diverge.
 
 ### `rules/index.html` (schedule configurator)
@@ -87,11 +89,15 @@
   "pollIntervalMs": 3000,                   // preferred poll interval (milliseconds)
   "pollIntervalSeconds": 3,                 // alternate (seconds)
   "pollInterval": 3,                        // legacy shorthand (seconds)
+  "autoFormatItemColor": "w",               // auto-format item color (w/r/y/g/b/o/p/lg)
+  "autoFormatPriceColor": "y",              // auto-format price color (default yellow)
+  "autoFormatDescColor": "lg",              // auto-format description color (default light grey)
   "availableFonts": { "Display": "CSS" }    // map for design/index.html dropdown
 }
 ```
 - **Forward compat**: New fields must be optional; old pages ignore unknown keys. Never destructively rewrite—always read → merge → write.
 - **Poll interval precedence**: `pollIntervalMs` > `pollIntervalSeconds` > legacy `pollInterval`; fallback to 3000ms. `index.html` validates positive finite values.
+- **Auto-format colors**: Used by `edit/index.html` ✨ Auto-Format button. 8 options: w (white), r (red), y (yellow), g (green), b (blue), o (orange), p (pink), lg (light grey).
 
 ### `rules.json`
 ```json
