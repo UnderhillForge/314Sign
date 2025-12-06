@@ -29,7 +29,7 @@ if (!file_exists($script_path)) {
 // Run backup script
 $output = [];
 $return_var = 0;
-exec("bash " . escapeshellarg($script_path) . " 2>&1", $output, $return_var);
+exec("sudo bash " . escapeshellarg($script_path) . " 2>&1", $output, $return_var);
 
 $output_text = implode("\n", $output);
 $success = $return_var === 0;

@@ -179,6 +179,13 @@ else
   echo "Basic permissions set"
 fi
 
+# Create backup directory
+echo "Creating backup directory..."
+sudo mkdir -p /var/backups/314sign
+sudo chown www-data:www-data /var/backups/314sign
+sudo chmod 755 /var/backups/314sign
+echo "✓ Backup directory created at /var/backups/314sign"
+
 # === 5b. Configure sudo access for maintenance actions ===
 echo ""
 echo "Configuring sudo access for web-based maintenance..."

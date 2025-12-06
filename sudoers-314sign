@@ -7,3 +7,6 @@ www-data ALL=(ALL) NOPASSWD: /bin/systemctl restart lighttpd
 
 # Allow www-data to run update script
 www-data ALL=(ALL) NOPASSWD: /bin/bash /var/www/html/scripts/update-from-github.sh*
+
+# Allow www-data to run backup script
+www-data ALL=(ALL) NOPASSWD: /bin/bash /var/www/html/scripts/backup.sh*
