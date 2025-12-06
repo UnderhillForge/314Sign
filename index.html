@@ -163,7 +163,8 @@
   let fontScalePercent = 5;
     let lastHeaderSizePercent = null;
   let lastBgBrightness = null;
-  let demoModeActive = false; // Disable auto-switching when demo commands are used
+  // Check if demo mode is persisted from previous session
+  let demoModeActive = localStorage.getItem('demoModeActive') === 'true';
 
   // Process color tags in text (used for both header and content)
   function processColorTags(text) {
@@ -542,6 +543,10 @@
       console.log('[Demo] Executing command:', command);
       
       if (command === 'reload') {
+        // Clear demo mode before reload
+        demoModeActive = false;
+        localStorage.removeItem('demoModeActive');
+        console.log('[Demo] Cleared demo mode, reloading...');
         showReloadIndicator();
         setTimeout(() => location.reload(true), 500);
         return;
@@ -550,6 +555,7 @@
       if (command === 'auto') {
         // Re-enable automatic schedule-based switching
         demoModeActive = false;
+        localStorage.removeItem('demoModeActive');
         console.log('[Demo] Auto-switching re-enabled - rules will apply');
         // Immediately check rules to switch to scheduled menu
         checkScheduleRules();
@@ -565,15 +571,18 @@
         }
         // Enable demo mode to disable auto-switching
         demoModeActive = true;
+        localStorage.setItem('demoModeActive', 'true');
         // Switch to menu
-        currentMenu = 'menus/' + value + '.txt';
+        const menuFile = 'menus/' + value + '.txt';
+        currentMenu = menuFile;
         localStorage.setItem('selectedMenu', value);
         localStorage.setItem('currentMenu', currentMenu);
+        console.log('[Demo] Switching to menu:', menuFile);
         pollSpecials();
-        console.log('[Demo] Switched to menu:', value, '(auto-switching disabled)');
       } else if (type === 'slideshow' && value) {
         // Enable demo mode to disable auto-switching
         demoModeActive = true;
+        localStorage.setItem('demoModeActive', 'true');
         // Load slideshow
         loadSlideshow('slideshows/sets/' + value + '.json');
         console.log('[Demo] Loading slideshow:', value, '(auto-switching disabled)');
@@ -1003,6 +1012,15 @@
         })
         .catch(err => console.warn('Rules check failed:', err));
     };
+
+    // Initialize: Clear any stale demo commands on page load
+    fetch('demo-command.txt', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'text/plain' },
+      body: 'idle'
+    }).catch(() => {
+      console.warn('Could not initialize demo-command.txt');
+    });
 
     // Check for slideshow on load
     checkForSlideshow();
