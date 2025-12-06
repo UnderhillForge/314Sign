@@ -97,6 +97,47 @@
       </label>
     </div>
 
+    <div class="section">
+      <label>6. Auto-Format Colors</label>
+      <small style="color: #999; display: block; margin-bottom: 0.75rem;">Choose colors for the ✨ Auto-Format button in the editor</small>
+      
+      <label style="font-size: 0.9rem; margin-top: 0.5rem;">Item Names:</label>
+      <select id="autoFormatItemColor">
+        <option value="w">⚪ White</option>
+        <option value="r">🔴 Red</option>
+        <option value="y">🟡 Yellow</option>
+        <option value="g">🟢 Green</option>
+        <option value="b">🔵 Blue</option>
+        <option value="o">🟠 Orange</option>
+        <option value="p">🟣 Pink</option>
+        <option value="lg">⚫ Light Grey</option>
+      </select>
+      
+      <label style="font-size: 0.9rem; margin-top: 0.5rem;">Prices:</label>
+      <select id="autoFormatPriceColor">
+        <option value="w">⚪ White</option>
+        <option value="r">🔴 Red</option>
+        <option value="y">🟡 Yellow</option>
+        <option value="g">🟢 Green</option>
+        <option value="b">🔵 Blue</option>
+        <option value="o">🟠 Orange</option>
+        <option value="p">🟣 Pink</option>
+        <option value="lg">⚫ Light Grey</option>
+      </select>
+      
+      <label style="font-size: 0.9rem; margin-top: 0.5rem;">Descriptions:</label>
+      <select id="autoFormatDescColor">
+        <option value="w">⚪ White</option>
+        <option value="r">🔴 Red</option>
+        <option value="y">🟡 Yellow</option>
+        <option value="g">🟢 Green</option>
+        <option value="b">🔵 Blue</option>
+        <option value="o">🟠 Orange</option>
+        <option value="p">🟣 Pink</option>
+        <option value="lg">⚫ Light Grey</option>
+      </select>
+    </div>
+
     <div class="actions">
       <button onclick="saveDesign()">Save & Update Kiosk</button>
       <button class="secondary" onclick="location.reload()">Cancel</button>
@@ -120,6 +161,9 @@
     const bgBrightnessValue = document.getElementById('bgBrightnessValue');
     const showClockCheckbox = document.getElementById('showClock');
     const clock24HourCheckbox = document.getElementById('clock24Hour');
+    const autoFormatItemColor = document.getElementById('autoFormatItemColor');
+    const autoFormatPriceColor = document.getElementById('autoFormatPriceColor');
+    const autoFormatDescColor = document.getElementById('autoFormatDescColor');
     const status = document.getElementById('status');
     
     // Update header size display
@@ -264,6 +308,21 @@
             bgBrightnessInput.value = cfg.bgBrightness * 100;
             bgBrightnessValue.textContent = Math.round(cfg.bgBrightness * 100) + '%';
           }
+          
+          // Load auto-format colors (defaults: white for items, yellow for prices, light grey for descriptions)
+          if (cfg.autoFormatItemColor) {
+            autoFormatItemColor.value = cfg.autoFormatItemColor;
+          }
+          if (cfg.autoFormatPriceColor) {
+            autoFormatPriceColor.value = cfg.autoFormatPriceColor;
+          } else {
+            autoFormatPriceColor.value = 'y'; // default yellow
+          }
+          if (cfg.autoFormatDescColor) {
+            autoFormatDescColor.value = cfg.autoFormatDescColor;
+          } else {
+            autoFormatDescColor.value = 'lg'; // default light grey
+          }
         })
         .catch(err => {
           console.error('Failed to load config:', err);
@@ -303,7 +362,10 @@
             headerSizePercent: parseFloat(headerSizeInput.value),
             bgBrightness: parseFloat(bgBrightnessInput.value) / 100,
             showClock: showClockCheckbox.checked,
-            clock24Hour: clock24HourCheckbox.checked
+            clock24Hour: clock24HourCheckbox.checked,
+            autoFormatItemColor: autoFormatItemColor.value,
+            autoFormatPriceColor: autoFormatPriceColor.value,
+            autoFormatDescColor: autoFormatDescColor.value
             // Keep existing availableFonts from config.json
           };
 
