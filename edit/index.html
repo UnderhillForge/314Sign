@@ -462,6 +462,7 @@
       <button onclick="insertMarkdown('---\n', '')" title="Horizontal line">—</button>
       <button onclick="insertMarkdown('[center]', '[/center]')" title="Center align">⬌ Center</button>
       <button onclick="insertMarkdown('[right]', '[/right]')" title="Right align">⇥ Right</button>
+      <button onclick="autoFormatMenu()" title="Auto-format menu items with colors" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin-left: 0.5rem;">✨ Auto-Format</button>
       <button onclick="showHistoryModal()" title="View History" style="margin-left: auto;">📜 History</button>
     </div>
     
@@ -782,6 +783,70 @@
 
     // Listen for input changes
     textarea.addEventListener('input', updatePreview);
+
+    // Auto-format menu items with color styling
+    function autoFormatMenu() {
+      const text = textarea.value;
+      if (!text.trim()) {
+        showToast('Nothing to format', 'error');
+        return;
+      }
+      
+      // Process line by line
+      const lines = text.split('\n');
+      const formatted = lines.map(line => {
+        // Skip empty lines, headers (##), separators (---), and already formatted lines
+        if (!line.trim() || line.startsWith('#') || line.startsWith('---') || line.includes('{')) {
+          return line;
+        }
+        
+        // Pattern: Item name, price(s), optional description in quotes
+        // Examples:
+        //   NY Strip $15.95 "Cooked to your liking with 2 sides"
+        //   6 Wings $7.95 / 12 Wings $14.95 "Hot, Mild, Ranch, BBQ"
+        //   Burger $8.95
+        
+        let result = line;
+        
+        // Extract quoted description (if present)
+        const quoteMatch = line.match(/"([^"]+)"/);
+        if (quoteMatch) {
+          const description = quoteMatch[1];
+          // Remove the quoted part from processing
+          result = line.replace(quoteMatch[0], '___DESCRIPTION___');
+          
+          // Find and color all prices (format: $XX.XX or $XX)
+          result = result.replace(/\$\d+(?:\.\d{2})?/g, match => `{y}${match}`);
+          
+          // Color the item name (everything before first price) white
+          const firstPrice = result.indexOf('{y}$');
+          if (firstPrice > 0) {
+            const itemName = result.substring(0, firstPrice).trim();
+            result = `{w}${itemName} ${result.substring(firstPrice)}`;
+          }
+          
+          // Replace description placeholder with colored description
+          result = result.replace('___DESCRIPTION___', `{lg}${description}`);
+        } else {
+          // No description - just item and price(s)
+          // Find and color all prices
+          result = result.replace(/\$\d+(?:\.\d{2})?/g, match => `{y}${match}`);
+          
+          // Color the item name (everything before first price) white
+          const firstPrice = result.indexOf('{y}$');
+          if (firstPrice > 0) {
+            const itemName = result.substring(0, firstPrice).trim();
+            result = `{w}${itemName} ${result.substring(firstPrice)}`;
+          }
+        }
+        
+        return result;
+      });
+      
+      textarea.value = formatted.join('\n');
+      updatePreview();
+      showToast('✨ Menu auto-formatted!', 'success');
+    }
 
     // Setup tab click handlers - now handled in initializeMenuTabs()
 
