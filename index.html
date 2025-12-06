@@ -113,9 +113,29 @@
       display: none;
       box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     }
+    /* Logo overlay */
+    #logo {
+      position: fixed;
+      z-index: 5; /* Above background (0-1) but below text (default/auto) */
+      display: none; /* Hidden until configured */
+      pointer-events: none;
+    }
+    #logo.top-left {
+      top: 2rem;
+      left: 2rem;
+    }
+    #logo.bottom-left {
+      bottom: 2rem;
+      left: 2rem;
+    }
+    #logo.bottom-right {
+      bottom: 2rem;
+      right: 2rem;
+    }
   </style>
 </head>
 <body>
+  <img id="logo" src="" alt="" />
   <header>
     <span id="header">Specials</span>
     <span id="clock">00:00</span>
@@ -128,6 +148,7 @@
   const specialsDiv = document.getElementById('specials');
   const headerEl = document.getElementById('header');
   const clockEl = document.getElementById('clock');
+  const logoEl = document.getElementById('logo');
   let currentMenu = localStorage.getItem('currentMenu') || 'menus/dinner.txt';
   let lastText = '';
   let lastEtag = null;
@@ -423,6 +444,34 @@
             document.head.appendChild(style);
             lastBgBrightness = cfg.bgBrightness;
           }
+          
+          // Load and apply logo settings
+          if (cfg.logoFile) {
+            logoEl.src = 'media/' + cfg.logoFile;
+            logoEl.style.display = 'block';
+            
+            // Apply position
+            logoEl.className = cfg.logoPosition || 'bottom-right';
+            
+            // Apply size (percentage of viewport width)
+            if (Number.isFinite(cfg.logoSize)) {
+              logoEl.style.width = cfg.logoSize + 'vw';
+              logoEl.style.height = 'auto'; // Maintain aspect ratio
+            } else {
+              logoEl.style.width = '15vw'; // Default size
+              logoEl.style.height = 'auto';
+            }
+            
+            // Apply opacity
+            if (Number.isFinite(cfg.logoOpacity)) {
+              logoEl.style.opacity = cfg.logoOpacity;
+            } else {
+              logoEl.style.opacity = '1'; // Default fully opaque
+            }
+          } else {
+            // No logo configured, hide it
+            logoEl.style.display = 'none';
+          }
         }
       })
       .catch(() => console.warn('config.json missing – using defaults'))
@@ -536,6 +585,26 @@
                   if (existing) existing.remove();
                   document.head.appendChild(style);
                   lastBgBrightness = cfg.bgBrightness;
+                }
+                
+                // Check if logo settings changed
+                if (cfg.logoFile) {
+                  const needsUpdate = 
+                    logoEl.src !== location.origin + '/media/' + cfg.logoFile ||
+                    logoEl.className !== (cfg.logoPosition || 'bottom-right') ||
+                    parseFloat(logoEl.style.width) !== (cfg.logoSize || 15) ||
+                    parseFloat(logoEl.style.opacity) !== (cfg.logoOpacity || 1);
+                  
+                  if (needsUpdate) {
+                    logoEl.src = 'media/' + cfg.logoFile;
+                    logoEl.style.display = 'block';
+                    logoEl.className = cfg.logoPosition || 'bottom-right';
+                    logoEl.style.width = (cfg.logoSize || 15) + 'vw';
+                    logoEl.style.height = 'auto';
+                    logoEl.style.opacity = cfg.logoOpacity || 1;
+                  }
+                } else if (logoEl.style.display !== 'none') {
+                  logoEl.style.display = 'none';
                 }
               })
               .catch(() => {})

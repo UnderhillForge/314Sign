@@ -24,6 +24,7 @@
 - **Upload backgrounds from your phone**: Snap a photo of today's special → upload → done. No desktop computer needed.
 - **6+ professional fonts included**: From clean and modern (Lato, Bebas Neue) to handwritten fun (Caveat, Walter Turncoat). Add your own TTF fonts anytime.
 - **Brightness control**: Darken backgrounds (20-150%) so text pops without editing images.
+- **Logo overlay**: Add your restaurant/business logo in any corner with adjustable size and transparency.
 
 ### ⚡ Smart Features That Save Time
 - **Auto-format button**: ✨ One-click color styling for menu items, prices, and descriptions.

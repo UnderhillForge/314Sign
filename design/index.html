@@ -138,6 +138,30 @@
       </select>
     </div>
 
+    <div class="section">
+      <label>7. Logo (Optional)</label>
+      <small style="color: #999; display: block; margin-bottom: 0.75rem;">Display a logo on the kiosk menu pages</small>
+      
+      <label style="font-size: 0.9rem; margin-top: 0.5rem;">Logo File:</label>
+      <select id="logoFile">
+        <option value="">None</option>
+        <!-- Populated from media/ directory -->
+      </select>
+      
+      <label style="font-size: 0.9rem; margin-top: 0.5rem;">Position:</label>
+      <select id="logoPosition">
+        <option value="top-left">Top Left</option>
+        <option value="bottom-left">Bottom Left</option>
+        <option value="bottom-right">Bottom Right</option>
+      </select>
+      
+      <label for="logoSize" style="font-size: 0.9rem; margin-top: 0.5rem;">Size (% of screen width): <span id="logoSizeValue">15%</span></label>
+      <input type="range" id="logoSize" min="5" max="40" value="15" step="1" style="width: 100%" />
+      
+      <label for="logoOpacity" style="font-size: 0.9rem; margin-top: 0.5rem;">Opacity: <span id="logoOpacityValue">100%</span></label>
+      <input type="range" id="logoOpacity" min="10" max="100" value="100" step="5" style="width: 100%" />
+    </div>
+
     <div class="actions">
       <button onclick="saveDesign()">Save & Update Kiosk</button>
       <button class="secondary" onclick="location.reload()">Cancel</button>
@@ -164,6 +188,12 @@
     const autoFormatItemColor = document.getElementById('autoFormatItemColor');
     const autoFormatPriceColor = document.getElementById('autoFormatPriceColor');
     const autoFormatDescColor = document.getElementById('autoFormatDescColor');
+    const logoFileSelect = document.getElementById('logoFile');
+    const logoPositionSelect = document.getElementById('logoPosition');
+    const logoSizeInput = document.getElementById('logoSize');
+    const logoSizeValue = document.getElementById('logoSizeValue');
+    const logoOpacityInput = document.getElementById('logoOpacity');
+    const logoOpacityValue = document.getElementById('logoOpacityValue');
     const status = document.getElementById('status');
     
     // Update header size display
@@ -174,6 +204,16 @@
     // Update background brightness display
     bgBrightnessInput.addEventListener('input', () => {
       bgBrightnessValue.textContent = bgBrightnessInput.value + '%';
+    });
+    
+    // Update logo size display
+    logoSizeInput.addEventListener('input', () => {
+      logoSizeValue.textContent = logoSizeInput.value + '%';
+    });
+    
+    // Update logo opacity display
+    logoOpacityInput.addEventListener('input', () => {
+      logoOpacityValue.textContent = logoOpacityInput.value + '%';
     });
 
   let backgrounds = [];        // Filled from server
@@ -188,13 +228,33 @@
         .then(files => {
           backgrounds = files;
           renderThumbs();
-          loadConfig();
+          loadLogoFiles();
         })
         .catch(err => {
           console.error(err);
           status.textContent = 'Warning: Could not load backgrounds.';
           backgrounds = [];
           renderThumbs();
+          loadLogoFiles();
+        });
+    }
+    
+    // === Load logo files from media/ directory ===
+    function loadLogoFiles() {
+      fetch('../media/index.php')
+        .then(r => r.json())
+        .then(files => {
+          logoFileSelect.innerHTML = '<option value="">None</option>';
+          files.forEach(file => {
+            const option = document.createElement('option');
+            option.value = file;
+            option.textContent = file;
+            logoFileSelect.appendChild(option);
+          });
+          loadConfig();
+        })
+        .catch(err => {
+          console.error('Failed to load logo files:', err);
           loadConfig();
         });
     }
@@ -323,6 +383,24 @@
           } else {
             autoFormatDescColor.value = 'lg'; // default light grey
           }
+          
+          // Load logo settings
+          if (cfg.logoFile) {
+            logoFileSelect.value = cfg.logoFile;
+          }
+          if (cfg.logoPosition) {
+            logoPositionSelect.value = cfg.logoPosition;
+          } else {
+            logoPositionSelect.value = 'bottom-right'; // default
+          }
+          if (Number.isFinite(cfg.logoSize)) {
+            logoSizeInput.value = cfg.logoSize;
+            logoSizeValue.textContent = cfg.logoSize + '%';
+          }
+          if (Number.isFinite(cfg.logoOpacity)) {
+            logoOpacityInput.value = cfg.logoOpacity * 100;
+            logoOpacityValue.textContent = Math.round(cfg.logoOpacity * 100) + '%';
+          }
         })
         .catch(err => {
           console.error('Failed to load config:', err);
@@ -365,7 +443,11 @@
             clock24Hour: clock24HourCheckbox.checked,
             autoFormatItemColor: autoFormatItemColor.value,
             autoFormatPriceColor: autoFormatPriceColor.value,
-            autoFormatDescColor: autoFormatDescColor.value
+            autoFormatDescColor: autoFormatDescColor.value,
+            logoFile: logoFileSelect.value || null,
+            logoPosition: logoPositionSelect.value,
+            logoSize: parseFloat(logoSizeInput.value),
+            logoOpacity: parseFloat(logoOpacityInput.value) / 100
             // Keep existing availableFonts from config.json
           };
 

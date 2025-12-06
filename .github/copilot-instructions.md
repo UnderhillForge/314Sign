@@ -70,6 +70,7 @@
 - **`design/upload-bg.php`**: Validates MIME type (`image/*`), file extension (jpg/png/gif/webp), renames to `uploaded_YYYYMMDD_HHMMSS.{ext}`, saves to `../bg/`, logs to `logs/uploads.log`. Returns JSON `{filename}` on success or `{error}` with HTTP 4xx/5xx on failure. Check logs for permission/quota issues.
 - **`slideshows/upload-media.php`**: Similar to upload-bg.php but accepts images + videos (mp4/webm/mov). Saves to `slideshows/media/` with `slide_YYYYMMDD_HHMMSS.{ext}` naming. Logs to `logs/slideshow-uploads.log`.
 - **`bg/index.php`**: Scans `bg/` directory, filters for image extensions, sorts naturally, returns JSON array of filenames. No pagination; assumes <100 images.
+- **`media/index.php`**: Scans `media/` directory for logo/media files (jpg/png/gif/webp/avif/svg), returns JSON array. Used by design page logo picker.
 - **`save-menu-history.php`**: Receives POST with menu name and content, creates one file per day in `history/` directory (format: MENUNAME_YYYY-MM-DD_DayOfWeek.txt). Overwrites existing file if saving multiple times same day. Auto-prunes files older than 7 days, logs to `logs/history.log`.
 - **`get-menu-history.php`**: Returns menu history as JSON. action=list returns array sorted by timestamp descending, action=get returns specific file content.
 
@@ -92,12 +93,17 @@
   "autoFormatItemColor": "w",               // auto-format item color (w/r/y/g/b/o/p/lg)
   "autoFormatPriceColor": "y",              // auto-format price color (default yellow)
   "autoFormatDescColor": "lg",              // auto-format description color (default light grey)
+  "logoFile": "mahlogo.avif",               // logo filename from media/ directory (null = no logo)
+  "logoPosition": "bottom-right",           // logo position: top-left, bottom-left, bottom-right
+  "logoSize": 15,                           // logo width as % of viewport (5-40)
+  "logoOpacity": 1.0,                       // logo opacity (0.1-1.0)
   "availableFonts": { "Display": "CSS" }    // map for design/index.html dropdown
 }
 ```
 - **Forward compat**: New fields must be optional; old pages ignore unknown keys. Never destructively rewrite—always read → merge → write.
 - **Poll interval precedence**: `pollIntervalMs` > `pollIntervalSeconds` > legacy `pollInterval`; fallback to 3000ms. `index.html` validates positive finite values.
 - **Auto-format colors**: Used by `edit/index.html` ✨ Auto-Format button. 8 options: w (white), r (red), y (yellow), g (green), b (blue), o (orange), p (pink), lg (light grey).
+- **Logo overlay**: Rendered at z-index 5 (above background, below text). Automatically updates when config changes without full reload.
 
 ### `rules.json`
 ```json
