@@ -543,10 +543,8 @@
       console.log('[Demo] Executing command:', command);
       
       if (command === 'reload') {
-        // Clear demo mode before reload
-        demoModeActive = false;
-        localStorage.removeItem('demoModeActive');
-        console.log('[Demo] Cleared demo mode, reloading...');
+        // Keep demo mode active through reload
+        console.log('[Demo] Reloading kiosk (demo mode will persist)...');
         showReloadIndicator();
         setTimeout(() => location.reload(true), 500);
         return;
@@ -577,7 +575,9 @@
         currentMenu = menuFile;
         localStorage.setItem('selectedMenu', value);
         localStorage.setItem('currentMenu', currentMenu);
-        console.log('[Demo] Switching to menu:', menuFile);
+        console.log('[Demo] Switching to menu:', menuFile, '(demo mode active)');
+        // Force immediate fetch and display
+        lastEtag = null; // Clear ETag to force refresh
         pollSpecials();
       } else if (type === 'slideshow' && value) {
         // Enable demo mode to disable auto-switching
@@ -973,6 +973,12 @@
     // Enhanced schedule rules checking to support slideshows
     const originalCheckScheduleRules = checkScheduleRules;
     checkScheduleRules = function() {
+      // Don't auto-switch if demo mode is active
+      if (demoModeActive) {
+        console.log('[Rules] Skipping auto-switch check (demo mode active)');
+        return;
+      }
+      
       fetch('rules.json?' + Date.now())
         .then(r => r.ok ? r.json() : null)
         .then(data => {
