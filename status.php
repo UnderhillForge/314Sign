@@ -10,7 +10,7 @@ error_reporting(E_ALL & ~E_WARNING);
 header('Content-Type: application/json');
 
 $status = [
-  'version' => '0.9.2',
+  'version' => '0.9.2.1',
   'timestamp' => date('c'),
   'uptime' => null,
   'menus' => [],

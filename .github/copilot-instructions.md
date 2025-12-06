@@ -188,6 +188,7 @@
 ## Utilities
 - **`scripts/backup.sh`**: Copies menus/, config.json, rules.json, bg/uploaded_* to timestamped dirs under `/var/www/backups/314sign/` (web-accessible, no sudo needed). Excludes default backgrounds. Prunes backups >30 days old. Can specify custom location as first argument.
 - **`scripts/update-from-github.sh`**: Syncs local installation with GitHub main branch. Downloads changed files via curl, compares with local versions, updates only differences. Preserves config.json, rules.json, menus/*.txt, and bg/uploaded_* files. Supports `--dry-run` (preview), `--backup` (auto-backup before update), `--force` (ignore local changes). Updates core HTML/PHP, scripts, default backgrounds. Run after pushing changes to keep deployed kiosks current.
+- **`scripts/increment-version.sh`**: Manages version.txt using `major.minor.patch.build` format. Run without args to increment build number (0.9.2.5 → 0.9.2.6), or with version arg to bump major/minor/patch and reset build to 1 (e.g., `./increment-version.sh 0.9.3` → 0.9.3.1). Set `AUTO_COMMIT=true` env var to auto-commit version changes. After changing version.txt on production, all pages auto-reload within 2-10 seconds.
 - **`scripts/os-lite-kiosk.sh`**: Installs minimal X11 + Chromium/Firefox for Pi OS Lite; prompts for screen rotation (0-3); re-runnable to change rotation without reinstalling.
 - **`setup-kiosk.sh`**: One-shot installer; see "Deployment Pipeline" above. Re-run to update files but **manually merge config.json/rules.json** to preserve settings.
 
@@ -199,4 +200,44 @@
 5. **Ignoring ETag**: `index.html` relies on lighttpd's ETag header for fast change detection; disabling ETags (via `server.etag = "disable"`) forces text comparisons on every poll (slower but functional).
 
 ## Version Management
-- Current version: **0.9.2** (hardcoded in HTML footer divs, `status.php`, README). Increment when releasing breaking changes or major features; update all instances via find/replace.
+**Current version: 0.9.2.1** — Uses **`major.minor.patch.build`** format where build increments with each commit, and major/minor/patch bump on significant releases.
+
+### Version Files & Locations
+- `version.txt`: Single-line text file containing current version (e.g., "0.9.2.1"). All pages poll this every 2-10s and auto-reload on change.
+- HTML footers: All pages display version in footer divs (index.html, edit/, design/, rules/, maintenance/, start/, demo/, slideshows/).
+- `status.php`: Health check endpoint returns version in JSON response.
+- `README.md`: Header displays current version.
+
+### Incrementing Version
+```bash
+# Increment build number (0.9.2.5 → 0.9.2.6)
+./scripts/increment-version.sh
+
+# New version release (0.9.2.6 → 0.9.3.1)
+./scripts/increment-version.sh 0.9.3
+
+# Major version bump (0.9.3.5 → 1.0.0.1)
+./scripts/increment-version.sh 1.0.0
+```
+
+### Forcing Browser Reloads
+After deploying code updates, change version.txt to trigger automatic reload on all connected devices (kiosk displays, staff phones editing menus, admin panels):
+```bash
+# On production server
+cd /var/www/html
+./scripts/increment-version.sh
+
+# Or manually
+echo "0.9.2.7" > /var/www/html/version.txt
+```
+
+Pages check version.txt every 2-10 seconds via `fetch('version.txt?' + Date.now(), {cache: 'no-store'})`. On change, they show brief notification and reload after 1-1.5s delay. No user intervention needed.
+
+### Updating Version Across Codebase
+When bumping major/minor/patch version, update:
+1. `version.txt` (script handles this)
+2. All HTML footer divs (9 files: index.html, edit/, design/, rules/, maintenance/, start/, demo/, slideshows/, and design/generateIndexHTML())
+3. `status.php` version field
+4. `README.md` header
+5. `.github/copilot-instructions.md` current version section
+

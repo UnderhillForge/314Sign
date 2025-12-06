@@ -1,6 +1,6 @@
 # 314Sign — The Dead-Simple Digital Menu Board
 
-**Version 0.9.2** | [License: CC BY-NC 4.0](LICENSE)
+**Version 0.9.2.1** | [License: CC BY-NC 4.0](LICENSE)
 
 > **No apps. No subscriptions. No learning curve.**  
 > Point your phone at http://your-pi.local/start → edit → see changes **instantly** on screen.
@@ -138,12 +138,21 @@ sudo /var/www/html/scripts/update-from-github.sh
 ### Force All Browsers to Reload
 After updating code, force all connected browsers (kiosk, edit pages, admin panels) to reload:
 ```bash
-# Increment version number to trigger automatic reload on all pages
-echo "0.9.3" > /var/www/html/version.txt
+# Auto-increment build number (0.9.2.5 -> 0.9.2.6)
+cd /var/www/html
+./scripts/increment-version.sh
 
-# Or use date-based version
-echo "$(date +%Y.%m.%d.%H%M)" > /var/www/html/version.txt
+# Or manually set new version (0.9.2.6 -> 0.9.3.1)
+./scripts/increment-version.sh 0.9.3
+
+# Or direct edit (useful on development machine)
+echo "0.9.2.7" > /var/www/html/version.txt
 ```
+
+**Version Format**: `major.minor.patch.build` (e.g., `0.9.2.1`)
+- Build increments with each commit/change
+- Major/minor/patch bump on significant releases
+- All pages auto-reload within 2-10 seconds when version changes
 All pages check `version.txt` every 2-10 seconds and automatically reload when it changes. This ensures everyone sees the latest updates immediately.
 
 ### Health Check
@@ -168,7 +177,7 @@ curl http://YOUR-HOSTNAME.local/status.php
 
 ## License & Credits
 
-**314Sign v0.9.2**  
+**314Sign v0.9.2.1**  
 Licensed under [Creative Commons Attribution-NonCommercial 4.0 International](LICENSE)
 
 - ✅ Free for personal, educational, and non-profit use
