@@ -242,19 +242,39 @@
     // === Load logo files from media/ directory ===
     function loadLogoFiles() {
       fetch('../media/index.php')
-        .then(r => r.json())
+        .then(r => {
+          if (!r.ok) {
+            console.warn('media/index.php returned', r.status);
+            throw new Error('HTTP ' + r.status + ': ' + r.statusText);
+          }
+          return r.text();
+        })
+        .then(text => {
+          console.log('Raw response from media/index.php:', text);
+          return JSON.parse(text);
+        })
         .then(files => {
+          console.log('Logo files loaded:', files);
           logoFileSelect.innerHTML = '<option value="">None</option>';
-          files.forEach(file => {
-            const option = document.createElement('option');
-            option.value = file;
-            option.textContent = file;
-            logoFileSelect.appendChild(option);
-          });
+          
+          if (Array.isArray(files) && files.length > 0) {
+            files.forEach(file => {
+              const option = document.createElement('option');
+              option.value = file;
+              option.textContent = file;
+              logoFileSelect.appendChild(option);
+            });
+            console.log('Logo dropdown populated with', files.length, 'files');
+          } else {
+            console.warn('No logo files found in media/ directory');
+          }
           loadConfig();
         })
         .catch(err => {
           console.error('Failed to load logo files:', err);
+          console.warn('This is expected if testing locally without PHP server');
+          // Add "None" option even if fetch fails
+          logoFileSelect.innerHTML = '<option value="">None</option>';
           loadConfig();
         });
     }
