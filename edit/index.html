@@ -1259,6 +1259,29 @@
     // Refresh active rule status every minute
     setInterval(checkActiveRule, 60000);
     
+    // Check for version updates and force reload
+    let currentVersion = null;
+    function checkVersion() {
+      fetch('../version.txt?' + Date.now(), { cache: 'no-store' })
+        .then(r => r.ok ? r.text() : '')
+        .then(version => {
+          version = version.trim();
+          if (!version) return;
+          
+          if (currentVersion === null) {
+            currentVersion = version;
+            console.log('[Version] Current version:', version);
+          } else if (version !== currentVersion) {
+            console.log('[Version] Update detected:', currentVersion, '->', version);
+            showToast('Update detected - reloading...', 'info');
+            setTimeout(() => location.reload(true), 1500);
+          }
+        })
+        .catch(() => {});
+    }
+    checkVersion();
+    setInterval(checkVersion, 10000); // Check every 10 seconds
+    
     // Insert emoji at cursor
     function insertEmoji(emoji) {
       const start = textarea.selectionStart;

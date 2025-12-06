@@ -444,6 +444,7 @@
     
     let lastReloadToken = null;
     let lastDemoCommand = 'idle';
+    let currentVersion = null;
     
     async function checkConfigChanges() {
       try {
@@ -485,6 +486,25 @@
                     headers: { 'Content-Type': 'text/plain' },
                     body: 'idle'
                   }).catch(() => {});
+                }
+              })
+              .catch(() => {}),
+            
+            // Check for version changes (force reload on updates)
+            fetch('version.txt?' + Date.now(), { cache: 'no-store' })
+              .then(r => r.ok ? r.text() : '')
+              .then(version => {
+                version = version.trim();
+                if (!version) return;
+                
+                if (currentVersion === null) {
+                  currentVersion = version;
+                  console.log('[Version] Current version:', version);
+                } else if (version !== currentVersion) {
+                  console.log('[Version] Update detected:', currentVersion, '->', version);
+                  currentVersion = version;
+                  showReloadIndicator();
+                  setTimeout(() => location.reload(true), 1000);
                 }
               })
               .catch(() => {}),

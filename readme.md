@@ -135,6 +135,17 @@ sudo /var/www/html/scripts/update-from-github.sh
 # What's preserved: Your menus, configs, uploaded images
 ```
 
+### Force All Browsers to Reload
+After updating code, force all connected browsers (kiosk, edit pages, admin panels) to reload:
+```bash
+# Increment version number to trigger automatic reload on all pages
+echo "0.9.3" > /var/www/html/version.txt
+
+# Or use date-based version
+echo "$(date +%Y.%m.%d.%H%M)" > /var/www/html/version.txt
+```
+All pages check `version.txt` every 2-10 seconds and automatically reload when it changes. This ensures everyone sees the latest updates immediately.
+
 ### Health Check
 ```bash
 # Check system status
