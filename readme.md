@@ -103,25 +103,21 @@ sudo reboot
 
 ### Web-Based Maintenance Panel
 Access at `http://YOUR-HOSTNAME.local/maintenance/` for:
-- **Create Backups**: One-click backup of menus, configs, and uploaded images
+- **Create Backups**: One-click backup of menus, configs, and uploaded images (saved to `/var/www/backups/314sign/`)
 - **Apply Updates**: Pull latest features from GitHub with automatic backup
 - **Restart Server**: Reload lighttpd after manual changes
 - **View System Status**: Check version, uptime, disk space
 
-**Note**: Requires `sudoers-314sign` to be installed (automatically configured by `setup-kiosk.sh`). If backup fails with "Permission denied", run:
-```bash
-sudo cp /var/www/html/sudoers-314sign /etc/sudoers.d/314sign
-sudo chmod 0440 /etc/sudoers.d/314sign
-sudo visudo -cf /etc/sudoers.d/314sign  # Validate
-```
-
 ### Manual Backup (SSH)
 ```bash
-# Save menus, configs, and uploaded images to /var/backups/314sign/
-sudo /var/www/html/scripts/backup.sh
+# Save menus, configs, and uploaded images to /var/www/backups/314sign/
+/var/www/html/scripts/backup.sh
 
 # Or specify custom location
-sudo /var/www/html/scripts/backup.sh /home/pi/my-backups
+/var/www/html/scripts/backup.sh /home/pi/my-backups
+
+# For system backup location (requires sudo)
+sudo /var/www/html/scripts/backup.sh /var/backups/314sign
 ```
 
 ### Update from GitHub (SSH)

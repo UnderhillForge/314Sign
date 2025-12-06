@@ -179,12 +179,12 @@ else
   echo "Basic permissions set"
 fi
 
-# Create backup directory
+# Create backup directory (web-accessible location to avoid sudo issues in PHP)
 echo "Creating backup directory..."
-sudo mkdir -p /var/backups/314sign
-sudo chown www-data:www-data /var/backups/314sign
-sudo chmod 755 /var/backups/314sign
-echo "✓ Backup directory created at /var/backups/314sign"
+sudo mkdir -p /var/www/backups/314sign
+sudo chown -R www-data:www-data /var/www/backups
+sudo chmod 755 /var/www/backups
+echo "✓ Backup directory created at /var/www/backups/314sign"
 
 # === 5b. Configure sudo access for maintenance actions ===
 echo ""

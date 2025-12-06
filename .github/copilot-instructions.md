@@ -186,7 +186,7 @@
 - **Health check**: `status.php` returns JSON with version, uptime, menu file stats, disk space; use for monitoring.
 
 ## Utilities
-- **`scripts/backup.sh`**: Copies menus/, config.json, rules.json, bg/uploaded_* to timestamped dirs under `/var/backups/314sign/`. Excludes default backgrounds. Prunes backups >30 days old.
+- **`scripts/backup.sh`**: Copies menus/, config.json, rules.json, bg/uploaded_* to timestamped dirs under `/var/www/backups/314sign/` (web-accessible, no sudo needed). Excludes default backgrounds. Prunes backups >30 days old. Can specify custom location as first argument.
 - **`scripts/update-from-github.sh`**: Syncs local installation with GitHub main branch. Downloads changed files via curl, compares with local versions, updates only differences. Preserves config.json, rules.json, menus/*.txt, and bg/uploaded_* files. Supports `--dry-run` (preview), `--backup` (auto-backup before update), `--force` (ignore local changes). Updates core HTML/PHP, scripts, default backgrounds. Run after pushing changes to keep deployed kiosks current.
 - **`scripts/os-lite-kiosk.sh`**: Installs minimal X11 + Chromium/Firefox for Pi OS Lite; prompts for screen rotation (0-3); re-runnable to change rotation without reinstalling.
 - **`setup-kiosk.sh`**: One-shot installer; see "Deployment Pipeline" above. Re-run to update files but **manually merge config.json/rules.json** to preserve settings.

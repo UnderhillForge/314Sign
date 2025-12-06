@@ -26,10 +26,10 @@ if (!file_exists($script_path)) {
     exit;
 }
 
-// Run backup script
+// Run backup script (without sudo - uses /var/www/backups instead of /var/backups)
 $output = [];
 $return_var = 0;
-exec("sudo bash " . escapeshellarg($script_path) . " 2>&1", $output, $return_var);
+exec("bash " . escapeshellarg($script_path) . " 2>&1", $output, $return_var);
 
 $output_text = implode("\n", $output);
 $success = $return_var === 0;

@@ -13,7 +13,7 @@
 set -e
 
 # Configuration
-BACKUP_ROOT="${1:-/var/backups/314sign}"
+BACKUP_ROOT="${1:-/var/www/backups/314sign}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_DIR="${BACKUP_ROOT}/${TIMESTAMP}"
 WEB_ROOT="/var/www/html"
@@ -21,12 +21,17 @@ WEB_ROOT="/var/www/html"
 # Create backup directory
 if ! mkdir -p "${BACKUP_DIR}" 2>/dev/null; then
   echo "ERROR: Cannot create backup directory: ${BACKUP_DIR}"
-  echo "Permission denied. This script requires sudo access or write permission to ${BACKUP_ROOT}"
+  echo "Permission denied. Try one of these solutions:"
   echo ""
-  echo "Solutions:"
-  echo "1. Run with sudo: sudo bash $0"
-  echo "2. Configure sudoers: sudo cp /var/www/html/sudoers-314sign /etc/sudoers.d/314sign"
-  echo "3. Use custom location: bash $0 /tmp/314sign-backup"
+  echo "1. Use web-accessible backup location (recommended):"
+  echo "   sudo mkdir -p /var/www/backups/314sign"
+  echo "   sudo chown -R www-data:www-data /var/www/backups"
+  echo ""
+  echo "2. Run manually with sudo:"
+  echo "   sudo bash $0 /var/backups/314sign"
+  echo ""
+  echo "3. Use custom location:"
+  echo "   bash $0 /tmp/314sign-backup"
   exit 1
 fi
 
