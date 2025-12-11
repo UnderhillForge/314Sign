@@ -220,6 +220,16 @@
     
     return result || text;
   }    // Check schedule rules and auto-switch menu if enabled
+  
+  // After converting tags to spans, strip leading/trailing straight or curly quotes
+  // that were preserved inside color spans (e.g. <span ...>"text"</span> → <span ...>text</span>)
+  function stripQuotesInSpans(html) {
+    // Remove any quote character immediately after a span open tag
+    html = html.replace(/>(["'“”])/g, '>');
+    // Remove any quote character immediately before a span close tag
+    html = html.replace(/(["'“”])<\/span>/g, '</span>');
+    return html;
+  }
     function checkScheduleRules() {
       // Skip auto-switching if demo mode is active
       if (demoModeActive) {
@@ -305,27 +315,29 @@
     fetch('fonts/index.php')
       .then(r => r.ok ? r.json() : [])
       .then(customFonts => {
-        // Generate @font-face rules for custom fonts
+        // Generate @font-face rules for custom fonts with cache-busting query
         if (customFonts.length > 0) {
+          const cacheBuster = Date.now();
           let fontFaceCSS = '';
           customFonts.forEach(font => {
+            // Append a timestamp query so the browser re-fetches fonts on each reload
             fontFaceCSS += `
 @font-face {
   font-family: '${font.filename}';
-  src: url('fonts/${font.file}') format('truetype');
+  src: url('fonts/${font.file}?v=${cacheBuster}') format('truetype');
   font-display: swap;
 }`;
           });
           const style = document.createElement('style');
           style.textContent = fontFaceCSS;
           document.head.appendChild(style);
-          console.log('[Fonts] Loaded', customFonts.length, 'custom fonts');
-        }
-        
-        // Return promise for font loading
-        if (customFonts.length > 0 && document.fonts) {
-          // Wait for fonts to actually load before continuing
-          return document.fonts.ready;
+          console.log('[Fonts] Loaded', customFonts.length, 'custom fonts (cache-busted)');
+
+          // Explicitly request font loads to ensure they're available before rendering
+          if (document.fonts) {
+            const loads = customFonts.map(font => document.fonts.load("1rem '" + font.filename + "'"));
+            return Promise.all(loads).then(() => document.fonts.ready);
+          }
         }
       })
       .catch(err => console.warn('[Fonts] Could not load custom fonts:', err))
@@ -766,6 +778,8 @@
             const lines = html.split('\n');
             const colorProcessedLines = lines.map(line => processColorTags(line));
             html = colorProcessedLines.join('\n');
+            // Strip quotes that may have been left inside color spans
+            html = stripQuotesInSpans(html);
             
             // Check for font size override tags [sX]...[/s] where X is percentage
             const sizeRegex = /\[s(\d+(?:\.\d+)?)\]([\s\S]*?)\[\/s\]/gi;
