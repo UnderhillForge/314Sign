@@ -266,33 +266,42 @@ fi
 sudo tee "$WEBDAV_CONF" > /dev/null << 'EOF'
 server.modules += ( "mod_webdav" )
 
-# Enable WebDAV for specific editable files
-$HTTP["url"] =~ "^/(index\.html|config\.json|rules\.json|menus-config\.json|reload\.txt|demo-command\.txt)$" {
-    webdav.activate = "enable"
-    webdav.is-readonly = "disable"
+# Enable WebDAV for specific editable files (NOTE: config.json is intentionally excluded
+# here so raw PUTs are not allowed; use scripts/merge-config.php for safe config updates)
+$HTTP["url"] =~ "^/(index\.html|rules\.json|menus-config\.json|reload\.txt|demo-command\.txt)$" {
+  webdav.activate = "enable"
+  webdav.is-readonly = "disable"
 }
 
 # Enable WebDAV for menu files
 $HTTP["url"] =~ "^/menus/(breakfast|lunch|dinner|closed)\.txt$" {
-    webdav.activate = "enable"
-    webdav.is-readonly = "disable"
+  webdav.activate = "enable"
+  webdav.is-readonly = "disable"
 }
 
 # Enable WebDAV for slideshow files
 $HTTP["url"] =~ "^/slideshows/(index\.html|upload-media\.php)$" {
-    webdav.activate = "enable"
-    webdav.is-readonly = "disable"
+  webdav.activate = "enable"
+  webdav.is-readonly = "disable"
 }
 
 $HTTP["url"] =~ "^/slideshows/sets/.*\.json$" {
-    webdav.activate = "enable"
-    webdav.is-readonly = "disable"
+  webdav.activate = "enable"
+  webdav.is-readonly = "disable"
 }
 
 # Enable WebDAV for editor pages
 $HTTP["url"] =~ "^/(edit|design|rules|slideshows|maintenance|start)/index\.html$" {
-    webdav.activate = "enable"
-    webdav.is-readonly = "disable"
+  webdav.activate = "enable"
+  webdav.is-readonly = "disable"
+}
+
+# Rewrite raw PUTs to /config.json to a small guard script that returns an instructive error
+# This prevents accidental destructive PUTs; legitimate updates should POST to scripts/merge-config.php
+$HTTP["url"] == "/config.json" {
+  $HTTP["request-method"] == "PUT" {
+    url.rewrite-once = ( "^/config.json$" => "/scripts/put-guard.php" )
+  }
 }
 EOF
 

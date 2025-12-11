@@ -685,26 +685,28 @@
       preview.innerHTML = '<p style="color: #666;">Preview will appear here</p>';
     }
 
-    // Save set
+    // Save set (server-backed)
     function saveSet() {
       if (!currentSet) {
         showToast('No set selected', 2000);
         return;
       }
-      
-      fetch('sets/' + currentSet, {
-        method: 'PUT',
+
+      fetch('save-set.php', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(slideData, null, 2)
+        body: JSON.stringify({ filename: 'sets/' + currentSet, content: slideData })
       })
-      .then(r => {
-        if (r.ok) {
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.success) {
           showToast('Slideshow saved!');
         } else {
-          throw new Error('Save failed');
+          throw new Error((data && data.error) || 'Save failed');
         }
       })
-      .catch(() => {
+      .catch(err => {
+        console.error('Save failed:', err);
         showToast('Failed to save', 2000);
       });
     }
@@ -761,18 +763,19 @@
         slides: []
       };
       
-      fetch('sets/' + filename, {
-        method: 'PUT',
+      fetch('save-set.php', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newSet, null, 2)
+        body: JSON.stringify({ filename: 'sets/' + filename, content: newSet })
       })
-      .then(r => {
-        if (r.ok) {
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.success) {
           closeModal('newSetModal');
           showToast('Set created!');
           loadSets();
         } else {
-          throw new Error('Create failed');
+          throw new Error((data && data.error) || 'Create failed');
         }
       })
       .catch(() => {
@@ -789,17 +792,21 @@
       
       const newFilename = newName.toLowerCase().replace(/[^a-z0-9-]/g, '-') + '.json';
       
-      // Save to new filename
-      fetch('sets/' + newFilename, {
-        method: 'PUT',
+      // Save to new filename (server-backed). Note: old file is not deleted automatically.
+      fetch('save-set.php', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(slideData, null, 2)
+        body: JSON.stringify({ filename: 'sets/' + newFilename, content: slideData })
       })
-      .then(() => {
-        // Delete old file (would need PHP backend for this)
-        currentSet = newFilename;
-        showToast('Set renamed!');
-        loadSets();
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.success) {
+          currentSet = newFilename;
+          showToast('Set renamed!');
+          loadSets();
+        } else {
+          throw new Error((data && data.error) || 'Rename failed');
+        }
       })
       .catch(() => {
         showToast('Failed to rename', 2000);
