@@ -24,7 +24,8 @@ if (is_dir($fonts_dir)) {
             $fonts[] = [
                 'name' => $name,
                 'file' => $file,
-                'filename' => pathinfo($file, PATHINFO_FILENAME)
+                'filename' => pathinfo($file, PATHINFO_FILENAME),
+                'mtime' => filemtime($fonts_dir . '/' . $file)
             ];
         }
     }

@@ -315,23 +315,25 @@
     fetch('fonts/index.php')
       .then(r => r.ok ? r.json() : [])
       .then(customFonts => {
-        // Generate @font-face rules for custom fonts with cache-busting query
+        // Generate @font-face rules for custom fonts with cache-busting based on file mtimes
         if (customFonts.length > 0) {
-          const cacheBuster = Date.now();
+          // Build a cache-buster based on mtimes: join all mtimes into a single string
+          const cacheBuster = customFonts.map(f => f.mtime || 0).join('-');
           let fontFaceCSS = '';
           customFonts.forEach(font => {
-            // Append a timestamp query so the browser re-fetches fonts on each reload
+            // Use mtime-aware query so the browser re-fetches fonts only when files change
+            const v = font.mtime || cacheBuster;
             fontFaceCSS += `
 @font-face {
   font-family: '${font.filename}';
-  src: url('fonts/${font.file}?v=${cacheBuster}') format('truetype');
+  src: url('fonts/${font.file}?v=${v}') format('truetype');
   font-display: swap;
 }`;
           });
           const style = document.createElement('style');
           style.textContent = fontFaceCSS;
           document.head.appendChild(style);
-          console.log('[Fonts] Loaded', customFonts.length, 'custom fonts (cache-busted)');
+          console.log('[Fonts] Loaded', customFonts.length, 'custom fonts (mtime-aware)');
 
           // Explicitly request font loads to ensure they're available before rendering
           if (document.fonts) {
