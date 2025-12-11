@@ -576,6 +576,34 @@
                   }
                 }
                 
+                  // Check for page.json to allow external control of which top-level page is served
+                  // Example `page.json` contents: { "page": "index" } or { "page": "start" } or { "page": "slideshows" }
+                  fetch('page.json?' + Date.now(), { cache: 'no-store' })
+                    .then(r => r.ok ? r.json() : null)
+                    .then(pj => {
+                      if (!pj || !pj.page) return;
+                      try {
+                        // Determine current top-level path ('' for root/index)
+                        const pathParts = window.location.pathname.replace(/^\//, '').split('/');
+                        const currentTop = pathParts[0] || 'index';
+                        const requested = String(pj.page || 'index');
+                        if (requested && requested !== currentTop) {
+                          console.log('[PageJSON] Requested page:', requested, 'current:', currentTop);
+                          // Navigate to the requested page directory (assumes a trailing slash index page exists)
+                          // Special-case 'index' to point to root
+                          const target = requested === 'index' ? '/' : ('/' + requested + '/');
+                          // Only navigate if different
+                          if (location.pathname !== target && !location.pathname.startsWith(target)) {
+                            // Respect demo mode: if demo mode is active, do not auto-navigate unless requested explicitly
+                            // (page.json updates are assumed authoritative; demo mode will be overridden)
+                            // Navigate after a short delay to allow other checks to complete
+                            setTimeout(() => { window.location.href = target; }, 100);
+                          }
+                        }
+                      } catch (e) { console.warn('[PageJSON] parse error', e); }
+                    })
+                    .catch(() => {});
+
                 // Check if background brightness changed
                 if (Number.isFinite(cfg.bgBrightness) && cfg.bgBrightness !== lastBgBrightness) {
                   const style = document.createElement('style');

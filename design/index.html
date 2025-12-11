@@ -471,11 +471,11 @@
             // Keep existing availableFonts from config.json
           };
 
-          // Save config.json
-          return fetch('../config.json', {
-            method: 'PUT',
+          // Save config.json via merge endpoint (read→merge→write) to avoid destructive overwrites
+          return fetch('../scripts/merge-config.php', {
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(updatedConfig, null, 2)
+            body: JSON.stringify(updatedConfig)
           });
         })
         .then(r => {

@@ -75,16 +75,23 @@ try {
   
   // Create media directory if it doesn't exist
   if (!is_dir($mediaDir)) {
-    mkdir($mediaDir, 0775, true);
+    if (!mkdir($mediaDir, 0775, true)) {
+      http_response_code(500);
+      echo json_encode(['error' => 'Failed to create media directory', 'hint' => 'Check permissions and owner; run permissions.sh on the host']);
+      logUpload('ERROR: Failed to create media directory: ' . $mediaDir);
+      exit;
+    }
   }
   
   $targetPath = $mediaDir . '/' . $filename;
   
   // Move uploaded file
   if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
+    $last = error_get_last();
+    $lastMsg = $last['message'] ?? null;
     http_response_code(500);
-    echo json_encode(['error' => 'Failed to save file']);
-    logUpload('ERROR: Failed to move uploaded file to ' . $targetPath);
+    echo json_encode(['error' => 'Failed to save file', 'detail' => $lastMsg, 'hint' => 'Check media directory ownership and writable permissions (run permissions.sh)']);
+    logUpload('ERROR: Failed to move uploaded file to ' . $targetPath . ' - ' . ($lastMsg ?? 'unknown'));
     exit;
   }
 

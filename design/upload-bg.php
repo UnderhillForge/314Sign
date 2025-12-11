@@ -99,12 +99,15 @@ if (!is_dir($bgDir)) {
     }
 }
 if (!is_writable($bgDir)) {
-    // Attempt to chmod; if it fails, return an error
+    // Attempt to chmod; if it fails, return a descriptive error with a remediation hint
     @chmod($bgDir, 0755);
     if (!is_writable($bgDir)) {
+        $perm = @fileperms($bgDir);
+        $permStr = $perm ? substr(sprintf('%o', $perm), -4) : 'unknown';
+        $owner = @fileowner($bgDir);
         http_response_code(500);
-        log_entry('error', 'bg directory is not writable', ['bgDir' => $bgDir]);
-        echo json_encode(['error' => 'bg directory is not writable']);
+        log_entry('error', 'bg directory is not writable', ['bgDir' => $bgDir, 'perms' => $permStr, 'owner_uid' => $owner]);
+        echo json_encode(['error' => 'bg directory is not writable', 'hint' => 'Check owner/permissions; run permissions.sh on host to restore www-data ownership']);
         exit;
     }
 }
@@ -128,9 +131,10 @@ if (!is_uploaded_file($file['tmp_name'])) {
 
 if (!move_uploaded_file($file['tmp_name'], $path)) {
     $last = error_get_last();
+    $lastMsg = $last['message'] ?? null;
     http_response_code(500);
-    log_entry('error', 'Failed to move uploaded file', ['detail' => $last['message'] ?? null, 'tmp_name' => $file['tmp_name'], 'target' => $path]);
-    echo json_encode(['error' => 'Failed to move uploaded file', 'detail' => $last['message'] ?? null]);
+    log_entry('error', 'Failed to move uploaded file', ['detail' => $lastMsg, 'tmp_name' => $file['tmp_name'], 'target' => $path]);
+    echo json_encode(['error' => 'Failed to move uploaded file', 'detail' => $lastMsg, 'hint' => 'Check bg directory ownership and disk space; run permissions.sh on host if needed']);
     exit;
 }
 
