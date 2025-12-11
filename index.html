@@ -338,7 +338,10 @@
           // Explicitly request font loads to ensure they're available before rendering
           if (document.fonts) {
             const loads = customFonts.map(font => document.fonts.load("1rem '" + font.filename + "'"));
-            return Promise.all(loads).then(() => document.fonts.ready);
+            // Wait for fonts, but don't block forever — proceed after 2s fallback
+            const fontsReady = Promise.all(loads).then(() => document.fonts.ready);
+            const timeout = new Promise(resolve => setTimeout(resolve, 2000));
+            return Promise.race([fontsReady, timeout]);
           }
         }
       })
