@@ -2,61 +2,36 @@
 
 This file lists concrete issues, bugs, and future ideas that an AI coding agent (Copilot) can pick from. Each item includes a short description, suggested files to inspect, and a quick verification step.
 
-## High priority — recent work (done)
+## Current status
 
-- Implemented safe `config.json` merge endpoint and switched `design` to use it
-  - Files changed: `scripts/merge-config.php` (new), `design/index.html` (updated)
-  - Result: design saves are non-destructive; the merge endpoint does atomic write and returns helpful hints on failure.
+(Recent completions have been applied; removed from this list to keep remaining tasks focused.)
 
-- Fixed editor save path issues
-  - Files changed: `edit/index.html` (uses absolute `/menus/...` paths for GET/PUT)
-  - Result: editor saves no longer break due to shifted relative paths.
+## Remaining high-priority tasks
 
-- Improved upload error messages & remediation hints
-  - Files changed: `design/upload-bg.php`, `slideshows/upload-media.php`
-  - Result: logs and JSON responses include permission/owner hints and suggest running `permissions.sh`.
 
-## Next high-priority tasks (pick in order)
+- Open draft GitHub issue for this item (recommended first step)
+  - Title: "Convert remaining config.json writers to merge endpoint"
+  - Files to reference: `.github/TASKS.md`, `scripts/merge-config.php`, `design/index.html`, `edit/index.html`, `setup-kiosk.sh`.
 
-- Open draft GitHub issues for the top 3 items
-  - Files/refs: this file `.github/TASKS.md`, `scripts/merge-config.php`, `design/index.html`, `edit/index.html`
-  - Verify: issues created with the suggested titles, file references, and reproduction steps.
+- Convert any remaining raw `PUT` callers to use `scripts/merge-config.php`
+  - Why: prevents accidental destructive config writes.
+  - Verify: search for `fetch('config.json'` and ensure callers use POST to `scripts/merge-config.php` or explicitly intend to replace config.
 
-- Convert remaining `config.json` writers to use the merge endpoint
-  - Why: avoid destructive PUTs from other pages or automation.
-  - Files to inspect: `design/index.html` (done), search for other `fetch('../config.json', { method: 'PUT' })` or external scripts that PUT directly.
-  - Verify: no raw PUTs remain; all callers use `scripts/merge-config.php` or call it as a fallback.
+<!-- `scripts/deploy-check.sh` has been implemented and committed; no action required. -->
 
-- Add a server-side guard that rejects raw PUT to `config.json` with a helpful message
-  - Why: prevents accidental destructive writes from external automation; directs callers to the merge endpoint.
-  - Files to add: small `scripts/put-config-guard.php` (or an Apache/lighttpd rule) — implement only if you approve.
-  - Verify: direct PUT returns 409/422 with instructions.
+## Medium priority
 
-- Add a lightweight deploy verification script (`scripts/deploy-check.sh`)
-  - Checks: ETag presence, `www-data` ownership of writable dirs, `version.txt` read, reachable `index.html`.
-  - Verify: script returns non-zero on failures and prints remediation hints (run `permissions.sh`).
+- Add slideshow set schema validator (`scripts/validate-slideshow-set.php` or JS) and harden slideshow upload validations
+- Add `rules/examples/` with test cases for midnight-span logic
 
-## Middle priority — correctness & validators
+## Documentation & onboarding
 
-- Add slideshow set schema validator and harden upload validations
-  - Files: `slideshows/sets/*.json`, new validator script (`scripts/validate-slideshow-set.php` or JS)
-  - Verify: validator reports missing fields and exits non-zero in CI.
-
-- Add `rules/examples/` test cases and a tiny rule-evaluator playground
-  - Files: `rules/examples/*.json`, small test page or node script to validate midnight-span logic.
-  - Verify: given example times, the evaluator selects expected menu.
-
-## Documentation & onboarding (quick wins)
-
-- Add a short `config.json` merge snippet to `.github/copilot-instructions.md`
-  - Why: quick reference for contributors and agents.
-  - Verify: snippet shows read→merge→POST to `scripts/merge-config.php`.
-
-- Update `docs/` checklist: "Add editable file" — include WebDAV, `setup-kiosk.sh` rsync list, and `permissions.sh` step.
+- Add a short `config.json` merge snippet to `.github/copilot-instructions.md` (below)
+- Expand `docs/` with "Add editable file" checklist (WebDAV, `setup-kiosk.sh` include list, `permissions.sh` remediation)
 
 ---
 How to proceed
-- Tell me which next task to prioritize (I can open draft issues or implement them directly). I can also open PRs for any of the items above.
+- I can open draft issues for the three high-priority tasks and/or implement `deploy-check.sh` next — which would you like me to do?
 
 
 ## Ops / Deployment tasks
@@ -65,11 +40,6 @@ How to proceed
   - Why: Adding editable files requires matching WebDAV/rsync config.
   - Files: `setup-kiosk.sh`, deployment docs in `docs/`.
   - Verify: Add a dummy editable file, run `setup-kiosk.sh`, confirm file is included in `/var/www/html`.
-
-- Add a simple deploy verification script
-  - Why: Quick validation after deploy (ETags, permissions, version bump).
-  - Files: `scripts/` (new script), `version.txt`.
-  - Verify: Script returns OK when ETags present and `www-data` owns writable dirs.
 
 ## UX / Editor correctness
 
