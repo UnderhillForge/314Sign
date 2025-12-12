@@ -879,9 +879,11 @@
         // Extract quoted description (if present)
         const quoteMatch = line.match(/"([^"]+)"/);
         if (quoteMatch) {
-          const description = quoteMatch[1];
-          // Remove the quoted part from processing
-          result = line.replace(quoteMatch[0], '___DESCRIPTION___');
+          const description = quoteMatch[1]; // Text inside quotes without the quotes
+          // Remove the entire quoted part (including quotes) from processing
+          const beforeQuote = line.substring(0, quoteMatch.index);
+          const afterQuote = line.substring(quoteMatch.index + quoteMatch[0].length);
+          result = beforeQuote + '___DESCRIPTION___' + afterQuote;
           
           // Find and color all prices (format: $XX.XX or $XX), then revert to item color after each
           result = result.replace(/\$\d+(?:\.\d{2})?/g, match => `{${priceColor}}${match}{${itemColor}}`);
@@ -893,8 +895,8 @@
             result = `{${itemColor}}${itemName} ${result.substring(firstPrice)}`;
           }
           
-          // Replace description placeholder with colored description
-          result = result.replace('___DESCRIPTION___', `{${descColor}}"${description}"`);
+          // Replace description placeholder with colored description (without quotes in output)
+          result = result.replace('___DESCRIPTION___', `{${descColor}}${description}`);
         } else {
           // No description - just item and price(s)
           // Find and color all prices, then revert to item color after each
