@@ -548,21 +548,19 @@
           if (data.success) {
             status.textContent = 'Saved! Kiosk will reload in ~10s';
             if (window.showToast) showToast('✓ Reload triggered', 2000);
-            // Reload this page after a brief delay to show updated values
-            setTimeout(() => location.reload(), 1500);
           } else {
             status.textContent = 'Saved, but reload trigger failed';
             console.error('Reload trigger failed:', data);
-            setTimeout(() => location.reload(), 2000);
           }
         })
         .catch(err => {
           status.textContent = 'Saved, but reload trigger failed';
           console.error('Reload trigger error:', err);
+        })
+        .finally(() => {
+          // Always reload this page to show updated values, regardless of trigger success
+          setTimeout(() => location.reload(), 1500);
         });
-      })
-      .then(() => {
-        setTimeout(() => status.textContent = '', 3000);
       })
       .catch(err => {
         console.error('Save error:', err);
