@@ -128,6 +128,7 @@ declare -a UPDATE_FILES=(
   "design/upload-bg.php"
   "design/purge-history.php"
   "rules/index.html"
+  "rules.json"
   "start/index.html"
   "maintenance/index.html"
   "bg/index.php"
@@ -156,6 +157,7 @@ declare -a UPDATE_FILES=(
   "design/upload-logo.php"
   "media/index.php"
   "menus/index.php"
+  "bg/backgd2.avif"
 )
 
 # Optional documentation files (won't fail if missing)
