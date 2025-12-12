@@ -1231,32 +1231,37 @@
             body: data
           });
         })
-      .then(r => {
+        .then(r => {
         if (r && r.ok) {
-            status.textContent = 'Saved! Kiosk will refresh...';
-            // show toast notification
-            if (window.showToast) showToast('Saved — kiosk updated');
-            
-            // Save to history
-            const menuName = currentFile.replace('menus/', '').replace('.txt', '');
-            const formData = new FormData();
-            formData.append('menu', menuName);
-            formData.append('content', data);
-            fetch('../save-menu-history.php', {
-              method: 'POST',
-              body: formData
-            }).catch(() => {}); // Silent fail if history save fails
-            
-            // Trigger kiosk reload
-            fetch('../trigger-reload.php', {
-              method: 'POST'
-            }).catch(() => {});
-            
-            try { parent.location.reload(); } catch(e) {}
-            // Update loadedFileText to reflect what's now on disk
-            loadedFileText = data;
-            setTimeout(() => status.textContent = '', 3000);
-          } else {
+            // After PUT succeeded, verify the saved contents match what we wrote
+            return fetch('/' + currentFile + '?' + Date.now(), { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } })
+              .then(r2 => r2.ok ? r2.text() : '')
+              .then(onDisk => {
+                if (onDisk === data) {
+                  // Confirmed saved
+                  loadedFileText = data; // update snapshot before any reload
+                  status.textContent = 'Saved! Kiosk will refresh...';
+                  if (window.showToast) showToast('Saved — kiosk updated');
+
+                  // Save to history (best-effort)
+                  const menuName = currentFile.replace('menus/', '').replace('.txt', '');
+                  const formData = new FormData();
+                  formData.append('menu', menuName);
+                  formData.append('content', data);
+                  fetch('../save-menu-history.php', { method: 'POST', body: formData }).catch(() => {});
+
+                  // Trigger kiosk reload (non-blocking)
+                  fetch('../trigger-reload.php', { method: 'POST' }).catch(() => {});
+
+                  try { parent.location.reload(); } catch(e) {}
+                  setTimeout(() => status.textContent = '', 3000);
+                } else {
+                  // Mismatch: saved content doesn't match what we sent
+                  status.textContent = 'Save failed: file did not persist';
+                  console.error('Save verification failed: on-disk differs from editor buffer');
+                }
+              });
+        } else {
           throw new Error('HTTP ' + (r ? r.status : 'no response'));
         }
       })
