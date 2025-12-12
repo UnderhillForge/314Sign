@@ -57,6 +57,25 @@ try {
     exit;
   }
 
+  // Size limits (bytes)
+  $maxImageBytes = 10 * 1024 * 1024; // 10 MB
+  $maxVideoBytes = 150 * 1024 * 1024; // 150 MB
+  $size = isset($file['size']) ? intval($file['size']) : 0;
+
+  if (strpos($mimeType, 'image/') === 0 && $size > $maxImageBytes) {
+    http_response_code(413);
+    echo json_encode(['error' => 'Image too large', 'hint' => 'Max image size is 10 MB']);
+    logUpload('ERROR: Image too large: ' . $size);
+    exit;
+  }
+
+  if (strpos($mimeType, 'video/') === 0 && $size > $maxVideoBytes) {
+    http_response_code(413);
+    echo json_encode(['error' => 'Video too large', 'hint' => 'Max video size is 150 MB']);
+    logUpload('ERROR: Video too large: ' . $size);
+    exit;
+  }
+
   // Validate file extension
   $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mov'];
   $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
@@ -68,9 +87,22 @@ try {
     exit;
   }
 
+  // Additional content validation for images
+  if (strpos($mimeType, 'image/') === 0) {
+    $imgInfo = @getimagesize($file['tmp_name']);
+    if ($imgInfo === false) {
+      http_response_code(400);
+      echo json_encode(['error' => 'Uploaded file is not a valid image']);
+      logUpload('ERROR: getimagesize failed for ' . $file['name']);
+      exit;
+    }
+  }
+
   // Generate unique filename
+  // Use timestamp + random suffix to avoid collisions and expose minimal original filename
   $timestamp = date('Ymd_His');
-  $filename = 'slide_' . $timestamp . '.' . $ext;
+  $uniq = bin2hex(random_bytes(6));
+  $filename = 'slide_' . $timestamp . '_' . $uniq . '.' . $ext;
   $mediaDir = __DIR__ . '/media';
   
   // Create media directory if it doesn't exist
@@ -86,6 +118,13 @@ try {
   $targetPath = $mediaDir . '/' . $filename;
   
   // Move uploaded file
+  if (!is_uploaded_file($file['tmp_name'])) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Temporary upload missing or invalid']);
+    logUpload('ERROR: tmp file not recognized as uploaded file: ' . $file['tmp_name']);
+    exit;
+  }
+
   if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
     $last = error_get_last();
     $lastMsg = $last['message'] ?? null;
@@ -100,7 +139,9 @@ try {
   
   // Log success
   $fileSize = filesize($targetPath);
-  logUpload("SUCCESS: Uploaded $filename ($fileSize bytes, $mimeType)");
+  $remoteIp = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+  $origName = $file['name'] ?? 'unknown';
+  logUpload("SUCCESS: Uploaded $filename (orig: $origName, size: $fileSize bytes, mime: $mimeType, ip: $remoteIp)");
   
   // Return success response
   echo json_encode([

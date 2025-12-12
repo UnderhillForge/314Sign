@@ -148,6 +148,14 @@ if [ ! -f /var/www/html/demo-command.txt ]; then
   echo "Created demo-command.txt"
 fi
 
+# Ensure page.json exists to allow external page selection (default to index)
+if [ ! -f /var/www/html/page.json ]; then
+  echo '{"page":"index"}' | sudo tee /var/www/html/page.json > /dev/null
+  sudo chown www-data:www-data /var/www/html/page.json || true
+  sudo chmod 644 /var/www/html/page.json || true
+  echo "Created page.json"
+fi
+
 # === 5. Set ownership & permissions ===
 echo ""
 echo "Setting permissions..."

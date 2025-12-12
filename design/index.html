@@ -570,14 +570,15 @@
     }
 
     function updateConfigWithNewFilename(filename) {
+      // Read existing config and POST partial update to merge endpoint to avoid destructive overwrite
       return fetch('../config.json')
         .then(r => r.ok ? r.json() : {})
         .then(cfg => {
-          cfg.bg = filename;
-          return fetch('../config.json', {
-            method: 'PUT',
+          const patch = { bg: filename };
+          return fetch('../scripts/merge-config.php', {
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(cfg)
+            body: JSON.stringify(patch)
           }).then(r => {
             if (!r.ok) return Promise.reject('Failed to update config with filename');
             return r;

@@ -1,0 +1,9 @@
+[
+  {
+    "name": "All Day",
+    "days": ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+    "startTime": "00:00",
+    "endTime": "23:59",
+    "menu": "menus/all-day.txt"
+  }
+]
