@@ -1,3 +1,11 @@
+LIGHTTPD_CACHE="/var/cache/lighttpd"
+
+# Set permissions for lighttpd cache directory (required for PHP uploads)
+if [ -d "$LIGHTTPD_CACHE" ]; then
+  echo "Setting permissions for lighttpd cache directory: $LIGHTTPD_CACHE"
+  sudo chown -R www-data:www-data "$LIGHTTPD_CACHE"
+  sudo chmod -R 755 "$LIGHTTPD_CACHE"
+fi
 #!/bin/bash
 # Set correct permissions for 314Sign files
 # Can be run standalone or called from setup-kiosk.sh
