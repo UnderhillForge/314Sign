@@ -63,7 +63,8 @@ if (!isset($file['error']) || $file['error'] !== UPLOAD_ERR_OK) {
 
 // Basic extension check
 $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-$allowed_ext = ['jpg','jpeg','png','gif','webp'];
+// Add avif to allowed extensions
+$allowed_ext = ['jpg','jpeg','png','gif','webp','avif'];
 if (!in_array($ext, $allowed_ext, true)) {
     http_response_code(400);
     log_entry('warn', 'Invalid file extension', ['ext' => $ext, 'original_name' => $file['name']]);
@@ -75,11 +76,13 @@ if (!in_array($ext, $allowed_ext, true)) {
 $finfo = finfo_open(FILEINFO_MIME_TYPE);
 $mime = finfo_file($finfo, $file['tmp_name']);
 finfo_close($finfo);
+// Add avif to allowed MIME types
 $allowed_mimes = [
     'image/jpeg',
     'image/png',
     'image/gif',
-    'image/webp'
+    'image/webp',
+    'image/avif'
 ];
 if (!in_array($mime, $allowed_mimes, true)) {
     http_response_code(400);
