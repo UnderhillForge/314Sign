@@ -283,7 +283,7 @@ if FONTS_LIST=$(curl -fsSL "$FONTS_URL" 2>/dev/null); then
   FONT_COUNT=$(echo "$FONTS_LIST" | grep '"name":' | grep -c '\.ttf"' || echo "0")
   if [[ $FONT_COUNT -gt 0 ]]; then
     log_info "Found $FONT_COUNT font files in repository"
-    echo "$FONTS_LIST" | grep '"name":' | grep '\.ttf"' | sed 's/.*"name": "\([^"]*\)".*/\1/' | while read -r font_file; do
+    echo "$FONTS_LIST" | grep '"name":' | grep '\.ttf"' | sed -E 's/.*"name": "([^"]*)".*/\1/' | while read -r font_file; do
       local_font="$WEB_ROOT/fonts/$font_file"
       remote_url="$GITHUB_RAW_BASE/fonts/$font_file"
       
