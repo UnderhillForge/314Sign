@@ -1512,8 +1512,10 @@
     }
     
     // Close modal on background click
-    document.getElementById('historyModal').addEventListener('click', (e) => {
-      if (e.target.id === 'historyModal') closeHistoryModal();
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('historyModal').addEventListener('click', (e) => {
+        if (e.target.id === 'historyModal') closeHistoryModal();
+      });
     });
 
     // Toast helper
