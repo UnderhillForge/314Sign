@@ -150,6 +150,14 @@
   const clockEl = document.getElementById('clock');
   const logoEl = document.getElementById('logo');
   let currentMenu = localStorage.getItem('currentMenu') || 'menus/dinner.txt';
+  
+  // Initialize current-menu.json with the current menu
+  fetch('set-current-menu.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'menu=' + encodeURIComponent(currentMenu)
+  }).catch(err => console.warn('Failed to initialize current-menu.json:', err));
+  
   let lastText = '';
   let lastEtag = null;
   let rulesCheckInterval = null;
@@ -360,7 +368,25 @@
           headers: { 'Cache-Control': 'no-cache' }
         });
       })
-      .then(r => r.ok ? r.json() : {})
+      .then(r => {
+        if (r.ok) {
+          return r.json();
+        } else {
+          const defaultConfig = {
+            bg: 'default.jpg',
+            headerFont: 'Arial, sans-serif',
+            headerText: 'Specials',
+            showClock: false,
+            clock24Hour: true
+          };
+          fetch('scripts/merge-config.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(defaultConfig)
+          }).catch(err => console.warn('Failed to create default config.json:', err));
+          return {};
+        }
+      })
       .then(cfg => {
         // Apply background/font from config if present
         if (cfg.bg)   document.body.style.backgroundImage = `url('bg/${cfg.bg}')`;
