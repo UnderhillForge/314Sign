@@ -35,8 +35,8 @@
     }
     .bg-thumb.selected { border-color:#4a9eff; }
     .preview-img {
-      width:100%; height:180px; object-fit:cover; border-radius:8px; margin-top:0.5rem;
-      border:2px dashed #3a3a3a; display:none;
+      width:100%; max-height:100px; object-fit:contain; border-radius:8px; margin-top:0.5rem;
+      border:2px dashed #3a3a3a; display:none; background:#1a1a1a;
     }
     .actions { display:flex; gap:1rem; }
     button {
@@ -221,6 +221,19 @@
     logoOpacityInput.addEventListener('input', () => {
       logoOpacityValue.textContent = logoOpacityInput.value + '%';
     });
+    
+    // Handle logo file selection from dropdown
+    logoFileSelect.addEventListener('change', () => {
+      if (logoFileSelect.value) {
+        selectedLogo = logoFileSelect.value;
+        uploadedLogoDataUrl = null;
+        logoPreview.style.display = 'none';
+      } else {
+        selectedLogo = null;
+        uploadedLogoDataUrl = null;
+        logoPreview.style.display = 'none';
+      }
+    });
 
   let backgrounds = [];        // Filled from server
   let selectedBg = null;       // Filename or 'uploaded'
@@ -260,11 +273,18 @@
           return r.text();
         })
         .then(text => {
-          console.log('Raw response from media/index.php:', text);
+          console.log('[Logo Files] Raw response from media/index.php:', text);
+          
+          // Check if response looks like JSON
+          if (!text.trim().startsWith('[') && !text.trim().startsWith('{')) {
+            console.error('[Logo Files] Response is not JSON:', text.substring(0, 100));
+            throw new Error('Invalid JSON response from media/index.php');
+          }
+          
           return JSON.parse(text);
         })
         .then(files => {
-          console.log('Logo files loaded:', files);
+          console.log('[Logo Files] Successfully loaded:', files);
           logoFileSelect.innerHTML = '<option value="">None</option>';
           
           if (Array.isArray(files) && files.length > 0) {
@@ -274,33 +294,21 @@
               option.textContent = file;
               logoFileSelect.appendChild(option);
             });
-            console.log('Logo dropdown populated with', files.length, 'files');
+            console.log('[Logo Files] Dropdown populated with', files.length, 'files:', files);
           } else {
-            console.warn('No logo files found in media/ directory');
+            console.warn('[Logo Files] No logo files found in media/ directory (empty array)');
           }
           loadConfig();
         })
         .catch(err => {
-          console.error('Failed to load logo files:', err);
-          console.warn('This is expected if testing locally without PHP server');
+          console.error('[Logo Files] Failed to load:', err);
+          console.warn('[Logo Files] This is expected if testing locally without PHP server');
+          console.warn('[Logo Files] On production with PHP, check that media/index.php is accessible');
           // Add "None" option even if fetch fails
           logoFileSelect.innerHTML = '<option value="">None</option>';
           loadConfig();
         });
     }
-    
-    // Handle logo file selection from dropdown
-    logoFileSelect.addEventListener('change', () => {
-      if (logoFileSelect.value) {
-        selectedLogo = logoFileSelect.value;
-        uploadedLogoDataUrl = null;
-        logoPreview.style.display = 'none';
-      } else {
-        selectedLogo = null;
-        uploadedLogoDataUrl = null;
-        logoPreview.style.display = 'none';
-      }
-    });
 
     // === 2. Render thumbnails ===
     function renderThumbs() {
