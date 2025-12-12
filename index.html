@@ -509,11 +509,10 @@
       pollSpecials();
     }
     
-    let lastReloadToken = null;
-    let lastDemoCommand = 'idle';
-    let currentVersion = null;
-    
-    async function checkConfigChanges() {
+  let lastReloadToken = null;
+  let lastDemoCommand = 'idle';
+  let currentVersion = null;
+  let lastHeaderFont = null;    async function checkConfigChanges() {
       try {
         // Run all checks in parallel with timeout protection
         await Promise.race([
@@ -584,6 +583,16 @@
                 // Per-menu font scales (from menus-config.json) override global config
                 // and are only applied during boot/menu switching.
                 // Checking here would cause global config to overwrite per-menu scales.
+                
+                // Check if header font changed
+                if (cfg.headerFont && cfg.headerFont !== lastHeaderFont) {
+                  const header = document.querySelector('header');
+                  if (header) {
+                    header.style.fontFamily = cfg.headerFont;
+                    lastHeaderFont = cfg.headerFont;
+                    console.log('[Config] Header font updated:', cfg.headerFont);
+                  }
+                }
                 
                 // Check if header size changed
                 if (Number.isFinite(cfg.headerSizePercent) && cfg.headerSizePercent !== lastHeaderSizePercent) {

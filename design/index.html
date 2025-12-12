@@ -148,6 +148,10 @@
         <!-- Populated from media/ directory -->
       </select>
       
+      <label style="margin-top:1rem">Or Upload New Logo:</label>
+      <input type="file" id="logoUpload" accept="image/*" />
+      <img id="logoPreview" class="preview-img" src="" />
+      
       <label style="font-size: 0.9rem; margin-top: 0.5rem;">Position:</label>
       <select id="logoPosition">
         <option value="top-left">Top Left</option>
@@ -177,6 +181,8 @@
     const bgGrid = document.getElementById('bg-grid');
     const upload = document.getElementById('upload');
     const preview = document.getElementById('preview');
+    const logoUpload = document.getElementById('logoUpload');
+    const logoPreview = document.getElementById('logoPreview');
     const headerFontSelect = document.getElementById('headerFont');
     const headerTextInput = document.getElementById('headerText');
     const headerSizeInput = document.getElementById('headerSize');
@@ -220,6 +226,10 @@
   let selectedBg = null;       // Filename or 'uploaded'
   let uploadedDataUrl = null;
   let uploadedFileName = null; // original filename from file input
+  
+  let selectedLogo = null;     // Logo filename or 'uploaded'
+  let uploadedLogoDataUrl = null;
+  let uploadedLogoFileName = null;
 
     // === 1. Load existing images from /bg/ ===
     function loadBackgrounds() {
@@ -241,7 +251,7 @@
     
     // === Load logo files from media/ directory ===
     function loadLogoFiles() {
-      fetch('../media/index.php')
+      fetch('../media/index.php?' + Date.now())
         .then(r => {
           if (!r.ok) {
             console.warn('media/index.php returned', r.status);
@@ -278,6 +288,19 @@
           loadConfig();
         });
     }
+    
+    // Handle logo file selection from dropdown
+    logoFileSelect.addEventListener('change', () => {
+      if (logoFileSelect.value) {
+        selectedLogo = logoFileSelect.value;
+        uploadedLogoDataUrl = null;
+        logoPreview.style.display = 'none';
+      } else {
+        selectedLogo = null;
+        uploadedLogoDataUrl = null;
+        logoPreview.style.display = 'none';
+      }
+    });
 
     // === 2. Render thumbnails ===
     function renderThumbs() {
@@ -313,6 +336,22 @@
         preview.style.display = 'block';
         selectedBg = 'uploaded';
         document.querySelectorAll('.bg-thumb').forEach(t => t.classList.remove('selected'));
+      };
+      reader.readAsDataURL(file);
+    };
+    
+    // === Handle logo upload (preview only) ===
+    logoUpload.onchange = () => {
+      const file = logoUpload.files[0];
+      if (!file) return;
+      uploadedLogoFileName = file.name || 'logo.png';
+      const reader = new FileReader();
+      reader.onload = e => {
+        uploadedLogoDataUrl = e.target.result;
+        logoPreview.src = uploadedLogoDataUrl;
+        logoPreview.style.display = 'block';
+        selectedLogo = 'uploaded';
+        logoFileSelect.value = ''; // Deselect dropdown when uploading
       };
       reader.readAsDataURL(file);
     };
@@ -464,7 +503,7 @@
             autoFormatItemColor: autoFormatItemColor.value,
             autoFormatPriceColor: autoFormatPriceColor.value,
             autoFormatDescColor: autoFormatDescColor.value,
-            logoFile: logoFileSelect.value || null,
+            logoFile: (selectedLogo === 'uploaded' ? null : logoFileSelect.value) || null,
             logoPosition: logoPositionSelect.value,
             logoSize: parseFloat(logoSizeInput.value),
             logoOpacity: parseFloat(logoOpacityInput.value) / 100
@@ -480,7 +519,10 @@
         })
         .then(r => {
           if (!r.ok) return r.text().then(t => Promise.reject('Config save failed: ' + (t || r.statusText)));
-          return uploadImageIfNeeded();
+          return Promise.all([
+            uploadImageIfNeeded(),
+            uploadLogoIfNeeded()
+          ]);
         })
       // Skip generateIndexHTML - config.json changes are enough
       // The live index.html reads config dynamically at runtime
@@ -498,9 +540,12 @@
           if (data.success) {
             status.textContent = 'Saved! Kiosk will reload in ~10s';
             if (window.showToast) showToast('✓ Reload triggered', 2000);
+            // Reload this page after a brief delay to show updated values
+            setTimeout(() => location.reload(), 1500);
           } else {
             status.textContent = 'Saved, but reload trigger failed';
             console.error('Reload trigger failed:', data);
+            setTimeout(() => location.reload(), 2000);
           }
         })
         .catch(err => {
@@ -581,6 +626,63 @@
             body: JSON.stringify(patch)
           }).then(r => {
             if (!r.ok) return Promise.reject('Failed to update config with filename');
+            return r;
+          });
+        });
+    }
+    
+    // === 6b. Upload new logo via PHP ===
+    function uploadLogoIfNeeded() {
+      if (selectedLogo !== 'uploaded' || !uploadedLogoDataUrl) return Promise.resolve();
+
+      // Convert dataURL to Blob
+      const blob = dataURLtoBlob(uploadedLogoDataUrl);
+      const form = new FormData();
+      const name = uploadedLogoFileName || 'logo.png';
+      form.append('logo', blob, name);
+
+      return fetch('upload-logo.php', {
+        method: 'POST',
+        body: form
+      })
+      .then(r => {
+        return r.text().then(text => {
+          let data = null;
+          try { data = text ? JSON.parse(text) : null; } catch(e) { /* ignore */ }
+          if (!r.ok) {
+            const errMsg = data && (data.error || data.detail) ? (data.error + (data.detail ? (': ' + data.detail) : '')) : (text || r.statusText);
+            return Promise.reject(errMsg);
+          }
+          return data;
+        });
+      })
+      .then(data => {
+        if (data && data.filename) {
+          selectedLogo = data.filename;
+          // Update config with new logo filename
+          return updateConfigWithNewLogo(data.filename);
+        }
+        const err = data && (data.error || data.detail) ? (data.error + (data.detail ? (': ' + data.detail) : '')) : 'Logo upload failed (no filename returned)';
+        return Promise.reject(err);
+      })
+      .catch(err => {
+        console.error('Logo upload error:', err);
+        status.textContent = 'Logo upload error: ' + (err && err.message ? err.message : err);
+        return Promise.reject(err);
+      });
+    }
+    
+    function updateConfigWithNewLogo(filename) {
+      return fetch('../config.json')
+        .then(r => r.ok ? r.json() : {})
+        .then(cfg => {
+          const patch = { logoFile: filename };
+          return fetch('../scripts/merge-config.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(patch)
+          }).then(r => {
+            if (!r.ok) return Promise.reject('Failed to update config with logo filename');
             return r;
           });
         });
