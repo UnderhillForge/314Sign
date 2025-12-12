@@ -277,6 +277,13 @@
       currentMenu = filename;
       localStorage.setItem('currentMenu', filename);
       
+      // Update current-menu.json for persistence and external control
+      fetch('set-current-menu.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'menu=' + encodeURIComponent(filename)
+      }).catch(err => console.warn('Failed to update current-menu.json:', err));
+      
       // Load per-menu settings from menus-config.json
       const menuName = filename.replace('menus/', '').replace('.txt', '');
       fetch('menus-config.json?' + Date.now(), { cache: 'no-store' })
