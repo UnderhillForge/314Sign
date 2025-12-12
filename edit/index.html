@@ -772,6 +772,9 @@
       html = html.replace(/\[right\]([\s\S]*?)\[\/right\]/gi, '<div style="text-align: right">$1</div>');
       
       preview.innerHTML = html;
+      
+      // Apply the selected font to preview after updating content
+      applyFontToPreview();
     }
 
     // Insert Markdown syntax at cursor position
