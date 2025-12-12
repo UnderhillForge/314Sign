@@ -881,6 +881,7 @@
     
     // Also load fonts immediately as a backup to ensure they're available
     setTimeout(() => {
+      const fontSelect = document.getElementById('headerFont');
       fetch('../config.json')
         .then(r => r.ok ? r.json() : {})
         .then(cfg => {
