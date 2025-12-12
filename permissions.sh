@@ -1,10 +1,18 @@
 LIGHTTPD_CACHE="/var/cache/lighttpd"
+LIGHTTPD_UPLOADS="/var/cache/lighttpd/uploads"
 
 # Set permissions for lighttpd cache directory (required for PHP uploads)
 if [ -d "$LIGHTTPD_CACHE" ]; then
   echo "Setting permissions for lighttpd cache directory: $LIGHTTPD_CACHE"
   sudo chown -R www-data:www-data "$LIGHTTPD_CACHE"
   sudo chmod -R 755 "$LIGHTTPD_CACHE"
+fi
+
+# Set permissions for lighttpd uploads directory (required for PHP file uploads)
+if [ -d "$LIGHTTPD_UPLOADS" ]; then
+  echo "Setting permissions for lighttpd uploads directory: $LIGHTTPD_UPLOADS"
+  sudo chown -R www-data:www-data "$LIGHTTPD_UPLOADS"
+  sudo chmod -R 770 "$LIGHTTPD_UPLOADS"
 fi
 #!/bin/bash
 # Set correct permissions for 314Sign files
@@ -61,6 +69,7 @@ sudo chmod 664 "$WEB_ROOT/demo/index.html" 2>/dev/null || true
 # PHP scripts should be executable
 sudo chmod 755 "$WEB_ROOT/bg/index.php" 2>/dev/null || true
 sudo chmod 755 "$WEB_ROOT/design/upload-bg.php" 2>/dev/null || true
+sudo chmod 755 "$WEB_ROOT/design/upload-logo.php" 2>/dev/null || true
 sudo chmod 755 "$WEB_ROOT/design/purge-history.php" 2>/dev/null || true
 sudo chmod 755 "$WEB_ROOT/status.php" 2>/dev/null || true
 sudo chmod 755 "$WEB_ROOT/check-updates.php" 2>/dev/null || true
