@@ -546,7 +546,8 @@
           return Promise.all([
             uploadImageIfNeeded()
           ]);
-// === 6. Upload new image via PHP ===
+        });
+    }
 function uploadImageIfNeeded() {
   if (selectedBg !== 'uploaded' || !uploadedDataUrl) return Promise.resolve();
 
