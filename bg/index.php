@@ -14,7 +14,7 @@ $images = array_filter($files, function($f) {
     // Skip hidden files and directories
     if ($f === '.' || $f === '..' || $f[0] === '.') return false;
     if (is_dir($f)) return false;
-    return preg_match('/\.(jpe?g|png|gif|webp)$/i', $f);
+    return preg_match('/\.(jpe?g|png|gif|webp|avif)$/i', $f);
 });
 
 // Sort by name (natural case-insensitive)

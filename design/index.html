@@ -545,51 +545,58 @@
           return r;
           return Promise.all([
             uploadImageIfNeeded(),
-            uploadLogoIfNeeded()
-          ]);
-        })
-      // Skip generateIndexHTML - config.json changes are enough
-      // The live index.html reads config dynamically at runtime
-      .then(() => {
-        status.textContent = 'Saved! Triggering reload...';
-        // Show mobile-friendly toast as confirmation
-        if (window.showToast) showToast('Saved — triggering reload');
-        
-        // Trigger kiosk reload immediately
-        return fetch('../trigger-reload.php', {
-          method: 'POST'
-        })
-        .then(r => r.json())
-        .then(data => {
-          if (data.success) {
-            status.textContent = 'Saved! Kiosk will reload in ~10s';
-            if (window.showToast) showToast('✓ Reload triggered', 2000);
-          } else {
-            status.textContent = 'Saved, but reload trigger failed';
-            console.error('Reload trigger failed:', data);
-          }
-        })
-        .catch(err => {
-          status.textContent = 'Saved, but reload trigger failed';
-          console.error('Reload trigger error:', err);
-        })
-        .finally(() => {
-          // Always reload this page to show updated values, regardless of trigger success
-          setTimeout(() => location.reload(), 1500);
-        });
-      })
-      .catch(err => {
-        console.error('Save error:', err);
-        status.textContent = 'Error: ' + (err && err.message ? err.message : err);
-        // Still reload page after error to reset state
-        setTimeout(() => location.reload(), 3000);
-      })
-      .finally(() => {
-        if (saveBtn) saveBtn.disabled = false;
-        if (cancelBtn) cancelBtn.disabled = false;
-      });
-    }
+            function uploadImageIfNeeded() {
+              if (selectedBg !== 'uploaded' || !uploadedDataUrl) {
+                console.log('[Upload] No upload needed (selectedBg:', selectedBg, ', uploadedDataUrl:', !!uploadedDataUrl, ')');
+                return Promise.resolve();
+              }
 
+              // Convert dataURL to Blob (use helper) to preserve MIME and avoid
+              // potential CORS issues fetching data: URLs.
+              const blob = dataURLtoBlob(uploadedDataUrl);
+              const form = new FormData();
+              // Use original filename when available
+              const name = uploadedFileName || 'upload.jpg';
+              form.append('image', blob, name);
+
+              console.log('[Upload] Attempting upload:', name, blob);
+
+              return fetch('upload-bg.php', {
+                method: 'POST',
+                body: form
+              })
+              .then(r => {
+                // Try to parse JSON even on non-OK to surface server-side messages
+                return r.text().then(text => {
+                  let data = null;
+                  try { data = text ? JSON.parse(text) : null; } catch(e) { /* ignore */ }
+                  console.log('[Upload] Server response:', text);
+                  if (!r.ok) {
+                    const errMsg = data && (data.error || data.detail) ? (data.error + (data.detail ? (': ' + data.detail) : '')) : (text || r.statusText);
+                    return Promise.reject(errMsg);
+                  }
+                  return data;
+                });
+              })
+              .then(data => {
+                if (data && data.filename) {
+                  console.log('[Upload] Upload successful, filename:', data.filename);
+                  selectedBg = data.filename;
+                  backgrounds.push(data.filename);
+                  renderThumbs();
+                  const thumb = document.querySelector(`.bg-thumb[data-file="${data.filename}"]`);
+                  if (thumb) thumb.classList.add('selected');
+                  return updateConfigWithNewFilename(data.filename);
+                }
+                const err = data && (data.error || data.detail) ? (data.error + (data.detail ? (': ' + data.detail) : '')) : 'Upload failed (no filename returned)';
+                return Promise.reject(err);
+              })
+              .catch(err => {
+                console.error('[Upload] Upload error:', err);
+                status.textContent = 'Upload error: ' + (err && err.message ? err.message : err);
+                return Promise.reject(err);
+              });
+            }
     // === 6. Upload new image via PHP ===
     function uploadImageIfNeeded() {
       if (selectedBg !== 'uploaded' || !uploadedDataUrl) return Promise.resolve();
