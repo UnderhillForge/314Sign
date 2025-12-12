@@ -66,7 +66,7 @@
   <script>
     function runTests() {
       // Test 1: Config
-      fetch('config.json?' + Date.now())
+      fetch('page.json?' + Date.now())
         .then(r => r.json())
         .then(cfg => {
           document.getElementById('result1').innerHTML = 

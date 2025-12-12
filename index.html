@@ -181,14 +181,14 @@
   }
 
   // Poll interval in milliseconds. Default to 3000ms (3s).
-  // This value can be overridden from config.json using one of:
+  // This value can be overridden from page.json using one of:
   //  - pollIntervalMs: number (milliseconds)
   //  - pollIntervalSeconds: number (seconds)
   //  - pollInterval: number (seconds)  -- legacy/short key
   let pollIntervalMs = 3000;
   
   // Font scale percentage. Default to 5% of viewport width.
-  // Can be overridden via fontScalePercent in config.json.
+  // Can be overridden via fontScalePercent in page.json.
   let fontScalePercent = 5;
     let lastHeaderSizePercent = null;
   let lastBgBrightness = null;
@@ -292,9 +292,9 @@
         body: 'menu=' + encodeURIComponent(filename)
       }).catch(err => console.warn('Failed to update current-menu.json:', err));
       
-      // Load per-menu settings from menus-config.json
+      // Load per-menu settings from menus-page.json
       const menuName = filename.replace('menus/', '').replace('.txt', '');
-      fetch('menus-config.json?' + Date.now(), { cache: 'no-store' })
+      fetch('menus-page.json?' + Date.now(), { cache: 'no-store' })
         .then(r => r.ok ? r.json() : {})
         .then(menusConfig => {
           const specialsDiv = document.getElementById('specials');
@@ -323,7 +323,7 @@
     }
 
     // --------------------------------------------------------------------
-    // 1. Load config.json (once)
+    // 1. Load page.json (once)
     // --------------------------------------------------------------------
     
     // First, load custom fonts from fonts/ directory
@@ -363,7 +363,7 @@
       .catch(err => console.warn('[Fonts] Could not load custom fonts:', err))
       .then(() => {
         // Now load config after fonts are ready
-        return fetch('config.json?' + Date.now(), {
+        return fetch('page.json?' + Date.now(), {
           cache: 'no-store',
           headers: { 'Cache-Control': 'no-cache' }
         });
@@ -383,7 +383,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(defaultConfig)
-          }).catch(err => console.warn('Failed to create default config.json:', err));
+          }).catch(err => console.warn('Failed to create default page.json:', err));
           return {};
         }
       })
@@ -451,9 +451,9 @@
             }
           }
           
-          // Load per-menu font scale from menus-config.json (overrides global setting)
+          // Load per-menu font scale from menus-page.json (overrides global setting)
           const menuName = currentMenu.replace('menus/', '').replace('.txt', '');
-          fetch('menus-config.json?' + Date.now(), { cache: 'no-store' })
+          fetch('menus-page.json?' + Date.now(), { cache: 'no-store' })
             .then(r => r.ok ? r.json() : {})
             .then(menusConfig => {
               const specials = document.getElementById('specials');
@@ -524,7 +524,7 @@
           }
         }
       })
-      .catch(() => console.warn('config.json missing – using defaults'))
+      .catch(() => console.warn('page.json missing – using defaults'))
       .finally(startPolling);
 
     // --------------------------------------------------------------------
@@ -633,11 +633,11 @@
               .catch(() => {}),
             
             // Check for config changes (font scale, header size, brightness)
-            fetch('config.json?' + Date.now(), { cache: 'no-store' })
+            fetch('page.json?' + Date.now(), { cache: 'no-store' })
               .then(r => r.ok ? r.json() : {})
               .then(cfg => {
                 // NOTE: Don't check fontScalePercent here!
-                // Per-menu font scales (from menus-config.json) override global config
+                // Per-menu font scales (from menus-page.json) override global config
                 // and are only applied during boot/menu switching.
                 // Checking here would cause global config to overwrite per-menu scales.
                 

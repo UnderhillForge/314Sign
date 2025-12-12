@@ -467,7 +467,7 @@
     <div class="controls">
       <label for="fontSelect">Font Style:</label>
       <select id="fontSelect" style="padding: 0.5rem; border-radius: 6px; border: 2px solid #3a3a3a; background: #2d2d2d; color: #e0e0e0; font-size: 0.9rem;">
-        <!-- Populated from config.json -->
+        <!-- Populated from page.json -->
       </select>
       <label for="fontScale" style="margin-left: 1rem;">Font Size:</label>
       <input type="range" id="fontScale" min="5" max="20" value="5" step="0.5" />
@@ -883,13 +883,13 @@
         return;
       }
       
-      // Load color settings from config.json (defaults: white items, yellow prices, light grey descriptions)
+      // Load color settings from page.json (defaults: white items, yellow prices, light grey descriptions)
       let itemColor = 'w';
       let priceColor = 'y';
       let descColor = 'lg';
       
       try {
-        const response = await fetch('../config.json');
+        const response = await fetch('../page.json');
         if (response.ok) {
           const config = await response.json();
           if (config.autoFormatItemColor) itemColor = config.autoFormatItemColor;
@@ -1052,7 +1052,7 @@
           }
           
           // Load global config to populate font dropdown
-          return fetch('../config.json')
+          return fetch('../page.json')
             .then(r => r.ok ? r.json() : {})
             .then(cfg => {
               // Start with config fonts
@@ -1075,8 +1075,8 @@
                 fontSelect.appendChild(option);
               });
               
-              // Load per-menu settings from menus-config.json
-              return fetch('../menus-config.json')
+              // Load per-menu settings from menus-page.json
+              return fetch('../menus-page.json')
                 .then(r => r.ok ? r.json() : {})
                 .then(menusConfig => {
                   // Load per-menu font scale
@@ -1226,9 +1226,9 @@
       const val = fontScaleInput.value;
       fontScaleValue.textContent = val + '%';
       
-      // Save font scale to menus-config.json for current menu only
+      // Save font scale to menus-page.json for current menu only
       const menuName = currentFile.replace('menus/', '').replace('.txt', '');
-      fetch('../menus-config.json')
+      fetch('../menus-page.json')
         .then(r => r.ok ? r.json() : {})
         .then(menusConfig => {
           // Initialize menu config if it doesn't exist
@@ -1236,7 +1236,7 @@
             menusConfig[menuName] = {};
           }
           menusConfig[menuName].fontScalePercent = parseFloat(val);
-          return fetch('../menus-config.json', {
+          return fetch('../menus-page.json', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(menusConfig, null, 2)
@@ -1248,7 +1248,7 @@
     // Font select change - save to menus-config and apply to preview
     fontSelect.addEventListener('change', () => {
       const menuName = currentFile.replace('menus/', '').replace('.txt', '');
-      fetch('../menus-config.json')
+      fetch('../menus-page.json')
         .then(r => r.ok ? r.json() : {})
         .then(menusConfig => {
           // Initialize menu config if it doesn't exist
@@ -1256,7 +1256,7 @@
             menusConfig[menuName] = {};
           }
           menusConfig[menuName].font = fontSelect.value;
-          return fetch('../menus-config.json', {
+          return fetch('../menus-page.json', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(menusConfig, null, 2)

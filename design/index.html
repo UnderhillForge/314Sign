@@ -66,7 +66,7 @@
     <div class="section">
       <label>2. Header Font Style</label>
       <select id="headerFont">
-        <!-- Populated dynamically from config.json availableFonts -->
+        <!-- Populated dynamically from page.json availableFonts -->
       </select>
     </div>
 
@@ -367,7 +367,7 @@
     // === 4. Load saved config and populate fonts ===
     function loadConfig() {
       // Load config to get fonts list
-      fetch('../config.json?' + Date.now(), { cache: 'no-store' })
+      fetch('../page.json?' + Date.now(), { cache: 'no-store' })
         .then(r => r.ok ? r.json() : {})
         .then(cfg => {
           console.log('[Config] Loaded config:', cfg);
@@ -499,10 +499,10 @@
       status.textContent = 'Saving...';
 
       // Read existing config first to preserve all settings
-      fetch('../config.json')
+      fetch('../page.json')
         .then(r => r.ok ? r.json() : {})
         .then(existingConfig => {
-          // Don't merge or modify availableFonts - keep what's in config.json
+          // Don't merge or modify availableFonts - keep what's in page.json
           
           const updatedConfig = {
             ...existingConfig,
@@ -520,10 +520,10 @@
             logoPosition: logoPositionSelect.value,
             logoSize: parseFloat(logoSizeInput.value),
             logoOpacity: parseFloat(logoOpacityInput.value) / 100
-            // Keep existing availableFonts from config.json
+            // Keep existing availableFonts from page.json
           };
 
-          // Save config.json via merge endpoint (read→merge→write) to avoid destructive overwrites
+          // Save page.json via merge endpoint (read→merge→write) to avoid destructive overwrites
           const mergeUrl = '../scripts/merge-config.php';
           console.log('[Save] Saving config to:', mergeUrl);
           console.log('[Save] Config data:', updatedConfig);
@@ -600,7 +600,7 @@ function uploadImageIfNeeded() {
 
     function updateConfigWithNewFilename(filename) {
       // Read existing config and POST partial update to merge endpoint to avoid destructive overwrite
-      return fetch('../config.json')
+      return fetch('../page.json')
         .then(r => r.ok ? r.json() : {})
         .then(cfg => {
           const patch = { bg: filename };
@@ -657,7 +657,7 @@ function uploadImageIfNeeded() {
     }
     
     function updateConfigWithNewLogo(filename) {
-      return fetch('../config.json')
+      return fetch('../page.json')
         .then(r => r.ok ? r.json() : {})
         .then(cfg => {
           const patch = { logoFile: filename };
@@ -692,7 +692,7 @@ function uploadImageIfNeeded() {
 
       // Note: This generator creates a simplified version of index.html
       // The full production version has more features (ETag polling, rules checking, etc.)
-      // Consider just updating config.json instead of regenerating the entire file
+      // Consider just updating page.json instead of regenerating the entire file
       
       var html = '';
       html += '<!DOCTYPE html>\n';
@@ -842,7 +842,7 @@ function uploadImageIfNeeded() {
     // Also load fonts immediately as a backup to ensure they're available
     setTimeout(() => {
       const fontSelect = document.getElementById('headerFont');
-      fetch('../config.json')
+      fetch('../page.json')
         .then(r => r.ok ? r.json() : {})
         .then(cfg => {
           if (cfg.availableFonts && fontSelect.children.length === 0) {
