@@ -4,10 +4,10 @@
 header('Content-Type: application/json');
 
 $path = $_GET['path'] ?? '';
-// Only allow menu files
-if (!preg_match('#^menus/(breakfast|lunch|dinner|closed)\.txt$#', $path)) {
+// Only allow menu files (any .txt file in menus/ directory)
+if (!preg_match('#^menus/[a-z0-9_-]+\.txt$#i', $path)) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Invalid path']);
+    echo json_encode(['success' => false, 'error' => 'Invalid path (must be menus/[name].txt)']);
     exit;
 }
 

@@ -612,7 +612,7 @@
     const viewButtons = document.querySelectorAll('.view-btn');
 
     // Remember which menu was last edited
-    let currentFile = localStorage.getItem('editCurrentMenu') || 'menus/breakfast.txt';
+    let currentFile = localStorage.getItem('editCurrentMenu') || null; // Will be set after loading menus
     // Keep the last-loaded file contents to detect external changes before save
     let loadedFileText = '';
 
@@ -665,17 +665,54 @@
           menuTabs = document.querySelectorAll('.menu-tab');
         })
         .catch(() => {
-          // Fallback to defaults if rules.json fails
-          menuTabsContainer.innerHTML = `
-            <button class="menu-tab active" data-file="menus/breakfast.txt">Breakfast</button>
-            <button class="menu-tab" data-file="menus/lunch.txt">Lunch</button>
-            <button class="menu-tab" data-file="menus/dinner.txt">Dinner</button>
-            <button class="menu-tab" data-file="menus/closed.txt">Closed</button>
-          `;
-          menuTabs = document.querySelectorAll('.menu-tab');
-          menuTabs.forEach(tab => {
-            tab.addEventListener('click', () => switchMenu(tab.dataset.file));
-          });
+          // Fallback to dynamically discovered menu files if rules.json fails
+          console.log('Rules not found, loading menus from filesystem...');
+          fetch('../menus/index.php?' + Date.now())
+            .then(r => r.ok ? r.json() : [])
+            .then(menuFiles => {
+              if (menuFiles.length > 0) {
+                menuTabsContainer.innerHTML = '';
+                let isFirst = true;
+                menuFiles.forEach(menuFile => {
+                  const button = document.createElement('button');
+                  button.className = 'menu-tab';
+                  button.dataset.file = menuFile.path;
+                  button.textContent = menuFile.label;
+                  
+                  if (menuFile.path === currentFile || (isFirst && !localStorage.getItem('editCurrentMenu'))) {
+                    button.classList.add('active');
+                    currentFile = menuFile.path;
+                  }
+                  
+                  button.addEventListener('click', () => switchMenu(menuFile.path));
+                  menuTabsContainer.appendChild(button);
+                  isFirst = false;
+                });
+              } else {
+                // Final fallback if filesystem scan fails
+                console.warn('No menu files found, using minimal defaults');
+                menuTabsContainer.innerHTML = `
+                  <button class="menu-tab active" data-file="menus/menu1.txt">Menu 1</button>
+                  <button class="menu-tab" data-file="menus/menu2.txt">Menu 2</button>
+                `;
+              }
+              
+              menuTabs = document.querySelectorAll('.menu-tab');
+              menuTabs.forEach(tab => {
+                tab.addEventListener('click', () => switchMenu(tab.dataset.file));
+              });
+            })
+            .catch(err => {
+              console.error('Failed to load menu files:', err);
+              // Ultra-minimal fallback
+              menuTabsContainer.innerHTML = `
+                <button class="menu-tab active" data-file="menus/menu.txt">Menu</button>
+              `;
+              menuTabs = document.querySelectorAll('.menu-tab');
+              menuTabs.forEach(tab => {
+                tab.addEventListener('click', () => switchMenu(tab.dataset.file));
+              });
+            });
         });
     }
 

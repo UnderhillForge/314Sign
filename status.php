@@ -31,8 +31,23 @@ if (file_exists('/proc/uptime')) {
   );
 }
 
-// Check menu files
-$menu_files = ['menus/breakfast.txt', 'menus/lunch.txt', 'menus/dinner.txt', 'menus/closed.txt'];
+// Check menu files - dynamically discover all .txt files in menus/
+$menus_dir = __DIR__ . '/menus';
+$menu_files = [];
+if (is_dir($menus_dir) && $handle = opendir($menus_dir)) {
+  while (false !== ($file = readdir($handle))) {
+    if (pathinfo($file, PATHINFO_EXTENSION) === 'txt') {
+      $menu_files[] = 'menus/' . $file;
+    }
+  }
+  closedir($handle);
+  sort($menu_files);
+}
+
+if (empty($menu_files)) {
+  $status['errors'][] = "No menu files found in menus/ directory";
+}
+
 foreach ($menu_files as $menu) {
   $path = __DIR__ . '/' . $menu;
   if (file_exists($path)) {

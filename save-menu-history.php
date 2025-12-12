@@ -16,11 +16,11 @@ if (empty($menuName) || empty($content)) {
     exit;
 }
 
-// Sanitize menu name (breakfast, lunch, dinner, closed)
-$menuName = preg_replace('/[^a-z]/', '', strtolower($menuName));
-if (!in_array($menuName, ['breakfast', 'lunch', 'dinner', 'closed'])) {
+// Sanitize menu name - allow any alphanumeric, dash, underscore
+$menuName = preg_replace('/[^a-z0-9_-]/', '', strtolower($menuName));
+if (empty($menuName) || strlen($menuName) > 50) {
     http_response_code(400);
-    echo json_encode(['error' => 'Invalid menu name']);
+    echo json_encode(['error' => 'Invalid menu name (must be alphanumeric, dash, underscore, max 50 chars)']);
     exit;
 }
 

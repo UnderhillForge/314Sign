@@ -265,12 +265,37 @@
     
     let rules = [];
     const allDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-    const availableMenus = [
-      { label: '🌅 Breakfast', value: 'menus/breakfast.txt' },
-      { label: '🌞 Lunch', value: 'menus/lunch.txt' },
-      { label: '🌙 Dinner', value: 'menus/dinner.txt' },
-      { label: '🚫 Closed', value: 'menus/closed.txt' }
-    ];
+    let availableMenus = [];
+
+    // Load available menu files from filesystem
+    function loadAvailableMenus() {
+      return fetch('../menus/index.php?' + Date.now())
+        .then(r => r.ok ? r.json() : [])
+        .then(menuFiles => {
+          if (menuFiles.length > 0) {
+            availableMenus = menuFiles.map(menu => ({
+              label: menu.label,
+              value: menu.path
+            }));
+          } else {
+            // Minimal fallback
+            availableMenus = [
+              { label: 'Menu 1', value: 'menus/menu1.txt' },
+              { label: 'Menu 2', value: 'menus/menu2.txt' }
+            ];
+          }
+          console.log('Available menus loaded:', availableMenus.length);
+          return availableMenus;
+        })
+        .catch(err => {
+          console.error('Failed to load menu files:', err);
+          // Ultra-minimal fallback
+          availableMenus = [
+            { label: 'Menu', value: 'menus/menu.txt' }
+          ];
+          return availableMenus;
+        });
+    }
 
     // Load rules from server
     function loadRules() {
@@ -463,8 +488,8 @@
       }, ms);
     }
 
-    // Load on startup
-    loadRules();
+    // Load on startup - first load menus, then load rules
+    loadAvailableMenus().then(() => loadRules());
     
     // Check for version updates and force reload
     let currentVersion = null;
