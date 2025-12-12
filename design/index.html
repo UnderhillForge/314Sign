@@ -367,9 +367,10 @@
     // === 4. Load saved config and populate fonts ===
     function loadConfig() {
       // Load config to get fonts list
-      fetch('../config.json')
+      fetch('../config.json?' + Date.now(), { cache: 'no-store' })
         .then(r => r.ok ? r.json() : {})
         .then(cfg => {
+          console.log('[Config] Loaded config:', cfg);
           // Get fonts from config (already includes custom fonts with nice names)
           const fonts = cfg.availableFonts || {
             "Lato": "Lato, sans-serif",
@@ -403,10 +404,12 @@
           // Set the header font (defaults to body font if not set)
           if (cfg.headerFont) {
             headerFontSelect.value = cfg.headerFont;
-            console.log('Header font set to:', cfg.headerFont);
+            console.log('[Config] Header font from config:', cfg.headerFont);
+            console.log('[Config] Dropdown value after set:', headerFontSelect.value);
+            console.log('[Config] Selected option text:', headerFontSelect.options[headerFontSelect.selectedIndex]?.text);
           } else if (cfg.font) {
             headerFontSelect.value = cfg.font;
-            console.log('Header font defaulted to body font:', cfg.font);
+            console.log('[Config] Header font defaulted to body font:', cfg.font);
           }
           
           // Load header text
@@ -454,6 +457,8 @@
           // Load logo settings
           if (cfg.logoFile) {
             logoFileSelect.value = cfg.logoFile;
+            selectedLogo = cfg.logoFile; // Initialize selectedLogo variable
+            console.log('[Config] Logo file loaded:', cfg.logoFile);
           }
           if (cfg.logoPosition) {
             logoPositionSelect.value = cfg.logoPosition;
@@ -511,7 +516,7 @@
             autoFormatItemColor: autoFormatItemColor.value,
             autoFormatPriceColor: autoFormatPriceColor.value,
             autoFormatDescColor: autoFormatDescColor.value,
-            logoFile: (selectedLogo === 'uploaded' ? null : logoFileSelect.value) || null,
+            logoFile: selectedLogo === 'uploaded' ? null : (logoFileSelect.value || null),
             logoPosition: logoPositionSelect.value,
             logoSize: parseFloat(logoSizeInput.value),
             logoOpacity: parseFloat(logoOpacityInput.value) / 100
