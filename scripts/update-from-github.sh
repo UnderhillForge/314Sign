@@ -121,6 +121,7 @@ fi
 # Exclude config.json, menus-config.json, rules.json, menus/*.txt, uploaded images, and runtime state files
 declare -a UPDATE_FILES=(
   "index.html"
+  "version.txt"
   "favicon.svg"
   "edit/index.html"
   "design/index.html"
