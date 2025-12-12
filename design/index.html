@@ -544,106 +544,58 @@
           }
           return r;
           return Promise.all([
-            uploadImageIfNeeded(),
-            function uploadImageIfNeeded() {
-              if (selectedBg !== 'uploaded' || !uploadedDataUrl) {
-                console.log('[Upload] No upload needed (selectedBg:', selectedBg, ', uploadedDataUrl:', !!uploadedDataUrl, ')');
-                return Promise.resolve();
-              }
+            uploadImageIfNeeded()
+          ]);
+// === 6. Upload new image via PHP ===
+function uploadImageIfNeeded() {
+  if (selectedBg !== 'uploaded' || !uploadedDataUrl) return Promise.resolve();
 
-              // Convert dataURL to Blob (use helper) to preserve MIME and avoid
-              // potential CORS issues fetching data: URLs.
-              const blob = dataURLtoBlob(uploadedDataUrl);
-              const form = new FormData();
-              // Use original filename when available
-              const name = uploadedFileName || 'upload.jpg';
-              form.append('image', blob, name);
+  // Convert dataURL to Blob (use helper) to preserve MIME and avoid
+  // potential CORS issues fetching data: URLs.
+  const blob = dataURLtoBlob(uploadedDataUrl);
+  const form = new FormData();
+  // Use original filename when available
+  const name = uploadedFileName || 'upload.jpg';
+  form.append('image', blob, name);
 
-              console.log('[Upload] Attempting upload:', name, blob);
+  console.log('[Upload] Attempting upload:', name, blob);
 
-              return fetch('upload-bg.php', {
-                method: 'POST',
-                body: form
-              })
-              .then(r => {
-                // Try to parse JSON even on non-OK to surface server-side messages
-                return r.text().then(text => {
-                  let data = null;
-                  try { data = text ? JSON.parse(text) : null; } catch(e) { /* ignore */ }
-                  console.log('[Upload] Server response:', text);
-                  if (!r.ok) {
-                    const errMsg = data && (data.error || data.detail) ? (data.error + (data.detail ? (': ' + data.detail) : '')) : (text || r.statusText);
-                    return Promise.reject(errMsg);
-                  }
-                  return data;
-                });
-              })
-              .then(data => {
-                if (data && data.filename) {
-                  console.log('[Upload] Upload successful, filename:', data.filename);
-                  selectedBg = data.filename;
-                  backgrounds.push(data.filename);
-                  renderThumbs();
-                  const thumb = document.querySelector(`.bg-thumb[data-file="${data.filename}"]`);
-                  if (thumb) thumb.classList.add('selected');
-                  return updateConfigWithNewFilename(data.filename);
-                }
-                const err = data && (data.error || data.detail) ? (data.error + (data.detail ? (': ' + data.detail) : '')) : 'Upload failed (no filename returned)';
-                return Promise.reject(err);
-              })
-              .catch(err => {
-                console.error('[Upload] Upload error:', err);
-                status.textContent = 'Upload error: ' + (err && err.message ? err.message : err);
-                return Promise.reject(err);
-              });
-            }
-    // === 6. Upload new image via PHP ===
-    function uploadImageIfNeeded() {
-      if (selectedBg !== 'uploaded' || !uploadedDataUrl) return Promise.resolve();
-
-      // Convert dataURL to Blob (use helper) to preserve MIME and avoid
-      // potential CORS issues fetching data: URLs.
-      const blob = dataURLtoBlob(uploadedDataUrl);
-      const form = new FormData();
-      // Use original filename when available
-      const name = uploadedFileName || 'upload.jpg';
-      form.append('image', blob, name);
-
-      return fetch('upload-bg.php', {
-        method: 'POST',
-        body: form
-      })
-      .then(r => {
-        // Try to parse JSON even on non-OK to surface server-side messages
-        return r.text().then(text => {
-          let data = null;
-          try { data = text ? JSON.parse(text) : null; } catch(e) { /* ignore */ }
-          if (!r.ok) {
-            const errMsg = data && (data.error || data.detail) ? (data.error + (data.detail ? (': ' + data.detail) : '')) : (text || r.statusText);
-            return Promise.reject(errMsg);
-          }
-          return data;
-        });
-      })
-      .then(data => {
-        if (data && data.filename) {
-          selectedBg = data.filename;
-          backgrounds.push(data.filename);
-          renderThumbs();
-          const thumb = document.querySelector(`.bg-thumb[data-file="${data.filename}"]`);
-          if (thumb) thumb.classList.add('selected');
-          return updateConfigWithNewFilename(data.filename);
-        }
-        const err = data && (data.error || data.detail) ? (data.error + (data.detail ? (': ' + data.detail) : '')) : 'Upload failed (no filename returned)';
-        return Promise.reject(err);
-      })
-      .catch(err => {
-        console.error('Upload error:', err);
-        // Surface server-side error to user
-        status.textContent = 'Upload error: ' + (err && err.message ? err.message : err);
-        return Promise.reject(err);
-      });
+  return fetch('upload-bg.php', {
+    method: 'POST',
+    body: form
+  })
+  .then(r => {
+    // Try to parse JSON even on non-OK to surface server-side messages
+    return r.text().then(text => {
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch(e) { /* ignore */ }
+      console.log('[Upload] Server response:', text);
+      if (!r.ok) {
+        const errMsg = data && (data.error || data.detail) ? (data.error + (data.detail ? (': ' + data.detail) : '')) : (text || r.statusText);
+        return Promise.reject(errMsg);
+      }
+      return data;
+    });
+  })
+  .then(data => {
+    if (data && data.filename) {
+      console.log('[Upload] Upload successful, filename:', data.filename);
+      selectedBg = data.filename;
+      backgrounds.push(data.filename);
+      renderThumbs();
+      const thumb = document.querySelector(`.bg-thumb[data-file="${data.filename}"]`);
+      if (thumb) thumb.classList.add('selected');
+      return updateConfigWithNewFilename(data.filename);
     }
+    const err = data && (data.error || data.detail) ? (data.error + (data.detail ? (': ' + data.detail) : '')) : 'Upload failed (no filename returned)';
+    return Promise.reject(err);
+  })
+  .catch(err => {
+    console.error('[Upload] Upload error:', err);
+    status.textContent = 'Upload error: ' + (err && err.message ? err.message : err);
+    return Promise.reject(err);
+  });
+}
 
     function updateConfigWithNewFilename(filename) {
       // Read existing config and POST partial update to merge endpoint to avoid destructive overwrite
