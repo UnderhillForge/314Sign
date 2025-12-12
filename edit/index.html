@@ -591,6 +591,8 @@
 
     // Remember which menu was last edited
     let currentFile = localStorage.getItem('editCurrentMenu') || 'menus/breakfast.txt';
+    // Keep the last-loaded file contents to detect external changes before save
+    let loadedFileText = '';
 
     // Populate menu tabs from rules.json
     function initializeMenuTabs() {
@@ -729,6 +731,13 @@
         return result || line;
       });
       html = colorProcessedLines.join('\n');
+      // Strip quotes inside color spans so descriptions don't show surrounding quotes
+      function stripQuotesInSpansLocal(h) {
+        h = h.replace(/>(["'“”])/g, '>');
+        h = h.replace(/(["'“”])<\/span>/g, '</span>');
+        return h;
+      }
+      html = stripQuotesInSpansLocal(html);
       
       // Check for font size override tags [sX]...[/s] where X is percentage
       const sizeRegex = /\[s(\d+(?:\.\d+)?)\]([\s\S]*?)\[\/s\]/gi;
@@ -790,6 +799,7 @@
         })
         .then(text => {
           textarea.value = text;
+          loadedFileText = text;
           textarea.placeholder = "Start typing...";
           updatePreview();
         })
@@ -1203,13 +1213,26 @@
       const data = textarea.value;
       status.textContent = 'Saving...';
 
-      fetch('/' + currentFile, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'text/plain' },
-        body: data
-      })
+      // Check for external changes since load to avoid accidental overwrite
+      fetch('/' + currentFile + '?' + Date.now(), { cache: 'no-store' })
+        .then(r => r.ok ? r.text() : '')
+        .then(currentOnDisk => {
+          if (currentOnDisk && loadedFileText && currentOnDisk !== loadedFileText) {
+            // File has changed since we loaded it
+            if (!confirm('The file has changed on disk since you opened it. Overwrite with your changes?')) {
+              status.textContent = 'Save cancelled — file changed externally.';
+              return Promise.reject(new Error('Aborted due to external change'));
+            }
+          }
+
+          return fetch('/' + currentFile, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'text/plain' },
+            body: data
+          });
+        })
       .then(r => {
-        if (r.ok) {
+        if (r && r.ok) {
             status.textContent = 'Saved! Kiosk will refresh...';
             // show toast notification
             if (window.showToast) showToast('Saved — kiosk updated');
@@ -1230,9 +1253,11 @@
             }).catch(() => {});
             
             try { parent.location.reload(); } catch(e) {}
+            // Update loadedFileText to reflect what's now on disk
+            loadedFileText = data;
             setTimeout(() => status.textContent = '', 3000);
           } else {
-          throw new Error('HTTP ' + r.status);
+          throw new Error('HTTP ' + (r ? r.status : 'no response'));
         }
       })
       .catch(err => {
