@@ -512,7 +512,8 @@
   let lastReloadToken = null;
   let lastDemoCommand = 'idle';
   let currentVersion = null;
-  let lastHeaderFont = null;    async function checkConfigChanges() {
+  let lastHeaderFont = null;
+  let lastRequestedMenu = null;    async function checkConfigChanges() {
       try {
         // Run all checks in parallel with timeout protection
         await Promise.race([
@@ -532,6 +533,29 @@
                   lastReloadToken = token;
                   showReloadIndicator();
                   setTimeout(() => location.reload(true), 1000);
+                }
+              })
+              .catch(() => {}),
+            
+            // Check for current-menu.json changes (external menu control)
+            fetch('current-menu.json?' + Date.now(), { cache: 'no-store' })
+              .then(r => r.ok ? r.json() : null)
+              .then(data => {
+                if (!data || !data.menu) return;
+                const requestedMenu = data.menu;
+                
+                // Only switch if not in demo mode and menu is different
+                if (!demoModeActive && requestedMenu !== currentMenu) {
+                  if (lastRequestedMenu === null) {
+                    lastRequestedMenu = requestedMenu;
+                    console.log('[Current Menu] Baseline set:', requestedMenu);
+                  } else if (requestedMenu !== lastRequestedMenu) {
+                    console.log('[Current Menu] Switching from', currentMenu, 'to', requestedMenu);
+                    lastRequestedMenu = requestedMenu;
+                    switchMenu(requestedMenu);
+                  }
+                } else if (lastRequestedMenu === null) {
+                  lastRequestedMenu = requestedMenu;
                 }
               })
               .catch(() => {}),

@@ -11,3 +11,4 @@ Thumbs.db
 # Runtime state files (modified by kiosk/editors at runtime)
 reload.txt
 demo-command.txt
+current-menu.json
