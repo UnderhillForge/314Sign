@@ -519,14 +519,25 @@
           };
 
           // Save config.json via merge endpoint (read→merge→write) to avoid destructive overwrites
-          return fetch('../scripts/merge-config.php', {
+          const mergeUrl = '../scripts/merge-config.php';
+          console.log('[Save] Saving config to:', mergeUrl);
+          console.log('[Save] Config data:', updatedConfig);
+          
+          return fetch(mergeUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updatedConfig)
           });
         })
         .then(r => {
-          if (!r.ok) return r.text().then(t => Promise.reject('Config save failed: ' + (t || r.statusText)));
+          console.log('[Save] Response status:', r.status, r.statusText);
+          if (!r.ok) {
+            return r.text().then(t => {
+              console.error('[Save] Error response:', t.substring(0, 200));
+              return Promise.reject('Config save failed: ' + (t.substring(0, 100) || r.statusText));
+            });
+          }
+          return r;
           return Promise.all([
             uploadImageIfNeeded(),
             uploadLogoIfNeeded()
@@ -565,6 +576,8 @@
       .catch(err => {
         console.error('Save error:', err);
         status.textContent = 'Error: ' + (err && err.message ? err.message : err);
+        // Still reload page after error to reset state
+        setTimeout(() => location.reload(), 3000);
       })
       .finally(() => {
         if (saveBtn) saveBtn.disabled = false;
