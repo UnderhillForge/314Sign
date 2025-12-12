@@ -279,7 +279,7 @@
       
       // Load per-menu settings from menus-config.json
       const menuName = filename.replace('menus/', '').replace('.txt', '');
-      fetch('menus-config.json')
+      fetch('menus-config.json?' + Date.now(), { cache: 'no-store' })
         .then(r => r.ok ? r.json() : {})
         .then(menusConfig => {
           const specialsDiv = document.getElementById('specials');
@@ -420,7 +420,7 @@
           
           // Load per-menu font scale from menus-config.json (overrides global setting)
           const menuName = currentMenu.replace('menus/', '').replace('.txt', '');
-          fetch('menus-config.json')
+          fetch('menus-config.json?' + Date.now(), { cache: 'no-store' })
             .then(r => r.ok ? r.json() : {})
             .then(menusConfig => {
               const specials = document.getElementById('specials');
@@ -498,8 +498,9 @@
     // 2. Poll specials.txt – ETag-aware, fallback to text compare
     // --------------------------------------------------------------------
     function startPolling() {
-      // Check rules immediately and then every minute
-      checkScheduleRules();
+      // Check rules after a brief delay to allow user's manual selection to load first
+      // (localStorage currentMenu should take precedence on initial page load)
+      setTimeout(checkScheduleRules, 2000);
       rulesCheckInterval = setInterval(checkScheduleRules, 60000);
       
       // Check config, reload triggers, and demo commands every 2 seconds for responsiveness
