@@ -140,13 +140,21 @@ declare -a UPDATE_FILES=(
   "trigger-reload.php"
   "save-menu-history.php"
   "get-menu-history.php"
+  "set-current-menu.php"
   "scripts/backup.sh"
+  "scripts/merge-config.php"
+  "scripts/read-file-debug.php"
+  "scripts/put-guard.php"
+  "scripts/validate-slideshow-set.php"
   "scripts/os-lite-kiosk.sh"
   "scripts/update-from-github.sh"
   "permissions.sh"
   "setup-kiosk.sh"
   "create-webdav-user.sh"
   "sudoers-314sign"
+  "design/upload-logo.php"
+  "media/index.php"
+  "menus/index.php"
 )
 
 # Optional documentation files (won't fail if missing)
