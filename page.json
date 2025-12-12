@@ -1,7 +1,7 @@
 {
   "bg": "backgd.jpg",
-  "font": "'Lato-Regular', Lato, sans-serif",
-  "headerFont": "'Lato-Regular', Lato, sans-serif",
+  "font": "Arial, sans-serif",
+  "headerFont": "Arial, sans-serif",
   "pollIntervalSeconds": 3,
   "fontScalePercent": 5,
   "headerSizePercent": 5,
