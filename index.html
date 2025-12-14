@@ -289,8 +289,8 @@
       // Update current-menu.json for persistence and external control
       fetch('set-current-menu.php', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'menu=' + encodeURIComponent(filename)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ menu: filename })
       }).catch(err => console.warn('Failed to update current-menu.json:', err));
       
       // Load per-menu settings from menus-config.json
