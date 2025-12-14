@@ -560,7 +560,24 @@
               return Promise.reject('Config save failed: ' + (t.substring(0, 100) || r.statusText));
             });
           }
-          return r;
+          return r.json();
+        })
+        .then(() => {
+          // Success - show message and reload
+          status.textContent = 'Configuration saved successfully!';
+          showToast('Configuration saved! Reloading...', 'success');
+          setTimeout(() => location.reload(true), 1500);
+        })
+        .catch(err => {
+          console.error('[Save] Error:', err);
+          status.textContent = 'Save failed: ' + (err.message || err);
+          showToast('Save failed: ' + (err.message || err), 'error');
+          
+          // Re-enable buttons
+          const saveBtn = document.querySelector('.actions button');
+          const cancelBtn = document.querySelector('.actions button.secondary');
+          if (saveBtn) saveBtn.disabled = false;
+          if (cancelBtn) cancelBtn.disabled = false;
         });
     }
 function uploadImageIfNeeded() {
