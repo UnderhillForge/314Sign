@@ -519,49 +519,29 @@
         .then(existingConfig => {
           // Don't merge or modify availableFonts - keep what's in page.json
           
-          // Determine selected background
-          // selectedBg is already set globally from user interactions
+          // Determine selected background and logo
+          // selectedBg and selectedLogo are already set globally from user interactions
 
           let configPromise;
+          
+          // Handle uploads first
+          const uploadPromises = [];
+          
           if (selectedBg === 'uploaded' && uploadedDataUrl) {
-            // Upload image first, then save config with the uploaded filename
-            configPromise = uploadImageIfNeeded().then(uploadResult => {
-              const filename = uploadResult.filename;
-              const updatedConfig = {
-                ...existingConfig,
-                bg: 'bg/' + filename,
-                headerFont: headerFontSelect.value.includes(',') ? headerFontSelect.value : headerFontSelect.value + ', sans-serif',
-                headerText: headerTextInput.value.trim() || 'Specials',
-                headerSizePercent: parseFloat(headerSizeInput.value),
-                bgBrightness: parseFloat(bgBrightnessInput.value) / 100,
-                showClock: showClockCheckbox.checked,
-                clock24Hour: clock24HourCheckbox.checked,
-                autoFormatItemColor: autoFormatItemColor.value,
-                autoFormatPriceColor: autoFormatPriceColor.value,
-                autoFormatDescColor: autoFormatDescColor.value,
-                logoFile: selectedLogo === 'uploaded' ? null : (logoFileSelect.value || null),
-                logoPosition: logoPositionSelect.value,
-                logoSize: parseFloat(logoSizeInput.value),
-                logoOpacity: parseFloat(logoOpacityInput.value) / 100
-                // Keep existing availableFonts from page.json
-              };
-
-              // Save page.json via merge endpoint
-              const mergeUrl = '../scripts/merge-config.php';
-              console.log('[Save] Saving config to:', mergeUrl);
-              console.log('[Save] Config data:', updatedConfig);
-              
-              return fetch(mergeUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatedConfig)
-              });
-            });
-          } else {
-            // Save config directly
+            uploadPromises.push(uploadImageIfNeeded().then(result => ({ type: 'bg', filename: result.filename })));
+          }
+          
+          if (selectedLogo === 'uploaded' && uploadedLogoDataUrl) {
+            uploadPromises.push(uploadLogoIfNeeded().then(result => ({ type: 'logo', filename: result.filename })));
+          }
+          
+          configPromise = Promise.all(uploadPromises).then(uploadResults => {
+            // Build updated config with uploaded filenames
             const updatedConfig = {
               ...existingConfig,
-              bg: selectedBg,
+              bg: selectedBg === 'uploaded' ? 
+                ('bg/' + (uploadResults.find(r => r.type === 'bg')?.filename || selectedBg)) : 
+                selectedBg,
               headerFont: headerFontSelect.value.includes(',') ? headerFontSelect.value : headerFontSelect.value + ', sans-serif',
               headerText: headerTextInput.value.trim() || 'Specials',
               headerSizePercent: parseFloat(headerSizeInput.value),
@@ -571,7 +551,9 @@
               autoFormatItemColor: autoFormatItemColor.value,
               autoFormatPriceColor: autoFormatPriceColor.value,
               autoFormatDescColor: autoFormatDescColor.value,
-              logoFile: selectedLogo === 'uploaded' ? null : (logoFileSelect.value || null),
+              logoFile: selectedLogo === 'uploaded' ? 
+                (uploadResults.find(r => r.type === 'logo')?.filename || null) : 
+                (logoFileSelect.value || null),
               logoPosition: logoPositionSelect.value,
               logoSize: parseFloat(logoSizeInput.value),
               logoOpacity: parseFloat(logoOpacityInput.value) / 100
@@ -583,12 +565,12 @@
             console.log('[Save] Saving config to:', mergeUrl);
             console.log('[Save] Config data:', updatedConfig);
             
-            configPromise = fetch(mergeUrl, {
+            return fetch(mergeUrl, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(updatedConfig)
             });
-          }
+          });
 
           return configPromise;
         })
@@ -703,8 +685,7 @@ function uploadImageIfNeeded() {
       .then(data => {
         if (data && data.filename) {
           selectedLogo = data.filename;
-          // Update config with new logo filename
-          return updateConfigWithNewLogo(data.filename);
+          return { filename: data.filename };
         }
         const err = data && (data.error || data.detail) ? (data.error + (data.detail ? (': ' + data.detail) : '')) : 'Logo upload failed (no filename returned)';
         return Promise.reject(err);
@@ -714,24 +695,6 @@ function uploadImageIfNeeded() {
         status.textContent = 'Logo upload error: ' + (err && err.message ? err.message : err);
         return Promise.reject(err);
       });
-    }
-    
-    function updateConfigWithNewLogo(filename) {
-      return fetch('../page.json')
-        .then(r => r.ok ? r.json() : {})
-        .then(cfg => {
-          const patch = { logoFile: filename };
-          return fetch('../scripts/merge-config.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(patch)
-          }).then(r => {
-            if (!r.ok) return Promise.reject('Failed to update config with logo filename');
-            return r;
-          });
-        });
-    }
-
     function dataURLtoBlob(dataurl) {
       const [meta, base64] = dataurl.split(',');
       const mime = meta.match(/:(.*?);/)[1];
