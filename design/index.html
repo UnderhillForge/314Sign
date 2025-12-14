@@ -680,7 +680,7 @@ function uploadImageIfNeeded() {
       .then(r => {
         return r.text().then(text => {
           let data = null;
-          try { data = text ? JSON.parse(text) : null; } catch(e) { /* ignore */ }
+          try { data = text ? JSON.parse(text) : null; } catch(e) { }
           if (!r.ok) {
             const errMsg = data && (data.error || data.detail) ? (data.error + (data.detail ? (': ' + data.detail) : '')) : (text || r.statusText);
             return Promise.reject(errMsg);
