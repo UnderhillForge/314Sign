@@ -1033,7 +1033,17 @@
       
       // Load custom fonts from fonts/ directory first
       fetch('../fonts/index.php')
-        .then(r => r.ok ? r.json() : [])
+        .then(r => {
+          if (!r.ok) {
+            console.warn('Failed to load custom fonts, using fallback');
+            return [];
+          }
+          return r.json();
+        })
+        .catch(err => {
+          console.warn('Error loading custom fonts:', err);
+          return [];
+        })
         .then(customFonts => {
           // Generate @font-face rules for custom fonts
           if (customFonts.length > 0) {
@@ -1053,11 +1063,25 @@
           
           // Load global config to populate font dropdown
           return fetch('../page.json')
-            .then(r => r.ok ? r.json() : {})
+            .then(r => {
+              if (!r.ok) {
+                console.warn('Failed to load page.json, using fallback fonts');
+                return {};
+              }
+              return r.json();
+            })
+            .catch(err => {
+              console.warn('Error loading page.json:', err);
+              return {};
+            })
             .then(cfg => {
-              // Start with config fonts
+              // Start with config fonts or fallback
               const fonts = cfg.availableFonts || {
-                "Lato": "Lato, sans-serif"
+                "Arial": "Arial, sans-serif",
+                "Times New Roman": "Times New Roman, serif",
+                "Courier New": "Courier New, monospace",
+                "Georgia": "Georgia, serif",
+                "Verdana": "Verdana, sans-serif"
               };
               
               // Add custom fonts from fonts/ directory
@@ -1075,9 +1099,21 @@
                 fontSelect.appendChild(option);
               });
               
+              console.log('Font dropdown populated with:', Object.keys(fonts));
+              
               // Load per-menu settings from menus-config.json
               return fetch('../menus-config.json')
-                .then(r => r.ok ? r.json() : {})
+                .then(r => {
+                  if (!r.ok) {
+                    console.warn('Failed to load menus-config.json, using defaults');
+                    return {};
+                  }
+                  return r.json();
+                })
+                .catch(err => {
+                  console.warn('Error loading menus-config.json:', err);
+                  return {};
+                })
                 .then(menusConfig => {
                   // Load per-menu font scale
                   if (menusConfig[menuName] && menusConfig[menuName].fontScalePercent) {
