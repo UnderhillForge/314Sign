@@ -25,6 +25,9 @@
 set -e
 
 echo "=== 314Sign Kiosk Mode Setup ==="
+echo "Script starting at $(date)"
+echo "Running as user: $(whoami)"
+echo "SUDO_USER: ${SUDO_USER:-not set}"
 echo ""
 
 # Detect the correct user (not root when run with sudo)
@@ -117,12 +120,18 @@ echo "Setting screen rotation to: $ROTATION"
 # Check if packages already installed
 echo "Checking installed packages..."
 NEED_INSTALL=false
+echo "Checking for packages: xserver-xorg xinit openbox unclutter"
 for pkg in xserver-xorg xinit openbox unclutter; do
+  echo "Checking package: $pkg"
   if ! dpkg -l | grep -q "^ii  $pkg "; then
+    echo "Package $pkg not found, will install"
     NEED_INSTALL=true
     break
+  else
+    echo "Package $pkg already installed"
   fi
 done
+echo "NEED_INSTALL=$NEED_INSTALL"
 
 if [ "$NEED_INSTALL" = true ]; then
   echo "Installing minimal X11 and web browser..."
@@ -210,7 +219,14 @@ echo "TARGET_HOME: $TARGET_HOME"
 echo "Current user: $(whoami)"
 echo "Current directory: $(pwd)"
 echo "Testing write permissions to TARGET_HOME..."
-touch "$TARGET_HOME/test_write_permissions.tmp" 2>/dev/null && rm "$TARGET_HOME/test_write_permissions.tmp" 2>/dev/null && echo "Write test: SUCCESS" || echo "Write test: FAILED - cannot write to $TARGET_HOME"
+if touch "$TARGET_HOME/test_write_permissions.tmp" 2>/dev/null; then
+  rm "$TARGET_HOME/test_write_permissions.tmp" 2>/dev/null
+  echo "Write test: SUCCESS - can write to $TARGET_HOME"
+else
+  echo "Write test: FAILED - cannot write to $TARGET_HOME"
+  echo "This will prevent kiosk file creation!"
+  exit 1
+fi
 
 echo "Creating kiosk startup script..."
 echo "Target directory: $TARGET_HOME/.config/openbox"
