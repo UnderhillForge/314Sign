@@ -138,6 +138,7 @@
       </select>
     </div>
 
+    <!--
     <div class="section">
       <label>7. Logo (Optional)</label>
       <small style="color: #999; display: block; margin-bottom: 0.75rem;">Display a logo on the kiosk menu pages</small>
@@ -165,6 +166,7 @@
       <label for="logoOpacity" style="font-size: 0.9rem; margin-top: 0.5rem;">Opacity: <span id="logoOpacityValue">100%</span></label>
       <input type="range" id="logoOpacity" min="10" max="100" value="100" step="5" style="width: 100%" />
     </div>
+    -->
 
     <div class="actions">
       <button onclick="saveDesign()">Save & Update Kiosk</button>
@@ -181,8 +183,8 @@
     const bgGrid = document.getElementById('bg-grid');
     const upload = document.getElementById('upload');
     const preview = document.getElementById('preview');
-    const logoUpload = document.getElementById('logoUpload');
-    const logoPreview = document.getElementById('logoPreview');
+    // const logoUpload = document.getElementById('logoUpload');
+    // const logoPreview = document.getElementById('logoPreview');
     const headerFontSelect = document.getElementById('headerFont');
     const headerTextInput = document.getElementById('headerText');
     const headerSizeInput = document.getElementById('headerSize');
@@ -194,12 +196,12 @@
     const autoFormatItemColor = document.getElementById('autoFormatItemColor');
     const autoFormatPriceColor = document.getElementById('autoFormatPriceColor');
     const autoFormatDescColor = document.getElementById('autoFormatDescColor');
-    const logoFileSelect = document.getElementById('logoFile');
-    const logoPositionSelect = document.getElementById('logoPosition');
-    const logoSizeInput = document.getElementById('logoSize');
-    const logoSizeValue = document.getElementById('logoSizeValue');
-    const logoOpacityInput = document.getElementById('logoOpacity');
-    const logoOpacityValue = document.getElementById('logoOpacityValue');
+    // const logoFileSelect = document.getElementById('logoFile');
+    // const logoPositionSelect = document.getElementById('logoPosition');
+    // const logoSizeInput = document.getElementById('logoSize');
+    // const logoSizeValue = document.getElementById('logoSizeValue');
+    // const logoOpacityInput = document.getElementById('logoOpacity');
+    // const logoOpacityValue = document.getElementById('logoOpacityValue');
     const status = document.getElementById('status');
     
     // Update header size display
@@ -213,36 +215,36 @@
     });
     
     // Update logo size display
-    logoSizeInput.addEventListener('input', () => {
-      logoSizeValue.textContent = logoSizeInput.value + '%';
-    });
+    // logoSizeInput.addEventListener('input', () => {
+    //   logoSizeValue.textContent = logoSizeInput.value + '%';
+    // });
     
     // Update logo opacity display
-    logoOpacityInput.addEventListener('input', () => {
-      logoOpacityValue.textContent = logoOpacityInput.value + '%';
-    });
+    // logoOpacityInput.addEventListener('input', () => {
+    //   logoOpacityValue.textContent = logoOpacityInput.value + '%';
+    // });
     
     // Handle logo file selection from dropdown
-    logoFileSelect.addEventListener('change', () => {
-      if (logoFileSelect.value) {
-        selectedLogo = logoFileSelect.value;
-        uploadedLogoDataUrl = null;
-        logoPreview.style.display = 'none';
-      } else {
-        selectedLogo = null;
-        uploadedLogoDataUrl = null;
-        logoPreview.style.display = 'none';
-      }
-    });
+    // logoFileSelect.addEventListener('change', () => {
+    //   if (logoFileSelect.value) {
+    //     selectedLogo = logoFileSelect.value;
+    //     uploadedLogoDataUrl = null;
+    //     logoPreview.style.display = 'none';
+    //   } else {
+    //     selectedLogo = null;
+    //     uploadedLogoDataUrl = null;
+    //     logoPreview.style.display = 'none';
+    //   }
+    // });
 
   let backgrounds = [];        // Filled from server
   let selectedBg = null;       // Filename or 'uploaded'
   let uploadedDataUrl = null;
   let uploadedFileName = null; // original filename from file input
   
-  let selectedLogo = null;     // Logo filename or 'uploaded'
-  let uploadedLogoDataUrl = null;
-  let uploadedLogoFileName = null;
+  // let selectedLogo = null;     // Logo filename or 'uploaded'
+  // let uploadedLogoDataUrl = null;
+  // let uploadedLogoFileName = null;
 
     // === 1. Load existing images from /bg/ ===
     function loadBackgrounds() {
@@ -251,18 +253,19 @@
         .then(files => {
           backgrounds = files;
           renderThumbs();
-          loadLogoFiles();
+          // loadLogoFiles();
         })
         .catch(err => {
           console.error(err);
           status.textContent = 'Warning: Could not load backgrounds.';
           backgrounds = [];
           renderThumbs();
-          loadLogoFiles();
+          // loadLogoFiles();
         });
     }
     
     // === Load logo files from media/ directory ===
+    /*
     function loadLogoFiles() {
       fetch('../media/index.php?' + Date.now())
         .then(r => {
@@ -309,6 +312,7 @@
           loadConfig();
         });
     }
+    */
 
     // === 2. Render thumbnails ===
     function renderThumbs() {
@@ -349,6 +353,7 @@
     };
     
     // === Handle logo upload (preview only) ===
+    /*
     logoUpload.onchange = () => {
       const file = logoUpload.files[0];
       if (!file) return;
@@ -363,6 +368,7 @@
       };
       reader.readAsDataURL(file);
     };
+    */
 
     // === 4. Load saved config and populate fonts ===
     function loadConfig() {
@@ -455,6 +461,7 @@
           }
           
           // Load logo settings
+          /*
           if (cfg.logoFile) {
             logoFileSelect.value = cfg.logoFile;
             selectedLogo = cfg.logoFile; // Initialize selectedLogo variable
@@ -473,6 +480,7 @@
             logoOpacityInput.value = cfg.logoOpacity * 100;
             logoOpacityValue.textContent = Math.round(cfg.logoOpacity * 100) + '%';
           }
+          */
         })
         .catch(err => {
           console.error('Failed to load config:', err);
@@ -508,10 +516,10 @@
       const autoFormatItemColor = document.getElementById('autoFormatItemColor');
       const autoFormatPriceColor = document.getElementById('autoFormatPriceColor');
       const autoFormatDescColor = document.getElementById('autoFormatDescColor');
-      const logoFileSelect = document.getElementById('logoFile');
-      const logoPositionSelect = document.getElementById('logoPosition');
-      const logoSizeInput = document.getElementById('logoSize');
-      const logoOpacityInput = document.getElementById('logoOpacity');
+      // const logoFileSelect = document.getElementById('logoFile');
+      // const logoPositionSelect = document.getElementById('logoPosition');
+      // const logoSizeInput = document.getElementById('logoSize');
+      // const logoOpacityInput = document.getElementById('logoOpacity');
 
       // Read existing config first to preserve all settings
       fetch('../page.json')
@@ -531,9 +539,9 @@
             uploadPromises.push(uploadImageIfNeeded().then(result => ({ type: 'bg', filename: result.filename })));
           }
           
-          if (selectedLogo === 'uploaded' && uploadedLogoDataUrl) {
-            uploadPromises.push(uploadLogoIfNeeded().then(result => ({ type: 'logo', filename: result.filename })));
-          }
+          // if (selectedLogo === 'uploaded' && uploadedLogoDataUrl) {
+          //   uploadPromises.push(uploadLogoIfNeeded().then(result => ({ type: 'logo', filename: result.filename })));
+          // }
           
           configPromise = Promise.all(uploadPromises).then(uploadResults => {
             // Build updated config with uploaded filenames
@@ -551,12 +559,12 @@
               autoFormatItemColor: autoFormatItemColor.value,
               autoFormatPriceColor: autoFormatPriceColor.value,
               autoFormatDescColor: autoFormatDescColor.value,
-              logoFile: selectedLogo === 'uploaded' ? 
-                (uploadResults.find(r => r.type === 'logo')?.filename || null) : 
-                (logoFileSelect.value || null),
-              logoPosition: logoPositionSelect.value,
-              logoSize: parseFloat(logoSizeInput.value),
-              logoOpacity: parseFloat(logoOpacityInput.value) / 100
+              // logoFile: selectedLogo === 'uploaded' ? 
+              //   (uploadResults.find(r => r.type === 'logo')?.filename || null) : 
+              //   (logoFileSelect.value || null),
+              // logoPosition: logoPositionSelect.value,
+              // logoSize: parseFloat(logoSizeInput.value),
+              // logoOpacity: parseFloat(logoOpacityInput.value) / 100
               // Keep existing availableFonts from page.json
             };
 
@@ -654,6 +662,7 @@ function uploadImageIfNeeded() {
     }
     
     // === 6b. Upload new logo via PHP ===
+    /*
     function uploadLogoIfNeeded() {
       if (selectedLogo !== 'uploaded' || !uploadedLogoDataUrl) return Promise.resolve();
 
@@ -693,6 +702,7 @@ function uploadImageIfNeeded() {
         return Promise.reject(err);
       });
     }
+    */
     
     function dataURLtoBlob(dataurl) {
       const [meta, base64] = dataurl.split(',');
