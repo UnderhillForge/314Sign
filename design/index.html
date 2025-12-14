@@ -692,6 +692,8 @@ function uploadImageIfNeeded() {
         status.textContent = 'Logo upload error: ' + (err && err.message ? err.message : err);
         return Promise.reject(err);
       });
+    }
+    
     function dataURLtoBlob(dataurl) {
       const [meta, base64] = dataurl.split(',');
       const mime = meta.match(/:(.*?);/)[1];
