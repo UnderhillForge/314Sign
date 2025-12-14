@@ -524,9 +524,6 @@
 
           let configPromise;
           if (selectedBg === 'uploaded' && uploadedDataUrl) {
-
-          let configPromise;
-          if (selectedBg === 'uploaded' && uploadedDataUrl) {
             // Upload image first, then save config with the uploaded filename
             configPromise = uploadImageIfNeeded().then(uploadResult => {
               const filename = uploadResult.filename;
