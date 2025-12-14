@@ -343,6 +343,14 @@
     // === 4. Load saved config and populate fonts ===
     function loadConfig() {
       console.log('[Config] loadConfig called');
+      
+      // Ensure form elements exist
+      if (!headerTextInput || !headerSizeInput || !bgBrightnessInput) {
+        console.error('[Config] Form elements not found, retrying in 500ms');
+        setTimeout(loadConfig, 500);
+        return;
+      }
+      
       // Load config to get fonts list
       fetch('../page.json?' + Date.now(), { cache: 'no-store' })
         .then(r => {
