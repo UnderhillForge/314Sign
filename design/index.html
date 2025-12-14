@@ -403,15 +403,13 @@
           
           // Set the header font (defaults to body font if not set)
           if (cfg.headerFont) {
-            const fontName = cfg.headerFont.split(',')[0].trim();
-            headerFontSelect.value = fontName;
-            console.log('[Config] Header font from config:', cfg.headerFont, '-> using:', fontName);
+            headerFontSelect.value = cfg.headerFont;
+            console.log('[Config] Header font from config:', cfg.headerFont);
             console.log('[Config] Dropdown value after set:', headerFontSelect.value);
             console.log('[Config] Selected option text:', headerFontSelect.options[headerFontSelect.selectedIndex]?.text);
           } else if (cfg.font) {
-            const fontName = cfg.font.split(',')[0].trim();
-            headerFontSelect.value = fontName;
-            console.log('[Config] Header font defaulted to body font:', cfg.font, '-> using:', fontName);
+            headerFontSelect.value = cfg.font;
+            console.log('[Config] Header font defaulted to body font:', cfg.font);
           }
           
           // Load header text
