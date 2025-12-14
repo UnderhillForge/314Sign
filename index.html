@@ -192,7 +192,6 @@
   // Can be overridden via fontScalePercent in page.json.
   let fontScalePercent = 5;
     let lastHeaderSizePercent = null;
-  let lastBgBrightness = null;
   // Check if demo mode is persisted from previous session
   let demoModeActive = localStorage.getItem('demoModeActive') === 'true';
 
@@ -400,7 +399,6 @@
           document.head.appendChild(bgStyle);
           lastBgImage = cfg.bg;
         }
-        }
         if (cfg.font) document.body.style.fontFamily = cfg.font;
         
         // Apply header font separately if set (falls back to body font)
@@ -561,7 +559,8 @@
   let lastRequestedMenu = null;
   let lastRulesHash = null;
   let lastMenusConfigHash = null;
-  let lastBgBrightness = null;    async function checkConfigChanges() {
+  let lastBgBrightness = null;
+    async function checkConfigChanges() {
       try {
         // Run all checks in parallel with timeout protection
         await Promise.race([
