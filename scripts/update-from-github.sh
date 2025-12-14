@@ -128,7 +128,6 @@ declare -a UPDATE_FILES=(
   "design/upload-bg.php"
   "design/purge-history.php"
   "rules/index.html"
-  "rules.json"
   "start/index.html"
   "maintenance/index.html"
   "slideshows/index.html"

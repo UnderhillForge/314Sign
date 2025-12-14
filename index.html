@@ -25,7 +25,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: url('bg/backgd.jpg') center/cover no-repeat;
+      /* No default background - applied dynamically from config */
       z-index: -1;
       filter: brightness(1);
     }
@@ -388,17 +388,16 @@
         }
       })
       .then(cfg => {
-        // Apply background/font from config if present
-        if (cfg.bg) {
-          // Set background on body::before (where brightness filter is applied)
-          const bgStyle = document.createElement('style');
-          bgStyle.id = 'bg-image-style';
-          bgStyle.textContent = `body::before { background: url('bg/${cfg.bg}') center/cover no-repeat !important; }`;
-          const existing = document.getElementById('bg-image-style');
-          if (existing) existing.remove();
-          document.head.appendChild(bgStyle);
-          lastBgImage = cfg.bg;
-        }
+        // Apply background/font from config if present (or default)
+        const bgImage = cfg.bg || 'backgd.jpg';
+        // Set background on body::before (where brightness filter is applied)
+        const bgStyle = document.createElement('style');
+        bgStyle.id = 'bg-image-style';
+        bgStyle.textContent = `body::before { background: url('bg/${bgImage}') center/cover no-repeat !important; }`;
+        const existing = document.getElementById('bg-image-style');
+        if (existing) existing.remove();
+        document.head.appendChild(bgStyle);
+        lastBgImage = bgImage;
         if (cfg.font) document.body.style.fontFamily = cfg.font;
         
         // Apply header font separately if set (falls back to body font)
@@ -731,15 +730,16 @@
                 }
                 
                 // Check if background image changed
-                if (cfg.bg && cfg.bg !== lastBgImage) {
+                const currentBg = cfg.bg || 'backgd.jpg';
+                if (currentBg !== lastBgImage) {
                   const bgStyle = document.createElement('style');
                   bgStyle.id = 'bg-image-style';
-                  bgStyle.textContent = `body::before { background: url('bg/${cfg.bg}') center/cover no-repeat !important; }`;
+                  bgStyle.textContent = `body::before { background: url('bg/${currentBg}') center/cover no-repeat !important; }`;
                   const existing = document.getElementById('bg-image-style');
                   if (existing) existing.remove();
                   document.head.appendChild(bgStyle);
-                  lastBgImage = cfg.bg;
-                  console.log('[Config] Background updated:', cfg.bg);
+                  lastBgImage = currentBg;
+                  console.log('[Config] Background updated:', currentBg);
                 }
                 
                   // Check for page.json to allow external control of which top-level page is served
