@@ -391,7 +391,7 @@
       .then(cfg => {
         // Apply background/font from config if present
         if (cfg.bg) {
-          document.body.style.backgroundImage = `url('bg/${cfg.bg}')`;
+          document.body.style.background = `url('bg/${cfg.bg}') center/cover no-repeat`;
           lastBgImage = cfg.bg;
         }
         if (cfg.font) document.body.style.fontFamily = cfg.font;
@@ -671,7 +671,7 @@
                 
                 // Check if background image changed
                 if (cfg.bg && cfg.bg !== lastBgImage) {
-                  document.body.style.backgroundImage = `url('bg/${cfg.bg}')`;
+                  document.body.style.background = `url('bg/${cfg.bg}') center/cover no-repeat`;
                   lastBgImage = cfg.bg;
                   console.log('[Config] Background updated:', cfg.bg);
                 }
