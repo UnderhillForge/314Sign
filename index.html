@@ -551,7 +551,9 @@
   let currentVersion = null;
   let lastHeaderFont = null;
   let lastBgImage = null;
-  let lastRequestedMenu = null;    async function checkConfigChanges() {
+  let lastRequestedMenu = null;
+  let lastRulesHash = null;
+  let lastMenusConfigHash = null;    async function checkConfigChanges() {
       try {
         // Run all checks in parallel with timeout protection
         await Promise.race([
@@ -635,6 +637,43 @@
                 } else if (version !== currentVersion) {
                   console.log('[Version] Update detected:', currentVersion, '->', version);
                   currentVersion = version;
+                  showReloadIndicator();
+                  setTimeout(() => location.reload(true), 1000);
+                }
+              })
+              .catch(() => {}),
+            
+            // Check for rules changes (force reload to pick up new scheduling)
+            fetch('rules.json?' + Date.now(), { cache: 'no-store' })
+              .then(r => r.ok ? r.json() : null)
+              .then(rules => {
+                if (!rules) return;
+                const rulesHash = JSON.stringify(rules);
+                
+                if (lastRulesHash === null) {
+                  lastRulesHash = rulesHash;
+                  console.log('[Rules] Baseline set');
+                } else if (rulesHash !== lastRulesHash) {
+                  console.log('[Rules] Rules changed - reloading to apply new schedule');
+                  lastRulesHash = rulesHash;
+                  showReloadIndicator();
+                  setTimeout(() => location.reload(true), 1000);
+                }
+              })
+              .catch(() => {}),
+            
+            // Check for menus-config changes (force reload to pick up new menu settings)
+            fetch('menus-config.json?' + Date.now(), { cache: 'no-store' })
+              .then(r => r.ok ? r.json() : {})
+              .then(menusConfig => {
+                const menusConfigHash = JSON.stringify(menusConfig);
+                
+                if (lastMenusConfigHash === null) {
+                  lastMenusConfigHash = menusConfigHash;
+                  console.log('[Menus Config] Baseline set');
+                } else if (menusConfigHash !== lastMenusConfigHash) {
+                  console.log('[Menus Config] Menu settings changed - reloading to apply updates');
+                  lastMenusConfigHash = menusConfigHash;
                   showReloadIndicator();
                   setTimeout(() => location.reload(true), 1000);
                 }
