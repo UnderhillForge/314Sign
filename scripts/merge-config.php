@@ -7,7 +7,7 @@ header('Content-Type: application/json');
 error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE);
 
 $repoRoot = dirname(__DIR__);
-$configPath = $repoRoot . '/config.json';
+$configPath = $repoRoot . '/page.json';
 
 // Read incoming JSON
 $body = file_get_contents('php://input');
