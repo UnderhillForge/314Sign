@@ -126,12 +126,18 @@ done
 
 if [ "$NEED_INSTALL" = true ]; then
   echo "Installing minimal X11 and web browser..."
-  sudo apt update
-  sudo apt install -y \
+  if ! sudo apt update; then
+    echo "Warning: apt update failed, trying to continue..."
+  fi
+  if ! sudo apt install -y \
     xserver-xorg \
     xinit \
     openbox \
-    unclutter
+    unclutter; then
+    echo "ERROR: Failed to install required packages"
+    echo "Please check your internet connection and package repositories"
+    exit 1
+  fi
 else
   echo "✓ X11 packages already installed, skipping..."
 fi
@@ -149,15 +155,24 @@ elif command -v firefox-esr >/dev/null 2>&1; then
   echo "✓ Using installed: firefox-esr"
 elif apt-cache show chromium >/dev/null 2>&1; then
   echo "Installing chromium..."
-  sudo apt install -y chromium
+  if ! sudo apt install -y chromium; then
+    echo "ERROR: Failed to install chromium"
+    exit 1
+  fi
   CHROMIUM_CMD="chromium"
 elif apt-cache show chromium-browser >/dev/null 2>&1; then
   echo "Installing chromium-browser..."
-  sudo apt install -y chromium-browser
+  if ! sudo apt install -y chromium-browser; then
+    echo "ERROR: Failed to install chromium-browser"
+    exit 1
+  fi
   CHROMIUM_CMD="chromium-browser"
 elif apt-cache show firefox-esr >/dev/null 2>&1; then
   echo "Chromium not available, installing Firefox ESR as fallback..."
-  sudo apt install -y firefox-esr
+  if ! sudo apt install -y firefox-esr; then
+    echo "ERROR: Failed to install firefox-esr"
+    exit 1
+  fi
   CHROMIUM_CMD="firefox-esr"
 else
   echo "Error: No suitable browser found (tried chromium, chromium-browser, firefox-esr)"
