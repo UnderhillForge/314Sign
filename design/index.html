@@ -403,13 +403,15 @@
           
           // Set the header font (defaults to body font if not set)
           if (cfg.headerFont) {
-            headerFontSelect.value = cfg.headerFont;
-            console.log('[Config] Header font from config:', cfg.headerFont);
+            const fontName = cfg.headerFont.split(',')[0].trim();
+            headerFontSelect.value = fontName;
+            console.log('[Config] Header font from config:', cfg.headerFont, '-> using:', fontName);
             console.log('[Config] Dropdown value after set:', headerFontSelect.value);
             console.log('[Config] Selected option text:', headerFontSelect.options[headerFontSelect.selectedIndex]?.text);
           } else if (cfg.font) {
-            headerFontSelect.value = cfg.font;
-            console.log('[Config] Header font defaulted to body font:', cfg.font);
+            const fontName = cfg.font.split(',')[0].trim();
+            headerFontSelect.value = fontName;
+            console.log('[Config] Header font defaulted to body font:', cfg.font, '-> using:', fontName);
           }
           
           // Load header text
@@ -507,7 +509,7 @@
           const updatedConfig = {
             ...existingConfig,
             bg: selectedBg === 'uploaded' ? uploadedDataUrl : selectedBg,
-            headerFont: headerFontSelect.value,
+            headerFont: headerFontSelect.value.includes(',') ? headerFontSelect.value : headerFontSelect.value + ', sans-serif',
             headerText: headerTextInput.value.trim() || 'Specials',
             headerSizePercent: parseFloat(headerSizeInput.value),
             bgBrightness: parseFloat(bgBrightnessInput.value) / 100,
