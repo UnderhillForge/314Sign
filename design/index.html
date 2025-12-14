@@ -499,7 +499,19 @@
       status.textContent = 'Saving...';
 
       // Get form elements
-      const bgSelect = document.getElementById('bg') || document.getElementById('background') || document.getElementById('bg-select') || document.getElementById('bgSelect');
+      const headerFontSelect = document.getElementById('headerFont');
+      const headerTextInput = document.getElementById('headerText');
+      const headerSizeInput = document.getElementById('headerSize');
+      const bgBrightnessInput = document.getElementById('bgBrightness');
+      const showClockCheckbox = document.getElementById('showClock');
+      const clock24HourCheckbox = document.getElementById('clock24Hour');
+      const autoFormatItemColor = document.getElementById('autoFormatItemColor');
+      const autoFormatPriceColor = document.getElementById('autoFormatPriceColor');
+      const autoFormatDescColor = document.getElementById('autoFormatDescColor');
+      const logoFileSelect = document.getElementById('logoFile');
+      const logoPositionSelect = document.getElementById('logoPosition');
+      const logoSizeInput = document.getElementById('logoSize');
+      const logoOpacityInput = document.getElementById('logoOpacity');
 
       // Read existing config first to preserve all settings
       fetch('../page.json')
@@ -508,7 +520,10 @@
           // Don't merge or modify availableFonts - keep what's in page.json
           
           // Determine selected background
-          const selectedBg = bgSelect.value;
+          // selectedBg is already set globally from user interactions
+
+          let configPromise;
+          if (selectedBg === 'uploaded' && uploadedDataUrl) {
 
           let configPromise;
           if (selectedBg === 'uploaded' && uploadedDataUrl) {
