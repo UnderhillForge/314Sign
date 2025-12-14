@@ -534,10 +534,10 @@
       // Check rules after a brief delay to allow user's manual selection to load first
       // (localStorage currentMenu should take precedence on initial page load)
       setTimeout(checkScheduleRules, 2000);
-      rulesCheckInterval = setInterval(checkScheduleRules, 60000);
+      rulesCheckInterval = setInterval(checkScheduleRules, 300000);
       
       // Check config, reload triggers, and demo commands every 2 seconds for responsiveness
-      setInterval(checkConfigChanges, 2000);
+      setInterval(checkConfigChanges, 10000);
       
       pollSpecials();
     }
