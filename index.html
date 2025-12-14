@@ -390,7 +390,10 @@
       })
       .then(cfg => {
         // Apply background/font from config if present
-        if (cfg.bg)   document.body.style.backgroundImage = `url('bg/${cfg.bg}')`;
+        if (cfg.bg) {
+          document.body.style.backgroundImage = `url('bg/${cfg.bg}')`;
+          lastBgImage = cfg.bg;
+        }
         if (cfg.font) document.body.style.fontFamily = cfg.font;
         
         // Apply header font separately if set (falls back to body font)
@@ -547,6 +550,7 @@
   let lastDemoCommand = 'idle';
   let currentVersion = null;
   let lastHeaderFont = null;
+  let lastBgImage = null;
   let lastRequestedMenu = null;    async function checkConfigChanges() {
       try {
         // Run all checks in parallel with timeout protection
@@ -663,6 +667,13 @@
                     header.style.fontSize = 'clamp(1.5rem, ' + cfg.headerSizePercent + 'vw, 8rem)';
                     lastHeaderSizePercent = cfg.headerSizePercent;
                   }
+                }
+                
+                // Check if background image changed
+                if (cfg.bg && cfg.bg !== lastBgImage) {
+                  document.body.style.backgroundImage = `url('bg/${cfg.bg}')`;
+                  lastBgImage = cfg.bg;
+                  console.log('[Config] Background updated:', cfg.bg);
                 }
                 
                   // Check for page.json to allow external control of which top-level page is served
