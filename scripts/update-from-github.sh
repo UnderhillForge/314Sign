@@ -162,6 +162,7 @@ declare -a UPDATE_FILES=(
   "slideshows/save-set.php"
   "slideshows/sets/index.php"
   "bg/backgd2.avif"
+  "media/sample.avif"
 )
 
 # Optional documentation files (won't fail if missing)
