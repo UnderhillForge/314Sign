@@ -39,7 +39,7 @@ read
 
 # Detect hostname for kiosk URL
 HOSTNAME=$(hostname)
-KIOSK_URL="http://${HOSTNAME}.local/index.html"
+KIOSK_URL="http://localhost/index.html"
 
 # Ask about screen rotation
 echo ""
@@ -118,7 +118,7 @@ elif apt-cache show firefox-esr >/dev/null 2>&1; then
   CHROMIUM_CMD="firefox-esr"
 else
   echo "Error: No suitable browser found (tried chromium, chromium-browser, firefox-esr)"
-  echo "Please install a browser manually: sudo apt install firefox-esr"
+  echo "Please install a browser manually: sudo apt install chromium"
   exit 1
 fi
 
@@ -151,12 +151,16 @@ else
   # Chromium-based kiosk mode
   ${CHROMIUM_CMD} \\
     --kiosk \\
+    --remote-debugging-port=9222 \\
+    --remote-debugging-address=0.0.0.0 \\
+    --no-sandbox \\
+    --disable-dev-shm-usage \\
     --noerrdialogs \\
     --disable-infobars \\
     --disable-session-crashed-bubble \\
     --disable-translate \\
     --check-for-update-interval=31536000 \\
-    --app=${KIOSK_URL}
+    ${KIOSK_URL}
 fi
 EOF
 
