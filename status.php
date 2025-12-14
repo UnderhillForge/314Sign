@@ -9,8 +9,18 @@
 error_reporting(E_ALL & ~E_WARNING);
 header('Content-Type: application/json');
 
+// Get version from version.txt
+$version = '0.9.2.1'; // fallback
+$version_file = __DIR__ . '/version.txt';
+if (file_exists($version_file)) {
+  $version_content = trim(file_get_contents($version_file));
+  if (!empty($version_content)) {
+    $version = $version_content;
+  }
+}
+
 $status = [
-  'version' => '0.9.2.1',
+  'version' => $version,
   'timestamp' => date('c'),
   'uptime' => null,
   'menus' => [],
