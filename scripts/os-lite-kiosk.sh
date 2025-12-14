@@ -194,14 +194,20 @@ echo "TARGET_USER: $TARGET_USER"
 echo "TARGET_HOME: $TARGET_HOME"
 echo "Current user: $(whoami)"
 echo "Current directory: $(pwd)"
+echo "Testing write permissions to TARGET_HOME..."
+touch "$TARGET_HOME/test_write_permissions.tmp" 2>/dev/null && rm "$TARGET_HOME/test_write_permissions.tmp" 2>/dev/null && echo "Write test: SUCCESS" || echo "Write test: FAILED - cannot write to $TARGET_HOME"
 
 echo "Creating kiosk startup script..."
 echo "Target directory: $TARGET_HOME/.config/openbox"
 echo "Current working directory: $(pwd)"
+echo "TARGET_HOME exists: $(ls -ld "$TARGET_HOME" 2>/dev/null || echo "NO")"
 echo "Creating directory..."
 mkdir -p "$TARGET_HOME/.config/openbox"
+DIR_CREATE_RESULT=$?
+echo "mkdir result: $DIR_CREATE_RESULT"
 echo "Directory created, listing contents:"
-ls -la "$TARGET_HOME/.config/" 2>/dev/null || echo "Parent directory doesn't exist or is not accessible"
+ls -la "$TARGET_HOME/.config/" 2>/dev/null || echo "Parent directory doesn't exist or is not accessible: $TARGET_HOME/.config"
+ls -la "$TARGET_HOME/.config/openbox/" 2>/dev/null || echo "Openbox directory not accessible: $TARGET_HOME/.config/openbox"
 
 cat > "$TARGET_HOME/.config/openbox/autostart" <<EOF
 # Disable screen blanking
@@ -237,8 +243,10 @@ else
 fi
 EOF
 
+CAT_RESULT=$?
+echo "cat command result: $CAT_RESULT"
 echo "Autostart file created, checking:"
-ls -la "$TARGET_HOME/.config/openbox/autostart" 2>/dev/null || echo "Autostart file not found!"
+ls -la "$TARGET_HOME/.config/openbox/autostart" 2>/dev/null || echo "Autostart file not found! Path: $TARGET_HOME/.config/openbox/autostart"
 
 echo "Configuring display rotation in boot config..."
 # Set display rotation in /boot/firmware/config.txt or /boot/config.txt
