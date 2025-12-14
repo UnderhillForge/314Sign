@@ -197,6 +197,33 @@
       max-height: 100%;
       object-fit: contain;
     }
+    .view-tabs {
+      display: flex;
+      gap: 0.5rem;
+      background: #2d2d2d;
+      padding: 0.5rem;
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .view-tab {
+      flex: 1;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #b0b0b0;
+      background: #1a1a1a;
+      border: 2px solid transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .view-tab.active {
+      color: #4a9eff;
+      background: #2d2d2d;
+      border-color: #4a9eff;
+    }
+    .view-tab:active { background: #3a3a3a; }
     .toast {
       position: fixed;
       bottom: 2rem;
@@ -286,6 +313,12 @@
       <button onclick="addSlide()" style="width: 100%; margin-top: 0.5rem;">+ Add Slide</button>
     </div>
 
+    <!-- View Tabs -->
+    <div class="view-tabs">
+      <button class="view-tab active" onclick="switchView('editor')">✏️ Editor</button>
+      <button class="view-tab" onclick="switchView('preview')">👁️ Preview</button>
+    </div>
+
     <!-- Slide Editor -->
     <div class="editor-panel" id="editorPanel">
       <h3>Slide Editor</h3>
@@ -293,7 +326,7 @@
     </div>
 
     <!-- Preview -->
-    <div class="preview-panel" id="previewPanel">
+    <div class="preview-panel" id="previewPanel" style="display: none;">
       <div class="preview-content" id="previewContent">
         <p style="color: #666;">Preview will appear here</p>
       </div>
@@ -326,7 +359,7 @@
     </div>
   </div>
 
-  <div class="version">314Sign v0.9.2.1 | © 2025 J Stekervetz | CC BY-NC 4.0</div>
+  <div class="version">314Sign v0.9.2.60 | © 2025 J Stekervetz | CC BY-NC 4.0</div>
 
   <script>
     let currentSet = null;
@@ -341,25 +374,18 @@
 
     // Load available sets on startup
     function loadSets() {
-      fetch('sets/')
-        .then(r => r.text())
-        .then(html => {
-          // Parse directory listing for .json files
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(html, 'text/html');
-          const links = Array.from(doc.querySelectorAll('a'))
-            .map(a => a.getAttribute('href'))
-            .filter(href => href && href.endsWith('.json'));
-          
-          if (links.length === 0) {
+      fetch('sets/index.php')
+        .then(r => r.json())
+        .then(files => {
+          if (files.length === 0) {
             // No sets found, show example
-            links.push('example.json');
+            files.push('example.json');
           }
           
           const tabsContainer = document.getElementById('setsTabs');
           tabsContainer.innerHTML = '';
           
-          links.forEach((file, index) => {
+          files.forEach((file, index) => {
             const button = document.createElement('button');
             button.className = 'set-tab' + (index === 0 ? ' active' : '');
             button.textContent = file.replace('.json', '');
@@ -846,7 +872,58 @@
       }, ms);
     }
 
+    // Switch between editor and preview views
+    function switchView(view) {
+      const editorPanel = document.getElementById('editorPanel');
+      const previewPanel = document.getElementById('previewPanel');
+      const editorTab = document.querySelector('.view-tab:first-child');
+      const previewTab = document.querySelector('.view-tab:last-child');
+
+      if (view === 'editor') {
+        editorPanel.style.display = 'block';
+        previewPanel.style.display = 'none';
+        editorTab.classList.add('active');
+        previewTab.classList.remove('active');
+      } else if (view === 'preview') {
+        editorPanel.style.display = 'none';
+        previewPanel.style.display = 'block';
+        editorTab.classList.remove('active');
+        previewTab.classList.add('active');
+        // Update preview when switching to preview mode
+        if (currentSlideIndex !== null) {
+          updatePreview();
+        }
+      }
+    }
+
+    // Load version dynamically
+    let currentVersion = null;
+    const versionEl = document.querySelector('.version');
+    
+    function loadVersion() {
+      fetch('../version.txt?' + Date.now(), { cache: 'no-store' })
+        .then(response => response.text())
+        .then(version => {
+          version = version.trim();
+          if (!version) return;
+          
+          if (currentVersion === null) {
+            currentVersion = version;
+            console.log('[Version] Current version:', version);
+          }
+          
+          // Update the displayed version
+          if (versionEl) {
+            versionEl.textContent = `314Sign v${version} | © 2025 J Stekervetz | CC BY-NC 4.0`;
+          }
+        })
+        .catch(error => {
+          console.warn('[Version] Failed to load version:', error);
+        });
+    }
+    
     // Initialize
+    loadVersion();
     loadSets();
   </script>
 </body>

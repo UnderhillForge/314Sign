@@ -270,7 +270,7 @@
       <a href="../start/" class="back-button">← Back to Menu</a>
     </div>
     
-    <div class="version">314Sign v0.9.2.1 | © 2025 J Stekervetz | CC BY-NC 4.0</div>
+    <div class="version">314Sign v0.9.2.60 | © 2025 J Stekervetz | CC BY-NC 4.0</div>
   </div>
   
   <div id="toast" class="toast" aria-live="polite" role="status"></div>
@@ -604,9 +604,36 @@
       }
     }
     
+    // Load version dynamically
+    let currentVersion = null;
+    const versionEl = document.querySelector('.version');
+    
+    function loadVersion() {
+      fetch('../version.txt?' + Date.now(), { cache: 'no-store' })
+        .then(response => response.text())
+        .then(version => {
+          version = version.trim();
+          if (!version) return;
+          
+          if (currentVersion === null) {
+            currentVersion = version;
+            console.log('[Version] Current version:', version);
+          }
+          
+          // Update the displayed version in footer
+          if (versionEl) {
+            versionEl.textContent = `314Sign v${version} | © 2025 J Stekervetz | CC BY-NC 4.0`;
+          }
+        })
+        .catch(error => {
+          console.warn('[Version] Failed to load version:', error);
+        });
+    }
+    
     // Load health on page load
     window.addEventListener('DOMContentLoaded', () => {
       checkHealth();
+      loadVersion();
     });
   </script>
 </body>

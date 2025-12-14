@@ -35,7 +35,7 @@ set -e
 GITHUB_REPO="UnderhillForge/314Sign"
 GITHUB_BRANCH="main"
 GITHUB_RAW_BASE="https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}"
-WEB_ROOT="/var/www/html"
+WEB_ROOT="$(pwd)"
 TEMP_DIR=$(mktemp -d)
 BACKUP_DIR=""
 
@@ -131,7 +131,6 @@ declare -a UPDATE_FILES=(
   "rules.json"
   "start/index.html"
   "maintenance/index.html"
-  "slideshows/index.html"
   "bg/index.php"
   "fonts/index.php"
   "fonts/.htaccess"
@@ -158,9 +157,6 @@ declare -a UPDATE_FILES=(
   "design/upload-logo.php"
   "media/index.php"
   "menus/index.php"
-  "slideshows/upload-media.php"
-  "slideshows/save-set.php"
-  "slideshows/sets/index.php"
   "bg/backgd2.avif"
 )
 
