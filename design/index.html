@@ -604,10 +604,11 @@ function uploadImageIfNeeded() {
   // Use original filename when available
   const name = uploadedFileName || 'upload.jpg';
   form.append('image', blob, name);
+  form.append('type', 'bg');
 
   console.log('[Upload] Attempting upload:', name, blob);
 
-  return fetch('upload-bg.php', {
+  return fetch('upload.php', {
     method: 'POST',
     body: form
   })
@@ -669,9 +670,10 @@ function uploadImageIfNeeded() {
       const blob = dataURLtoBlob(uploadedLogoDataUrl);
       const form = new FormData();
       const name = uploadedLogoFileName || 'logo.png';
-      form.append('logo', blob, name);
+      form.append('image', blob, name);
+      form.append('type', 'logo');
 
-      return fetch('upload-logo.php', {
+      return fetch('upload.php', {
         method: 'POST',
         body: form
       })
