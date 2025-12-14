@@ -148,14 +148,15 @@
   const specialsDiv = document.getElementById('specials');
   const headerEl = document.getElementById('header');
   const clockEl = document.getElementById('clock');
+  const versionEl = document.querySelector('.version');
   const logoEl = document.getElementById('logo');
   let currentMenu = localStorage.getItem('currentMenu') || 'menus/dinner.txt';
   
   // Initialize current-menu.json with the current menu
   fetch('set-current-menu.php', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: 'menu=' + encodeURIComponent(currentMenu)
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ menu: currentMenu })
   }).catch(err => console.warn('Failed to initialize current-menu.json:', err));
   
   let lastText = '';
@@ -292,9 +293,9 @@
         body: 'menu=' + encodeURIComponent(filename)
       }).catch(err => console.warn('Failed to update current-menu.json:', err));
       
-      // Load per-menu settings from menus-page.json
+      // Load per-menu settings from menus-config.json
       const menuName = filename.replace('menus/', '').replace('.txt', '');
-      fetch('menus-page.json?' + Date.now(), { cache: 'no-store' })
+      fetch('menus-config.json?' + Date.now(), { cache: 'no-store' })
         .then(r => r.ok ? r.json() : {})
         .then(menusConfig => {
           const specialsDiv = document.getElementById('specials');
@@ -451,9 +452,9 @@
             }
           }
           
-          // Load per-menu font scale from menus-page.json (overrides global setting)
+          // Load per-menu font scale from menus-config.json (overrides global setting)
           const menuName = currentMenu.replace('menus/', '').replace('.txt', '');
-          fetch('menus-page.json?' + Date.now(), { cache: 'no-store' })
+          fetch('menus-config.json?' + Date.now(), { cache: 'no-store' })
             .then(r => r.ok ? r.json() : {})
             .then(menusConfig => {
               const specials = document.getElementById('specials');
@@ -623,6 +624,10 @@
                 if (currentVersion === null) {
                   currentVersion = version;
                   console.log('[Version] Current version:', version);
+                  // Update the displayed version
+                  if (versionEl) {
+                    versionEl.textContent = `314Sign v${version} | © 2025 J Stekervetz | CC BY-NC 4.0`;
+                  }
                 } else if (version !== currentVersion) {
                   console.log('[Version] Update detected:', currentVersion, '->', version);
                   currentVersion = version;
