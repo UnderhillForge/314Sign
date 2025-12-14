@@ -499,7 +499,7 @@
       status.textContent = 'Saving...';
 
       // Get form elements
-      const bgSelect = document.getElementById('background') || document.getElementById('bg-select') || document.getElementById('bgSelect');
+      const bgSelect = document.getElementById('bg') || document.getElementById('background') || document.getElementById('bg-select') || document.getElementById('bgSelect');
 
       // Read existing config first to preserve all settings
       fetch('../page.json')
