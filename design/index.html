@@ -391,33 +391,47 @@
           // Load header text
           if (cfg.headerText) {
             headerTextInput.value = cfg.headerText;
+          } else {
+            headerTextInput.value = 'Specials'; // default
           }
           
           // Load header size
           if (Number.isFinite(cfg.headerSizePercent)) {
             headerSizeInput.value = cfg.headerSizePercent;
             headerSizeValue.textContent = cfg.headerSizePercent + '%';
+          } else {
+            headerSizeInput.value = 5; // default
+            headerSizeValue.textContent = '5%';
           }
           
           // Load clock setting
           if (cfg.showClock) {
             showClockCheckbox.checked = true;
+          } else {
+            showClockCheckbox.checked = false; // default
           }
           
           // Load clock format (default to 24-hour)
           if (cfg.clock24Hour !== false) {
             clock24HourCheckbox.checked = true;
+          } else {
+            clock24HourCheckbox.checked = true; // default to 24-hour
           }
           
           // Load background brightness
           if (Number.isFinite(cfg.bgBrightness)) {
             bgBrightnessInput.value = cfg.bgBrightness * 100;
             bgBrightnessValue.textContent = Math.round(cfg.bgBrightness * 100) + '%';
+          } else {
+            bgBrightnessInput.value = 100; // default 100%
+            bgBrightnessValue.textContent = '100%';
           }
           
           // Load auto-format colors (defaults: white for items, yellow for prices, light grey for descriptions)
           if (cfg.autoFormatItemColor) {
             autoFormatItemColor.value = cfg.autoFormatItemColor;
+          } else {
+            autoFormatItemColor.value = 'w'; // default white
           }
           if (cfg.autoFormatPriceColor) {
             autoFormatPriceColor.value = cfg.autoFormatPriceColor;
