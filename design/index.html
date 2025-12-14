@@ -315,7 +315,7 @@
       bgGrid.innerHTML = '';
       backgrounds.forEach(file => {
         const img = document.createElement('img');
-        img.src = '../bg/' + file;
+        img.src = '../bg/' + file + '?' + Date.now();
         img.className = 'bg-thumb';
         img.dataset.file = file;
         if (file === selectedBg) img.classList.add('selected');
@@ -925,7 +925,6 @@ function uploadImageIfNeeded() {
     })();
     
     // Load version dynamically
-    let currentVersion = null;
     const versionEl = document.querySelector('.version');
     
     function loadVersion() {
