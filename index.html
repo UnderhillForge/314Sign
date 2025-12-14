@@ -391,8 +391,15 @@
       .then(cfg => {
         // Apply background/font from config if present
         if (cfg.bg) {
-          document.body.style.background = `url('bg/${cfg.bg}') center/cover no-repeat`;
+          // Set background on body::before (where brightness filter is applied)
+          const bgStyle = document.createElement('style');
+          bgStyle.id = 'bg-image-style';
+          bgStyle.textContent = `body::before { background: url('bg/${cfg.bg}') center/cover no-repeat !important; }`;
+          const existing = document.getElementById('bg-image-style');
+          if (existing) existing.remove();
+          document.head.appendChild(bgStyle);
           lastBgImage = cfg.bg;
+        }
         }
         if (cfg.font) document.body.style.fontFamily = cfg.font;
         
@@ -553,7 +560,8 @@
   let lastBgImage = null;
   let lastRequestedMenu = null;
   let lastRulesHash = null;
-  let lastMenusConfigHash = null;    async function checkConfigChanges() {
+  let lastMenusConfigHash = null;
+  let lastBgBrightness = null;    async function checkConfigChanges() {
       try {
         // Run all checks in parallel with timeout protection
         await Promise.race([
@@ -680,6 +688,21 @@
               })
               .catch(() => {}),
             
+            // Check for brightness changes (force reload for immediate effect)
+            fetch('page.json?' + Date.now(), { cache: 'no-store' })
+              .then(r => r.ok ? r.json() : {})
+              .then(cfg => {
+                if (Number.isFinite(cfg.bgBrightness) && cfg.bgBrightness !== lastBgBrightness) {
+                  console.log('[Brightness] Changed from', lastBgBrightness, 'to', cfg.bgBrightness, '- reloading for immediate effect');
+                  lastBgBrightness = cfg.bgBrightness;
+                  showReloadIndicator();
+                  setTimeout(() => location.reload(true), 1000);
+                } else if (lastBgBrightness === null && Number.isFinite(cfg.bgBrightness)) {
+                  lastBgBrightness = cfg.bgBrightness;
+                }
+              })
+              .catch(() => {}),
+            
             // Check for config changes (font scale, header size, brightness)
             fetch('page.json?' + Date.now(), { cache: 'no-store' })
               .then(r => r.ok ? r.json() : {})
@@ -710,7 +733,12 @@
                 
                 // Check if background image changed
                 if (cfg.bg && cfg.bg !== lastBgImage) {
-                  document.body.style.background = `url('bg/${cfg.bg}') center/cover no-repeat`;
+                  const bgStyle = document.createElement('style');
+                  bgStyle.id = 'bg-image-style';
+                  bgStyle.textContent = `body::before { background: url('bg/${cfg.bg}') center/cover no-repeat !important; }`;
+                  const existing = document.getElementById('bg-image-style');
+                  if (existing) existing.remove();
+                  document.head.appendChild(bgStyle);
                   lastBgImage = cfg.bg;
                   console.log('[Config] Background updated:', cfg.bg);
                 }
