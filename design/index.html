@@ -504,35 +504,78 @@
         .then(existingConfig => {
           // Don't merge or modify availableFonts - keep what's in page.json
           
-          const updatedConfig = {
-            ...existingConfig,
-            bg: selectedBg === 'uploaded' ? uploadedDataUrl : selectedBg,
-            headerFont: headerFontSelect.value.includes(',') ? headerFontSelect.value : headerFontSelect.value + ', sans-serif',
-            headerText: headerTextInput.value.trim() || 'Specials',
-            headerSizePercent: parseFloat(headerSizeInput.value),
-            bgBrightness: parseFloat(bgBrightnessInput.value) / 100,
-            showClock: showClockCheckbox.checked,
-            clock24Hour: clock24HourCheckbox.checked,
-            autoFormatItemColor: autoFormatItemColor.value,
-            autoFormatPriceColor: autoFormatPriceColor.value,
-            autoFormatDescColor: autoFormatDescColor.value,
-            logoFile: selectedLogo === 'uploaded' ? null : (logoFileSelect.value || null),
-            logoPosition: logoPositionSelect.value,
-            logoSize: parseFloat(logoSizeInput.value),
-            logoOpacity: parseFloat(logoOpacityInput.value) / 100
-            // Keep existing availableFonts from page.json
-          };
+          // Determine selected background
+          const selectedBg = bgSelect.value;
 
-          // Save page.json via merge endpoint (read→merge→write) to avoid destructive overwrites
-          const mergeUrl = '../scripts/merge-config.php';
-          console.log('[Save] Saving config to:', mergeUrl);
-          console.log('[Save] Config data:', updatedConfig);
-          
-          return fetch(mergeUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(updatedConfig)
-          });
+          let configPromise;
+          if (selectedBg === 'uploaded' && uploadedDataUrl) {
+            // Upload image first, then save config with the uploaded filename
+            configPromise = uploadImageIfNeeded().then(uploadResult => {
+              const filename = uploadResult.filename;
+              const updatedConfig = {
+                ...existingConfig,
+                bg: 'bg/' + filename,
+                headerFont: headerFontSelect.value.includes(',') ? headerFontSelect.value : headerFontSelect.value + ', sans-serif',
+                headerText: headerTextInput.value.trim() || 'Specials',
+                headerSizePercent: parseFloat(headerSizeInput.value),
+                bgBrightness: parseFloat(bgBrightnessInput.value) / 100,
+                showClock: showClockCheckbox.checked,
+                clock24Hour: clock24HourCheckbox.checked,
+                autoFormatItemColor: autoFormatItemColor.value,
+                autoFormatPriceColor: autoFormatPriceColor.value,
+                autoFormatDescColor: autoFormatDescColor.value,
+                logoFile: selectedLogo === 'uploaded' ? null : (logoFileSelect.value || null),
+                logoPosition: logoPositionSelect.value,
+                logoSize: parseFloat(logoSizeInput.value),
+                logoOpacity: parseFloat(logoOpacityInput.value) / 100
+                // Keep existing availableFonts from page.json
+              };
+
+              // Save page.json via merge endpoint
+              const mergeUrl = '../scripts/merge-config.php';
+              console.log('[Save] Saving config to:', mergeUrl);
+              console.log('[Save] Config data:', updatedConfig);
+              
+              return fetch(mergeUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedConfig)
+              });
+            });
+          } else {
+            // Save config directly
+            const updatedConfig = {
+              ...existingConfig,
+              bg: selectedBg,
+              headerFont: headerFontSelect.value.includes(',') ? headerFontSelect.value : headerFontSelect.value + ', sans-serif',
+              headerText: headerTextInput.value.trim() || 'Specials',
+              headerSizePercent: parseFloat(headerSizeInput.value),
+              bgBrightness: parseFloat(bgBrightnessInput.value) / 100,
+              showClock: showClockCheckbox.checked,
+              clock24Hour: clock24HourCheckbox.checked,
+              autoFormatItemColor: autoFormatItemColor.value,
+              autoFormatPriceColor: autoFormatPriceColor.value,
+              autoFormatDescColor: autoFormatDescColor.value,
+              logoFile: selectedLogo === 'uploaded' ? null : (logoFileSelect.value || null),
+              logoPosition: logoPositionSelect.value,
+              logoSize: parseFloat(logoSizeInput.value),
+              logoOpacity: parseFloat(logoOpacityInput.value) / 100
+              // Keep existing availableFonts from page.json
+            };
+
+            // Save page.json via merge endpoint
+            const mergeUrl = '../scripts/merge-config.php';
+            console.log('[Save] Saving config to:', mergeUrl);
+            console.log('[Save] Config data:', updatedConfig);
+            
+            configPromise = fetch(mergeUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(updatedConfig)
+            });
+          }
+
+          return configPromise;
         })
         .then(r => {
           console.log('[Save] Response status:', r.status, r.statusText);
