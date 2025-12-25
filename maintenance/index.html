@@ -207,6 +207,136 @@
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
+
+    .user-list {
+      margin-top: 1rem;
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .user-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem;
+      background: #1a1a1a;
+      border-radius: 8px;
+      border: 1px solid #3a3a3a;
+    }
+
+    .user-info {
+      flex: 1;
+    }
+
+    .user-name {
+      font-weight: 600;
+      color: #e0e0e0;
+      margin-bottom: 0.25rem;
+    }
+
+    .user-details {
+      font-size: 0.85rem;
+      color: #b0b0b0;
+    }
+
+    .user-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .user-action-btn {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.8rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .user-action-btn.edit {
+      background: #4a9eff;
+      color: white;
+    }
+
+    .user-action-btn.edit:hover { background: #3a8edd; }
+
+    .user-action-btn.delete {
+      background: #dc3545;
+      color: white;
+    }
+
+    .user-action-btn.delete:hover { background: #c82333; }
+
+    .user-dialog {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #1a1a1a;
+      border-radius: 8px;
+      border: 1px solid #3a3a3a;
+    }
+
+    .dialog-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #e0e0e0;
+      margin-bottom: 1rem;
+    }
+
+    .form-row {
+      margin-bottom: 1rem;
+    }
+
+    .form-row label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: #e0e0e0;
+    }
+
+    .form-row input, .form-row select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 2px solid #3a3a3a;
+      border-radius: 8px;
+      background: #2d2d2d;
+      color: #e0e0e0;
+      font-size: 1rem;
+    }
+
+    .form-row input:focus, .form-row select:focus {
+      outline: none;
+      border-color: #4a9eff;
+    }
+
+    .dialog-actions {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-end;
+      margin-top: 1.5rem;
+    }
+
+    .dialog-btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .dialog-btn.cancel {
+      background: #6c757d;
+      color: white;
+    }
+
+    .dialog-btn.cancel:hover { background: #5a6268; }
+
+    .dialog-btn.save {
+      background: #28a745;
+      color: white;
+    }
+
+    .dialog-btn.save:hover { background: #218838; }
   </style>
 </head>
 <body>
@@ -265,6 +395,21 @@
         </button>
       </div>
     </div>
+
+    <div class="section">
+      <div class="section-title">User Management</div>
+      <div class="action-grid">
+        <button class="action-button" onclick="loadUsers()">
+          <span>👥</span> Manage Users
+        </button>
+        <button class="action-button success" onclick="showAddUserDialog()">
+          <span>➕</span> Add New User
+        </button>
+      </div>
+      <div id="userList" class="user-list" style="display: none;"></div>
+      <div id="addUserDialog" class="user-dialog" style="display: none;"></div>
+      <div id="editUserDialog" class="user-dialog" style="display: none;"></div>
+    </div>
     
     <div style="text-align: center; margin-top: auto;">
       <a href="../start/" class="back-button">← Back to Menu</a>
@@ -312,12 +457,13 @@
     // Check system health
     async function checkHealth() {
       logMessage('Checking system health...', 'info');
-      
+
       try {
-        const response = await fetch('../status.php');
+        const response = await fetch('../api/status');
         if (!response.ok) throw new Error('Status check failed');
-        
-        const data = await response.json();
+
+        const apiResponse = await response.json();
+        const data = apiResponse.data;
         
         // Update UI
         document.getElementById('serverStatus').textContent = 'Online';
@@ -630,6 +776,234 @@
         });
     }
     
+    // User Management Functions
+    async function loadUsers() {
+      const userList = document.getElementById('userList');
+      userList.innerHTML = '<div style="text-align: center; padding: 2rem;"><span class="spinner"></span> Loading users...</div>';
+      userList.style.display = 'block';
+
+      try {
+        const token = localStorage.getItem('authToken');
+        const response = await fetch('../api/auth/users', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (!response.ok) throw new Error('Failed to load users');
+
+        const data = await response.json();
+
+        if (data.success) {
+          renderUserList(data.data);
+        } else {
+          throw new Error(data.error || 'Failed to load users');
+        }
+      } catch (error) {
+        userList.innerHTML = '<div style="color: #ef5350; text-align: center; padding: 1rem;">Failed to load users: ' + error.message + '</div>';
+        showToast('Failed to load users', 'error');
+      }
+    }
+
+    function renderUserList(users) {
+      const userList = document.getElementById('userList');
+
+      if (users.length === 0) {
+        userList.innerHTML = '<div style="text-align: center; padding: 2rem; color: #b0b0b0;">No users found</div>';
+        return;
+      }
+
+      userList.innerHTML = users.map(user => `
+        <div class="user-item">
+          <div class="user-info">
+            <div class="user-name">${user.username}</div>
+            <div class="user-details">
+              Role: ${user.role} |
+              Created: ${new Date(user.created_at).toLocaleDateString()} |
+              Last Login: ${user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
+            </div>
+          </div>
+          <div class="user-actions">
+            <button class="user-action-btn edit" onclick="showEditUserDialog(${user.id}, '${user.username}', '${user.role}')">
+              ✏️ Edit
+            </button>
+            <button class="user-action-btn delete" onclick="confirmDeleteUser(${user.id}, '${user.username}')">
+              🗑️ Delete
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function showAddUserDialog() {
+      const dialog = document.getElementById('addUserDialog');
+      dialog.innerHTML = `
+        <div class="dialog-title">Add New User</div>
+        <div class="form-row">
+          <label for="addUsername">Username</label>
+          <input type="text" id="addUsername" placeholder="Enter username" required>
+        </div>
+        <div class="form-row">
+          <label for="addPassword">Password</label>
+          <input type="password" id="addPassword" placeholder="Enter password" required>
+        </div>
+        <div class="form-row">
+          <label for="addRole">Role</label>
+          <select id="addRole" required>
+            <option value="viewer">Viewer</option>
+            <option value="editor">Editor</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div class="dialog-actions">
+          <button class="dialog-btn cancel" onclick="hideUserDialogs()">Cancel</button>
+          <button class="dialog-btn save" onclick="addUser()">Add User</button>
+        </div>
+      `;
+      dialog.style.display = 'block';
+      document.getElementById('addUsername').focus();
+    }
+
+    function showEditUserDialog(userId, username, role) {
+      const dialog = document.getElementById('editUserDialog');
+      dialog.innerHTML = `
+        <div class="dialog-title">Edit User: ${username}</div>
+        <div class="form-row">
+          <label for="editUsername">Username</label>
+          <input type="text" id="editUsername" value="${username}" required>
+        </div>
+        <div class="form-row">
+          <label for="editRole">Role</label>
+          <select id="editRole" required>
+            <option value="viewer" ${role === 'viewer' ? 'selected' : ''}>Viewer</option>
+            <option value="editor" ${role === 'editor' ? 'selected' : ''}>Editor</option>
+            <option value="admin" ${role === 'admin' ? 'selected' : ''}>Admin</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="editPassword">New Password (leave empty to keep current)</label>
+          <input type="password" id="editPassword" placeholder="Enter new password">
+        </div>
+        <div class="dialog-actions">
+          <button class="dialog-btn cancel" onclick="hideUserDialogs()">Cancel</button>
+          <button class="dialog-btn save" onclick="updateUser(${userId})">Update User</button>
+        </div>
+      `;
+      dialog.style.display = 'block';
+    }
+
+    function hideUserDialogs() {
+      document.getElementById('addUserDialog').style.display = 'none';
+      document.getElementById('editUserDialog').style.display = 'none';
+    }
+
+    async function addUser() {
+      const username = document.getElementById('addUsername').value.trim();
+      const password = document.getElementById('addPassword').value;
+      const role = document.getElementById('addRole').value;
+
+      if (!username || !password) {
+        showToast('Username and password are required', 'error');
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem('authToken');
+        const response = await fetch('../api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ username, password, role })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          showToast('User created successfully', 'success');
+          hideUserDialogs();
+          loadUsers(); // Refresh the user list
+        } else {
+          showToast(data.message || 'Failed to create user', 'error');
+        }
+      } catch (error) {
+        showToast('Failed to create user', 'error');
+      }
+    }
+
+    async function updateUser(userId) {
+      const username = document.getElementById('editUsername').value.trim();
+      const role = document.getElementById('editRole').value;
+      const password = document.getElementById('editPassword').value;
+
+      if (!username) {
+        showToast('Username is required', 'error');
+        return;
+      }
+
+      try {
+        // For now, only password updates are supported
+        // TODO: Add endpoint for updating username and role
+        if (password) {
+          const token = localStorage.getItem('authToken');
+          const response = await fetch(`../api/auth/users/${userId}/password`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              newPassword: password
+            })
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to update password');
+          }
+
+          showToast('Password updated successfully', 'success');
+        } else {
+          showToast('No changes made', 'info');
+        }
+
+        hideUserDialogs();
+        loadUsers(); // Refresh the user list
+      } catch (error) {
+        showToast('Failed to update user: ' + error.message, 'error');
+      }
+    }
+
+    function confirmDeleteUser(userId, username) {
+      if (!confirm(`Are you sure you want to delete user "${username}"?\n\nThis action cannot be undone!`)) {
+        return;
+      }
+      deleteUser(userId, username);
+    }
+
+    async function deleteUser(userId, username) {
+      try {
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(`../api/auth/users/${userId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          showToast(`User "${username}" deleted successfully`, 'success');
+          loadUsers(); // Refresh the user list
+        } else {
+          showToast(data.message || 'Failed to delete user', 'error');
+        }
+      } catch (error) {
+        showToast('Failed to delete user', 'error');
+      }
+    }
+
     // Load health on page load
     window.addEventListener('DOMContentLoaded', () => {
       checkHealth();

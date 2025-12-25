@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Slideshow Editor</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      overscroll-behavior: none;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 1rem;
+      gap: 1rem;
+      padding-top: max(1rem, env(safe-area-inset-top));
+      padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    }
+    h2 {
+      font-size: clamp(1.2rem, 4vw, 1.8rem);
+      color: #e0e0e0;
+      text-align: center;
+    }
+    .sets-panel {
+      background: #2d2d2d;
+      padding: 1rem;
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .sets-tabs {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .set-tab {
+      padding: 0.5rem 1rem;
+      background: #1a1a1a;
+      border: 2px solid transparent;
+      border-radius: 6px;
+      color: #b0b0b0;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .set-tab.active {
+      border-color: #4a9eff;
+      color: #4a9eff;
+      background: #2d2d2d;
+    }
+    .set-controls {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      background: #4a9eff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-size: 0.9rem;
+    }
+    button:hover { background: #3a8eef; }
+    button.secondary {
+      background: #555;
+    }
+    button.secondary:hover { background: #666; }
+    button.danger {
+      background: #c44;
+    }
+    button.danger:hover { background: #d55; }
+    .slides-list {
+      background: #2d2d2d;
+      padding: 1rem;
+      border-radius: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .slide-item {
+      background: #1a1a1a;
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .slide-item.active {
+      border-color: #4a9eff;
+    }
+    .slide-item:hover {
+      background: #252525;
+    }
+    .slide-info {
+      flex: 1;
+    }
+    .slide-type {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      background: #4a9eff;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-right: 0.5rem;
+    }
+    .slide-actions {
+      display: flex;
+      gap: 0.25rem;
+    }
+    .slide-actions button {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.8rem;
+    }
+    .editor-panel {
+      background: #2d2d2d;
+      padding: 1rem;
+      border-radius: 8px;
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .form-group label {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #ccc;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      padding: 0.5rem;
+      border-radius: 6px;
+      border: 1px solid #555;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      font-size: 0.9rem;
+      font-family: inherit;
+    }
+    .form-group textarea {
+      resize: vertical;
+      min-height: 100px;
+      font-family: 'Monaco', 'Courier New', monospace;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    @media (max-width: 768px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+    .preview-panel {
+      background: #000;
+      border-radius: 8px;
+      min-height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .preview-content {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      text-align: center;
+    }
+    .preview-content img,
+    .preview-content video {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    .view-tabs {
+      display: flex;
+      gap: 0.5rem;
+      background: #2d2d2d;
+      padding: 0.5rem;
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .view-tab {
+      flex: 1;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #b0b0b0;
+      background: #1a1a1a;
+      border: 2px solid transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .view-tab.active {
+      color: #4a9eff;
+      background: #2d2d2d;
+      border-color: #4a9eff;
+    }
+    .view-tab:active { background: #3a3a3a; }
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #28a745;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 1000;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .modal.active {
+      display: flex;
+    }
+    .modal-content {
+      background: #2d2d2d;
+      padding: 1.5rem;
+      border-radius: 8px;
+      max-width: 500px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .modal-header h3 {
+      font-size: 1.3rem;
+    }
+    .close-modal {
+      background: none;
+      color: #ccc;
+      font-size: 2rem;
+      padding: 0;
+      width: 2rem;
+      height: 2rem;
+      line-height: 1;
+    }
+    .version {
+      text-align: center;
+      font-size: 0.75rem;
+      color: #666;
+      padding: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>📽️ Slideshow Editor</h2>
+    
+    <!-- Slideshow Sets Selection -->
+    <div class="sets-panel">
+      <div class="sets-tabs" id="setsTabs">
+        <!-- Populated dynamically -->
+      </div>
+      <div class="set-controls">
+        <button onclick="createNewSet()">+ New Set</button>
+        <button class="secondary" onclick="renameSet()">✏️ Rename</button>
+        <button class="danger" onclick="deleteSet()">🗑️ Delete Set</button>
+      </div>
+    </div>
+
+    <!-- Slides List -->
+    <div class="slides-list">
+      <h3 style="margin-bottom: 0.75rem;">Slides</h3>
+      <div id="slidesList">
+        <p style="color: #666; text-align: center;">No slides yet</p>
+      </div>
+      <button onclick="addSlide()" style="width: 100%; margin-top: 0.5rem;">+ Add Slide</button>
+    </div>
+
+    <!-- View Tabs -->
+    <div class="view-tabs">
+      <button class="view-tab active" onclick="switchView('editor')">✏️ Editor</button>
+      <button class="view-tab" onclick="switchView('preview')">👁️ Preview</button>
+    </div>
+
+    <!-- Slide Editor -->
+    <div class="editor-panel" id="editorPanel">
+      <h3>Slide Editor</h3>
+      <p style="color: #666;">Select a slide to edit</p>
+    </div>
+
+    <!-- Preview -->
+    <div class="preview-panel" id="previewPanel" style="display: none;">
+      <div class="preview-content" id="previewContent">
+        <p style="color: #666;">Preview will appear here</p>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 0.5rem; flex-shrink: 0;">
+      <button onclick="saveSet()" style="flex: 1;">💾 Save Slideshow</button>
+      <button class="secondary" onclick="testSlideshow()" style="flex: 1;">▶️ Test</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" style="display: none;" aria-live="polite" role="status"></div>
+
+  <!-- New Set Modal -->
+  <div id="newSetModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>New Slideshow Set</h3>
+        <button class="close-modal" onclick="closeModal('newSetModal')">×</button>
+      </div>
+      <div class="form-group">
+        <label>Set Name</label>
+        <input type="text" id="newSetName" placeholder="e.g., upcoming-events">
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <input type="text" id="newSetDesc" placeholder="Optional description">
+      </div>
+      <button onclick="createSet()" style="width: 100%; margin-top: 1rem;">Create</button>
+    </div>
+  </div>
+
+  <div class="version">314Sign v0.9.2.60 | © 2025 J Stekervetz | CC BY-NC 4.0</div>
+
+  <script>
+    let currentSet = null;
+    let currentSlideIndex = null;
+    let slideData = {
+      name: "",
+      description: "",
+      defaultDuration: 5000,
+      defaultTransition: "fade",
+      slides: []
+    };
+
+    // Load available sets on startup
+    function loadSets() {
+      fetch('sets/index.php')
+        .then(r => r.json())
+        .then(files => {
+          if (files.length === 0) {
+            // No sets found, show example
+            files.push('example.json');
+          }
+          
+          const tabsContainer = document.getElementById('setsTabs');
+          tabsContainer.innerHTML = '';
+          
+          files.forEach((file, index) => {
+            const button = document.createElement('button');
+            button.className = 'set-tab' + (index === 0 ? ' active' : '');
+            button.textContent = file.replace('.json', '');
+            button.onclick = () => loadSet(file);
+            tabsContainer.appendChild(button);
+            
+            if (index === 0) {
+              currentSet = file;
+              loadSet(file);
+            }
+          });
+        })
+        .catch(() => {
+          showToast('Failed to load sets', 2000);
+        });
+    }
+
+    // Load a specific set
+    function loadSet(filename) {
+      currentSet = filename;
+      
+      // Update active tab
+      document.querySelectorAll('.set-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.textContent === filename.replace('.json', ''));
+      });
+      
+      fetch('sets/' + filename)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data) {
+            slideData = data;
+            renderSlidesList();
+            currentSlideIndex = null;
+            showEmptyEditor();
+          }
+        })
+        .catch(() => {
+          showToast('Failed to load set', 2000);
+        });
+    }
+
+    // Render slides list
+    function renderSlidesList() {
+      const container = document.getElementById('slidesList');
+      
+      if (slideData.slides.length === 0) {
+        container.innerHTML = '<p style="color: #666; text-align: center;">No slides yet</p>';
+        return;
+      }
+      
+      container.innerHTML = slideData.slides.map((slide, index) => `
+        <div class="slide-item ${index === currentSlideIndex ? 'active' : ''}" onclick="editSlide(${index})">
+          <div class="slide-info">
+            <span class="slide-type">${slide.type.toUpperCase()}</span>
+            <span>${slide.type === 'text' ? (slide.content?.substring(0, 30) || 'Empty') : slide.media || 'No media'}</span>
+          </div>
+          <div class="slide-actions">
+            <button onclick="moveSlide(${index}, -1); event.stopPropagation();" ${index === 0 ? 'disabled' : ''}>↑</button>
+            <button onclick="moveSlide(${index}, 1); event.stopPropagation();" ${index === slideData.slides.length - 1 ? 'disabled' : ''}>↓</button>
+            <button class="danger" onclick="deleteSlide(${index}); event.stopPropagation();">×</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Add new slide
+    function addSlide() {
+      const newSlide = {
+        type: 'text',
+        duration: slideData.defaultDuration || 5000,
+        transition: slideData.defaultTransition || 'fade',
+        background: '',
+        content: '',
+        font: 'Lato, sans-serif',
+        fontSize: 5
+      };
+      
+      slideData.slides.push(newSlide);
+      renderSlidesList();
+      editSlide(slideData.slides.length - 1);
+    }
+
+    // Edit slide
+    function editSlide(index) {
+      currentSlideIndex = index;
+      renderSlidesList();
+      
+      const slide = slideData.slides[index];
+      const panel = document.getElementById('editorPanel');
+      
+      panel.innerHTML = `
+        <h3>Edit Slide #${index + 1}</h3>
+        
+        <div class="form-group">
+          <label>Slide Type</label>
+          <select id="slideType" onchange="updateSlideType()">
+            <option value="text" ${slide.type === 'text' ? 'selected' : ''}>Text with Background</option>
+            <option value="image" ${slide.type === 'image' ? 'selected' : ''}>Image</option>
+            <option value="video" ${slide.type === 'video' ? 'selected' : ''}>Video</option>
+          </select>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>Duration (ms)</label>
+            <input type="number" id="slideDuration" value="${slide.duration}" min="0" step="1000">
+            <small style="color: #888; font-size: 0.8rem;">0 = video length</small>
+          </div>
+          <div class="form-group">
+            <label>Transition</label>
+            <select id="slideTransition">
+              <option value="fade" ${slide.transition === 'fade' ? 'selected' : ''}>Fade</option>
+              <option value="slide-left" ${slide.transition === 'slide-left' ? 'selected' : ''}>Slide Left</option>
+              <option value="slide-right" ${slide.transition === 'slide-right' ? 'selected' : ''}>Slide Right</option>
+              <option value="slide-up" ${slide.transition === 'slide-up' ? 'selected' : ''}>Slide Up</option>
+              <option value="slide-down" ${slide.transition === 'slide-down' ? 'selected' : ''}>Slide Down</option>
+              <option value="zoom" ${slide.transition === 'zoom' ? 'selected' : ''}>Zoom</option>
+              <option value="none" ${slide.transition === 'none' ? 'selected' : ''}>None</option>
+            </select>
+          </div>
+        </div>
+        
+        <div id="typeSpecificFields"></div>
+        
+        <button onclick="updateSlide()" style="width: 100%;">Update Slide</button>
+      `;
+      
+      updateSlideTypeFields();
+      updatePreview();
+    }
+
+    // Update slide type fields
+    function updateSlideType() {
+      const type = document.getElementById('slideType').value;
+      slideData.slides[currentSlideIndex].type = type;
+      updateSlideTypeFields();
+    }
+
+    function updateSlideTypeFields() {
+      const slide = slideData.slides[currentSlideIndex];
+      const container = document.getElementById('typeSpecificFields');
+      
+      if (slide.type === 'text') {
+        container.innerHTML = `
+          <div class="form-group">
+            <label>Background Image</label>
+            <input type="text" id="slideBackground" value="${slide.background || ''}" placeholder="../bg/image.jpg">
+          </div>
+          <div class="form-group">
+            <label>Content (Markdown supported)</label>
+            <textarea id="slideContent" oninput="updatePreview()">${slide.content || ''}</textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Font</label>
+              <input type="text" id="slideFont" value="${slide.font || 'Lato, sans-serif'}">
+            </div>
+            <div class="form-group">
+              <label>Font Size (%)</label>
+              <input type="number" id="slideFontSize" value="${slide.fontSize || 5}" min="1" max="20" step="0.5">
+            </div>
+          </div>
+        `;
+      } else if (slide.type === 'image') {
+        container.innerHTML = `
+          <div class="form-group">
+            <label>Image Path</label>
+            <input type="text" id="slideMedia" value="${slide.media || ''}" placeholder="media/image.jpg">
+          </div>
+          <div class="form-group">
+            <label>Upload Image</label>
+            <input type="file" id="mediaUpload" accept="image/*" onchange="uploadMedia(this)">
+          </div>
+          <div class="form-group">
+            <label>Caption (optional)</label>
+            <input type="text" id="slideCaption" value="${slide.caption || ''}">
+          </div>
+          <div class="form-group">
+            <label>Caption Position</label>
+            <select id="slideCaptionPos">
+              <option value="top" ${slide.captionPosition === 'top' ? 'selected' : ''}>Top</option>
+              <option value="bottom" ${slide.captionPosition === 'bottom' ? 'selected' : ''}>Bottom</option>
+              <option value="center" ${slide.captionPosition === 'center' ? 'selected' : ''}>Center</option>
+            </select>
+          </div>
+        `;
+      } else if (slide.type === 'video') {
+        container.innerHTML = `
+          <div class="form-group">
+            <label>Video Path</label>
+            <input type="text" id="slideMedia" value="${slide.media || ''}" placeholder="media/video.mp4">
+          </div>
+          <div class="form-group">
+            <label>Upload Video</label>
+            <input type="file" id="mediaUpload" accept="video/*" onchange="uploadMedia(this)">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>
+                <input type="checkbox" id="slideLoop" ${slide.loop ? 'checked' : ''}>
+                Loop video
+              </label>
+            </div>
+            <div class="form-group">
+              <label>
+                <input type="checkbox" id="slideMuted" ${slide.muted ? 'checked' : ''}>
+                Muted
+              </label>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // Update slide with current form values
+    function updateSlide() {
+      const slide = slideData.slides[currentSlideIndex];
+      
+      slide.duration = parseInt(document.getElementById('slideDuration').value);
+      slide.transition = document.getElementById('slideTransition').value;
+      
+      if (slide.type === 'text') {
+        slide.background = document.getElementById('slideBackground').value;
+        slide.content = document.getElementById('slideContent').value;
+        slide.font = document.getElementById('slideFont').value;
+        slide.fontSize = parseFloat(document.getElementById('slideFontSize').value);
+      } else if (slide.type === 'image') {
+        slide.media = document.getElementById('slideMedia').value;
+        slide.caption = document.getElementById('slideCaption').value;
+        slide.captionPosition = document.getElementById('slideCaptionPos').value;
+      } else if (slide.type === 'video') {
+        slide.media = document.getElementById('slideMedia').value;
+        slide.loop = document.getElementById('slideLoop').checked;
+        slide.muted = document.getElementById('slideMuted').checked;
+      }
+      
+      renderSlidesList();
+      updatePreview();
+      showToast('Slide updated');
+    }
+
+    // Update preview
+    function updatePreview() {
+      if (currentSlideIndex === null) return;
+      
+      const slide = slideData.slides[currentSlideIndex];
+      const preview = document.getElementById('previewContent');
+      
+      if (slide.type === 'text') {
+        const content = document.getElementById('slideContent')?.value || slide.content || '';
+        const bgStyle = slide.background ? `background-image: url('${slide.background}'); background-size: cover; background-position: center;` : 'background: #000;';
+        
+        // Process markdown and color tags
+        let html = marked.parse(content);
+        
+        preview.innerHTML = `
+          <div style="${bgStyle} width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 2rem;">
+            <div style="font-family: ${slide.font}; font-size: ${slide.fontSize}vw; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
+              ${html}
+            </div>
+          </div>
+        `;
+      } else if (slide.type === 'image') {
+        const caption = slide.caption ? `<div style="position: absolute; ${slide.captionPosition === 'top' ? 'top' : 'bottom'}: 0; width: 100%; background: rgba(0,0,0,0.7); color: white; padding: 1rem; text-align: center; font-size: 1.5rem;">${slide.caption}</div>` : '';
+        preview.innerHTML = `
+          <div style="position: relative; width: 100%; height: 100%;">
+            <img src="${slide.media}" alt="Slide" style="width: 100%; height: 100%; object-fit: contain;">
+            ${caption}
+          </div>
+        `;
+      } else if (slide.type === 'video') {
+        preview.innerHTML = `
+          <video src="${slide.media}" ${slide.loop ? 'loop' : ''} ${slide.muted ? 'muted' : ''} controls style="max-width: 100%; max-height: 100%;">
+          </video>
+        `;
+      }
+    }
+
+    // Move slide
+    function moveSlide(index, direction) {
+      if (index + direction < 0 || index + direction >= slideData.slides.length) return;
+      
+      const temp = slideData.slides[index];
+      slideData.slides[index] = slideData.slides[index + direction];
+      slideData.slides[index + direction] = temp;
+      
+      if (currentSlideIndex === index) {
+        currentSlideIndex = index + direction;
+      } else if (currentSlideIndex === index + direction) {
+        currentSlideIndex = index;
+      }
+      
+      renderSlidesList();
+      if (currentSlideIndex !== null) {
+        editSlide(currentSlideIndex);
+      }
+    }
+
+    // Delete slide
+    function deleteSlide(index) {
+      if (!confirm('Delete this slide?')) return;
+      
+      slideData.slides.splice(index, 1);
+      renderSlidesList();
+      
+      if (currentSlideIndex === index) {
+        currentSlideIndex = null;
+        showEmptyEditor();
+      } else if (currentSlideIndex > index) {
+        currentSlideIndex--;
+      }
+    }
+
+    // Show empty editor state
+    function showEmptyEditor() {
+      const panel = document.getElementById('editorPanel');
+      panel.innerHTML = `
+        <h3>Slide Editor</h3>
+        <p style="color: #666;">Select a slide to edit or add a new one</p>
+      `;
+      
+      const preview = document.getElementById('previewContent');
+      preview.innerHTML = '<p style="color: #666;">Preview will appear here</p>';
+    }
+
+    // Save set (server-backed)
+    function saveSet() {
+      if (!currentSet) {
+        showToast('No set selected', 2000);
+        return;
+      }
+
+      fetch('save-set.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: 'sets/' + currentSet, content: slideData })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.success) {
+          showToast('Slideshow saved!');
+        } else {
+          throw new Error((data && data.error) || 'Save failed');
+        }
+      })
+      .catch(err => {
+        console.error('Save failed:', err);
+        showToast('Failed to save', 2000);
+      });
+    }
+
+    // Upload media
+    function uploadMedia(input) {
+      if (!input.files || !input.files[0]) return;
+      
+      const file = input.files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      showToast('Uploading...', 1000);
+      
+      fetch('upload-media.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.filename) {
+          document.getElementById('slideMedia').value = 'media/' + data.filename;
+          showToast('Upload complete!');
+          updateSlide();
+        } else {
+          throw new Error(data.error || 'Upload failed');
+        }
+      })
+      .catch(err => {
+        showToast('Upload failed: ' + err.message, 3000);
+      });
+    }
+
+    // Create new set
+    function createNewSet() {
+      document.getElementById('newSetModal').classList.add('active');
+      document.getElementById('newSetName').value = '';
+      document.getElementById('newSetDesc').value = '';
+    }
+
+    function createSet() {
+      const name = document.getElementById('newSetName').value.trim();
+      if (!name) {
+        showToast('Enter a set name', 2000);
+        return;
+      }
+      
+      const filename = name.toLowerCase().replace(/[^a-z0-9-]/g, '-') + '.json';
+      const newSet = {
+        name: name,
+        description: document.getElementById('newSetDesc').value,
+        defaultDuration: 5000,
+        defaultTransition: 'fade',
+        slides: []
+      };
+      
+      fetch('save-set.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: 'sets/' + filename, content: newSet })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.success) {
+          closeModal('newSetModal');
+          showToast('Set created!');
+          loadSets();
+        } else {
+          throw new Error((data && data.error) || 'Create failed');
+        }
+      })
+      .catch(() => {
+        showToast('Failed to create set', 2000);
+      });
+    }
+
+    // Rename set
+    function renameSet() {
+      if (!currentSet) return;
+      
+      const newName = prompt('Enter new name:', currentSet.replace('.json', ''));
+      if (!newName) return;
+      
+      const newFilename = newName.toLowerCase().replace(/[^a-z0-9-]/g, '-') + '.json';
+      
+      // Save to new filename (server-backed). Note: old file is not deleted automatically.
+      fetch('save-set.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: 'sets/' + newFilename, content: slideData })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.success) {
+          currentSet = newFilename;
+          showToast('Set renamed!');
+          loadSets();
+        } else {
+          throw new Error((data && data.error) || 'Rename failed');
+        }
+      })
+      .catch(() => {
+        showToast('Failed to rename', 2000);
+      });
+    }
+
+    // Delete set
+    function deleteSet() {
+      if (!currentSet) return;
+      if (!confirm('Delete this slideshow set? This cannot be undone.')) return;
+      
+      // Would need PHP backend to actually delete
+      showToast('Delete requires server-side implementation', 3000);
+    }
+
+    // Test slideshow
+    function testSlideshow() {
+      if (!currentSet) return;
+      
+      window.open('../?slideshow=slideshows/sets/' + currentSet, '_blank');
+    }
+
+    // Close modal
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    // Toast helper
+    let toastTimer = null;
+    function showToast(msg, ms = 3000) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.style.display = 'block';
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        el.style.display = 'none';
+      }, ms);
+    }
+
+    // Switch between editor and preview views
+    function switchView(view) {
+      const editorPanel = document.getElementById('editorPanel');
+      const previewPanel = document.getElementById('previewPanel');
+      const editorTab = document.querySelector('.view-tab:first-child');
+      const previewTab = document.querySelector('.view-tab:last-child');
+
+      if (view === 'editor') {
+        editorPanel.style.display = 'block';
+        previewPanel.style.display = 'none';
+        editorTab.classList.add('active');
+        previewTab.classList.remove('active');
+      } else if (view === 'preview') {
+        editorPanel.style.display = 'none';
+        previewPanel.style.display = 'block';
+        editorTab.classList.remove('active');
+        previewTab.classList.add('active');
+        // Update preview when switching to preview mode
+        if (currentSlideIndex !== null) {
+          updatePreview();
+        }
+      }
+    }
+
+    // Load version dynamically
+    let currentVersion = null;
+    const versionEl = document.querySelector('.version');
+    
+    function loadVersion() {
+      fetch('../version.txt?' + Date.now(), { cache: 'no-store' })
+        .then(response => response.text())
+        .then(version => {
+          version = version.trim();
+          if (!version) return;
+          
+          if (currentVersion === null) {
+            currentVersion = version;
+            console.log('[Version] Current version:', version);
+          }
+          
+          // Update the displayed version
+          if (versionEl) {
+            versionEl.textContent = `314Sign v${version} | © 2025 J Stekervetz | CC BY-NC 4.0`;
+          }
+        })
+        .catch(error => {
+          console.warn('[Version] Failed to load version:', error);
+        });
+    }
+    
+    // Initialize
+    loadVersion();
+    loadSets();
+  </script>
+</body>
+</html>

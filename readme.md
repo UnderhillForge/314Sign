@@ -5,59 +5,76 @@
 > **No apps. No subscriptions. No learning curve.**  
 > Point your phone at http://your-pi.local/start → edit → see changes **instantly** on screen.
 
-## Why Choose 314Sign?
+A modern, self-hosted digital signage solution built with Node.js/TypeScript. Perfect for restaurants, cafés, churches, and community spaces that need simple, reliable menu boards without complexity.
 
-**Most digital signage solutions are overkill.** They force you to install apps, create accounts, and learn complex interfaces. 314Sign is different.
+## ✨ Key Features
 
-### ✨ It Just Works
-- **Staff-ready in 30 seconds**: Open a browser, type or tap the URL, start editing. No apps to download, no accounts to create, no training needed.
-- **Edit from anything**: iPhone, Android, iPad, laptop — if it has a browser, it works.
-- **See changes instantly**: Hit save → kiosk updates in under 3 seconds. No refresh button, no waiting.
+### 🚀 Self-Hosted & Modern
+- **Node.js/TypeScript backend** with Express server and SQLite database
+- **RESTful API** for all operations
+- **Zero external dependencies** after setup
+- **Full TypeScript type safety** and modern JavaScript features
 
-### 🚀 Self-Hosted & Private
-- **Runs on your network**: Everything local — no cloud dependencies, no internet required after setup.
-- **You own the hardware**: Raspberry Pi-based solution with full control.
-- **Privacy first**: Your menus stay on your premises. No data sent to third parties.
+### 🎨 Professional Customization
+- **Per-menu styling**: Each menu gets its own font and size
+- **Upload backgrounds from your phone**: Snap a photo → upload → instant background
+- **6+ professional fonts included**: Lato, Bebas Neue, Caveat, and more
+- **Brightness control**: Adjust background brightness (20-150%)
+- **Logo overlay**: Add business logos with adjustable size and transparency
 
-### 🎨 Customization That Makes Sense
-- **Per-menu styling**: Each menu gets its own font and size. Perfect for any use case—food menus, event schedules, promotional content—each can have a distinct look.
-- **Upload backgrounds from your phone**: Snap a photo of today's special → upload → done. No desktop computer needed.
-- **6+ professional fonts included**: From clean and modern (Lato, Bebas Neue) to handwritten fun (Caveat, Walter Turncoat). Add your own TTF fonts anytime.
-- **Brightness control**: Darken backgrounds (20-150%) so text pops without editing images.
-- **Logo overlay**: Add your restaurant/business logo in any corner with adjustable size and transparency.
+### ⚡ Smart Features
+- **Auto-format button**: ✨ One-click styling for menu items and prices
+- **Time-based rules**: Automatically switch menus by time of day
+- **Slideshow system**: Create multimedia presentations with images and videos
+- **Menu history**: 7-day backup with one-click restore
+- **Live preview**: See changes before saving
+- **Color tags**: `{y}$8.95` yellow prices, `{r}` red text, and more
+- **Real-time updates**: Changes appear instantly on kiosk display
 
-### ⚡ Smart Features That Save Time
-- **Auto-format button**: ✨ One-click color styling for menu items, prices, and descriptions.
-- **Auto-schedule menus**: Define time-based rules (e.g., breakfast 7-11am, lunch 11am-3pm, dinner 5-10pm). Kiosk switches automatically.
-- **Slideshow system**: Create multimedia presentations with images, videos, and text. Schedule ads during closed hours or rotate promotional content.
-- **7-day menu history**: Made a mistake? Restore yesterday's menu with one tap.
-- **Active rule display**: Edit page shows which menu is currently live on the kiosk.
-- **Color tags**: `{y}$8.95` for yellow prices, `{r}` for red text, and more.
-- **Live preview**: See exactly how your menu looks before saving.
-
-### 🛠️ Built for Real-World Use
-- **Works offline**: Wi-Fi-only operation. Perfect for restaurants, private clubs, church halls.
-- **One-command setup**: `curl | sudo bash` → grab coffee → it's installed.
-- **SSH-only management**: No keyboard/mouse needed on the Pi after initial setup.
-- **Raspberry Pi OS compatible**: Works with fullpageOS (auto-kiosk) or Pi OS Lite (minimal X11 setup).
+### 🛠️ Built for Production
+- **PM2 process management** for reliable operation
+- **Automatic service startup** on boot
+- **Health monitoring** and status endpoints
+- **Professional logging** and error handling
+- **One-command installation** for Raspberry Pi
 
 ---
 
 ## Quick Start (5 Minutes)
 
+### Installation
 ```bash
-# 1. Flash Raspberry Pi OS Lite 64-bit or fullpageOS to microSD
+# 1. Flash Raspberry Pi OS Lite 64-bit to microSD
 # 2. Boot Pi, enable SSH (sudo raspi-config → Interface → SSH)
 # 3. Connect to Wi-Fi, set hostname (optional: sudo raspi-config → System → Hostname)
 # 4. Run one-command setup:
 curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/setup-kiosk.sh | sudo bash
 
 # 5. Open on any device (replace YOUR-HOSTNAME with your Pi's hostname):
-http://YOUR-HOSTNAME.local/start/     # Quick access landing page
-http://YOUR-HOSTNAME.local/edit/      # Edit daily specials
-http://YOUR-HOSTNAME.local/design/    # Customize appearance
-http://YOUR-HOSTNAME.local/rules/     # Schedule auto-switching
-http://YOUR-HOSTNAME.local/slideshows/ # Create multimedia slideshows
+http://YOUR-HOSTNAME.local:3000/start/     # Quick access landing page
+http://YOUR-HOSTNAME.local:3000/edit/      # Edit daily specials
+http://YOUR-HOSTNAME.local:3000/design/    # Customize appearance
+http://YOUR-HOSTNAME.local:3000/rules/     # Schedule auto-switching
+http://YOUR-HOSTNAME.local:3000/slideshows/ # Create multimedia slideshows
+```
+
+### Development Setup
+```bash
+# Clone repository
+git clone https://github.com/UnderhillForge/314Sign.git
+cd 314Sign
+
+# Install dependencies
+npm install
+
+# Build TypeScript
+npm run build
+
+# Start development server
+npm run dev
+
+# Or start production server
+npm start
 ```
 
 ### Recommended: Auto-Boot to Kiosk Display (Pi OS Lite)
@@ -100,68 +117,69 @@ sudo reboot
 
 ---
 
-## Maintenance & Updates
+## API Endpoints
 
-### Web-Based Maintenance Panel
-Access at `http://YOUR-HOSTNAME.local/maintenance/` for:
-- **Create Backups**: One-click backup of menus, configs, and uploaded images (saved to `/var/www/backups/314sign/`)
-- **Apply Updates**: Pull latest features from GitHub with automatic backup
-- **Restart Server**: Reload lighttpd after manual changes
-- **View System Status**: Check version, uptime, disk space
+The RESTful API provides programmatic access to all features:
 
-### Manual Backup (SSH)
+- `GET /api/status` - Server health and configuration status
+- `GET /api/config` - Get current kiosk configuration
+- `POST /api/config` - Update configuration (merge)
+- `PUT /api/config` - Replace entire configuration
+- `GET /api/menu` - List all menus
+- `GET /api/menu/:name` - Get specific menu content
+- `PUT /api/menu/:name` - Update menu content
+- `DELETE /api/menu/:name` - Delete menu
+- `POST /api/upload/*` - File upload endpoints (backgrounds, media, logos)
+- `GET /api/backgrounds` - List background images
+- `POST /api/system/reload` - Trigger kiosk reload
+
+## Maintenance & Management
+
+### PM2 Process Management
 ```bash
-# Save menus, configs, and uploaded images to /var/www/backups/314sign/
-/var/www/html/scripts/backup.sh
+# Check server status
+pm2 list
 
-# Or specify custom location
-/var/www/html/scripts/backup.sh /home/pi/my-backups
+# View logs
+pm2 logs 314sign
 
-# For system backup location (requires sudo)
-sudo /var/www/html/scripts/backup.sh /var/backups/314sign
+# Restart server
+pm2 restart 314sign
+
+# Stop server
+pm2 stop 314sign
+
+# Monitor processes
+pm2 monit
 ```
-
-### Update from GitHub (SSH)
-```bash
-# Preview what would change (safe, makes no modifications)
-sudo /var/www/html/scripts/update-from-github.sh --dry-run
-
-# Update with auto-backup before applying changes
-sudo /var/www/html/scripts/update-from-github.sh --backup
-
-# Quick update (no backup)
-sudo /var/www/html/scripts/update-from-github.sh
-
-# What updates: Core HTML/PHP, scripts, default backgrounds
-# What's preserved: Your menus, configs, uploaded images
-```
-
-### Force All Browsers to Reload
-After updating code, force all connected browsers (kiosk, edit pages, admin panels) to reload:
-```bash
-# Auto-increment build number (0.9.2.5 -> 0.9.2.6)
-cd /var/www/html
-./scripts/increment-version.sh
-
-# Or manually set new version (0.9.2.6 -> 0.9.3.1)
-./scripts/increment-version.sh 0.9.3
-
-# Or direct edit (useful on development machine)
-echo "0.9.2.7" > /var/www/html/version.txt
-```
-
-**Version Format**: `major.minor.patch.build` (e.g., `0.9.2.1`)
-- Build increments with each commit/change
-- Major/minor/patch bump on significant releases
-- All pages auto-reload within 2-10 seconds when version changes
-All pages check `version.txt` every 2-10 seconds and automatically reload when it changes. This ensures everyone sees the latest updates immediately.
 
 ### Health Check
 ```bash
 # Check system status
-curl http://YOUR-HOSTNAME.local/status.php
+curl http://YOUR-HOSTNAME.local:3000/api/status
 
-# Returns JSON: version, uptime, menu stats, disk space
+# Returns JSON: version, uptime, menu stats, config status
+```
+
+### Manual Backup (SSH)
+```bash
+# Save menus, configs, and uploaded images
+/var/www/html/scripts/backup.sh
+
+# Or specify custom location
+/var/www/html/scripts/backup.sh /home/pi/my-backups
+```
+
+### Development
+```bash
+# Run tests
+npm test
+
+# Run with auto-reload during development
+npm run dev
+
+# Build for production
+npm run build
 ```
 
 ---

@@ -1,10 +1,16 @@
 #!/bin/bash
 ###############################################################################
-# 314Sign Installer
-# 
+# 314Sign Installer (Node.js/TypeScript Version)
+#
 # Compatible with:
-#   - fullpageOS (Raspberry Pi kiosk mode)
-#   - Raspberry Pi OS Lite 64-bit (manual kiosk setup required)
+#   - Raspberry Pi OS Lite 64-bit with Node.js
+#   - Raspberry Pi OS Desktop (manual kiosk setup required)
+#
+# Features:
+#   - Node.js/Express server with TypeScript
+#   - SQLite database for user authentication
+#   - Web-based admin interface
+#   - Optional kiosk display mode
 #
 # Usage:
 #   curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/setup-kiosk.sh | sudo bash
@@ -23,18 +29,38 @@ echo ""
 # === 1. Install required packages ===
 echo "Installing packages..."
 sudo apt update
-sudo apt install -y lighttpd lighttpd-mod-webdav php-cgi git qrencode
+
+# Install Node.js (NodeSource repository for latest LTS)
+echo "Installing Node.js..."
+if ! curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -; then
+  echo "Failed to add NodeSource repository, trying alternative..."
+  # Fallback: try installing from default repos
+  sudo apt install -y nodejs npm || {
+    echo "ERROR: Failed to install Node.js"
+    echo "Please install Node.js manually: https://nodejs.org/"
+    exit 1
+  }
+else
+  sudo apt install -y nodejs
+fi
+
+# Verify Node.js installation
+if ! command -v node >/dev/null 2>&1; then
+  echo "ERROR: Node.js installation failed"
+  exit 1
+fi
+
+NODE_VERSION=$(node --version)
+NPM_VERSION=$(npm --version)
+echo "✓ Node.js $NODE_VERSION installed"
+echo "✓ npm $NPM_VERSION installed"
+
+# Install additional packages
+sudo apt install -y git qrencode avahi-daemon sqlite3
 
 # Optional packages (needed for kiosk automation features, skip on headless systems)
 echo "Installing optional packages..."
 sudo apt install -y inotify-tools xdotool 2>/dev/null || echo "Note: Some optional packages unavailable (normal for headless systems)"
-
-# Enable PHP and WebDAV
-echo "Enabling lighttpd modules..."
-sudo lighty-enable-mod fastcgi || true
-sudo lighty-enable-mod fastcgi-php || true
-sudo lighty-enable-mod webdav || true
-echo "Lighttpd modules configured"
 
 # === 2. Clone 314Sign from GitHub ===
 TEMP_DIR=$(mktemp -d)
@@ -124,6 +150,38 @@ if [ "$COPIED_COUNT" -lt 10 ]; then
   echo "Contents of /var/www/html:"
   ls -la /var/www/html/
 fi
+
+# === 3b. Install Node.js dependencies and build ===
+echo ""
+echo "Installing Node.js dependencies..."
+cd /var/www/html
+
+# Check if package.json exists
+if [ ! -f "package.json" ]; then
+  echo "ERROR: package.json not found in /var/www/html"
+  echo "Installation incomplete - missing package.json"
+  exit 1
+fi
+
+# Install dependencies
+if ! npm install; then
+  echo "ERROR: npm install failed"
+  echo "Check your internet connection and npm configuration"
+  exit 1
+fi
+
+echo "✓ Dependencies installed"
+
+# Build TypeScript
+echo "Building TypeScript..."
+if ! npm run build; then
+  echo "ERROR: TypeScript build failed"
+  echo "Check the build output above for errors"
+  exit 1
+fi
+
+echo "✓ TypeScript compiled successfully"
+echo "✓ 314Sign Node.js server ready"
 
 # === 4. Create required directories ===
 sudo mkdir -p /var/www/html/logs
@@ -227,137 +285,216 @@ else
   echo "  To enable later, copy sudoers-314sign to /etc/sudoers.d/314sign"
 fi
 
-# === 6. Configure lighttpd ===
+# === 6. Install and configure PM2 for Node.js service management ===
 echo ""
-echo "Configuring lighttpd..."
-LIGHTTPD_CONF="/etc/lighttpd/lighttpd.conf"
-WEBDAV_CONF="/etc/lighttpd/conf-enabled/10-webdav.conf"
+echo "Installing PM2 process manager..."
 
-# Enable ETag (check for existing to avoid duplicates)
-if ! grep -q "server.etag" "$LIGHTTPD_CONF"; then
-  echo 'server.etag = "enable"' | sudo tee -a "$LIGHTTPD_CONF" > /dev/null
-  echo "Added ETag configuration"
+# Install PM2 globally
+if ! sudo npm install -g pm2; then
+  echo "ERROR: Failed to install PM2"
+  echo "Please install PM2 manually: sudo npm install -g pm2"
+  exit 1
+fi
+
+echo "✓ PM2 installed successfully"
+
+# Configure PM2 startup (creates systemd service)
+echo "Configuring PM2 startup..."
+if ! pm2 startup; then
+  echo "⚠️  PM2 startup configuration failed"
+  echo "You may need to run: sudo env PATH=\$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $(whoami) --hp /home/$(whoami)"
 else
-  echo "ETag already configured"
+  echo "✓ PM2 startup configured"
 fi
 
-# Validate lighttpd config before proceeding
-echo "Validating lighttpd configuration..."
-if ! sudo lighttpd -t -f "$LIGHTTPD_CONF" 2>&1; then
-  echo ""
-  echo "⚠️  WARNING: lighttpd configuration has errors!"
-  echo "Attempting to fix common issues..."
-  
-  # Check for duplicate server.etag
-  ETAG_COUNT=$(grep -c "^[[:space:]]*server.etag" "$LIGHTTPD_CONF" || true)
-  if [ "$ETAG_COUNT" -gt 1 ]; then
-    echo "Found duplicate server.etag entries, removing duplicates..."
-    # Keep only the first occurrence
-    sudo sed -i '/server.etag/!b;n;:a;/server.etag/d;n;ba' "$LIGHTTPD_CONF"
-  fi
-  
-  # Validate again
-  if ! sudo lighttpd -t -f "$LIGHTTPD_CONF" 2>&1; then
-    echo ""
-    echo "❌ Configuration still has errors. Manual intervention required:"
-    echo "   sudo lighttpd -t -f /etc/lighttpd/lighttpd.conf"
-    echo "   sudo nano /etc/lighttpd/lighttpd.conf"
-    echo ""
-    echo "Common fixes:"
-    echo "   - Remove duplicate 'server.etag' lines"
-    echo "   - Check for syntax errors in configuration"
-    echo ""
-  fi
-fi
-
-# WebDAV: only allow safe files
-sudo tee "$WEBDAV_CONF" > /dev/null << 'EOF'
-server.modules += ( "mod_webdav" )
-
-# Enable WebDAV for specific editable files (NOTE: config.json is intentionally excluded
-# here so raw PUTs are not allowed; use scripts/merge-config.php for safe config updates)
-$HTTP["url"] =~ "^/(index\.html|rules\.json|menus-config\.json|reload\.txt|demo-command\.txt)$" {
-  webdav.activate = "enable"
-  webdav.is-readonly = "disable"
-}
-
-# Enable WebDAV for menu files
-$HTTP["url"] =~ "^/menus/(breakfast|lunch|dinner|closed)\.txt$" {
-  webdav.activate = "enable"
-  webdav.is-readonly = "disable"
-}
-
-# Enable WebDAV for slideshow files
-$HTTP["url"] =~ "^/slideshows/(index\.html|upload-media\.php)$" {
-  webdav.activate = "enable"
-  webdav.is-readonly = "disable"
-}
-
-$HTTP["url"] =~ "^/slideshows/sets/.*\.json$" {
-  webdav.activate = "enable"
-  webdav.is-readonly = "disable"
-}
-
-# Enable WebDAV for editor pages
-$HTTP["url"] =~ "^/(edit|design|rules|slideshows|maintenance|start)/index\.html$" {
-  webdav.activate = "enable"
-  webdav.is-readonly = "disable"
-}
-
-# Rewrite raw PUTs to /config.json to a small guard script that returns an instructive error
-# This prevents accidental destructive PUTs; legitimate updates should POST to scripts/merge-config.php
-$HTTP["url"] == "/config.json" {
-  $HTTP["request-method"] == "PUT" {
-    url.rewrite-once = ( "^/config.json$" => "/scripts/put-guard.php" )
-  }
-}
+# Create PM2 ecosystem file for 314Sign
+cat > /var/www/html/ecosystem.config.js << 'EOF'
+module.exports = {
+  apps: [{
+    name: '314sign',
+    script: 'dist/server.js',
+    cwd: '/var/www/html',
+    instances: 1,
+    autorestart: true,
+    watch: false,
+    max_memory_restart: '1G',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 3000
+    },
+    error_log: '/var/www/html/logs/314sign-error.log',
+    out_log: '/var/www/html/logs/314sign-out.log',
+    log_log: '/var/www/html/logs/314sign-combined.log',
+    time: true
+  }]
+};
 EOF
+
+echo "✓ PM2 ecosystem configuration created"
+
+# Create logs directory
+sudo mkdir -p /var/www/html/logs
+sudo chown www-data:www-data /var/www/html/logs
+
+# Start 314Sign with PM2
+echo "Starting 314Sign server with PM2..."
+cd /var/www/html
+if pm2 start ecosystem.config.js; then
+  echo "✓ 314Sign server started successfully"
+  pm2 save
+  echo "✓ PM2 configuration saved"
+else
+  echo "⚠️  Failed to start 314Sign with PM2"
+  echo "You can try starting manually:"
+  echo "  cd /var/www/html && npm start"
+fi
+
+# Show PM2 status
+echo ""
+echo "PM2 Status:"
+pm2 list
 
 # === 7. Generate QR codes ===
 echo "Generating QR codes..."
 HOSTNAME=$(hostname)
 cd /var/www/html
-[ ! -f qr-start.png ] && qrencode -o qr-start.png -s 10 "http://${HOSTNAME}.local/start/"
-[ ! -f qr-edit.png ] && qrencode -o qr-edit.png -s 10 "http://${HOSTNAME}.local/edit/"
-[ ! -f qr-design.png ] && qrencode -o qr-design.png -s 10 "http://${HOSTNAME}.local/design/"
-[ ! -f qr-rules.png ] && qrencode -o qr-rules.png -s 10 "http://${HOSTNAME}.local/rules/"
+[ ! -f qr-start.png ] && qrencode -o qr-start.png -s 10 "http://${HOSTNAME}.local:3000/start/"
+[ ! -f qr-edit.png ] && qrencode -o qr-edit.png -s 10 "http://${HOSTNAME}.local:3000/edit/"
+[ ! -f qr-design.png ] && qrencode -o qr-design.png -s 10 "http://${HOSTNAME}.local:3000/design/"
+[ ! -f qr-rules.png ] && qrencode -o qr-rules.png -s 10 "http://${HOSTNAME}.local:3000/rules/"
 
-# === 8. Restart services ===
+# === 8b. Ensure avahi-daemon is running ===
 echo ""
-echo "Restarting lighttpd..."
-
-# Final config validation before restart
-if sudo lighttpd -t -f "$LIGHTTPD_CONF" 2>&1 | grep -q "Syntax OK"; then
-  if sudo systemctl restart lighttpd; then
-    echo "✓ Lighttpd restarted successfully"
+echo "Ensuring avahi-daemon is running..."
+if sudo systemctl is-active --quiet avahi-daemon; then
+  echo "✓ Avahi-daemon is already running"
+else
+  echo "Starting avahi-daemon..."
+  if sudo systemctl enable avahi-daemon && sudo systemctl start avahi-daemon; then
+    echo "✓ Avahi-daemon started and enabled successfully"
   else
     echo ""
-    echo "❌ Lighttpd failed to restart"
-    echo ""
-    echo "Diagnostic commands:"
-    echo "  sudo systemctl status lighttpd"
-    echo "  sudo journalctl -xeu lighttpd.service"
-    echo "  sudo tail -50 /var/log/lighttpd/error.log"
-    echo ""
-    echo "Common issues:"
-    echo "  - Port 80 already in use (check: sudo netstat -tulpn | grep :80)"
-    echo "  - Permission issues on /var/www/html"
-    echo "  - Module conflicts in configuration"
+    echo "⚠️  Avahi-daemon failed to start"
+    echo "This may affect .local hostname resolution"
+    echo "Manual commands:"
+    echo "  sudo systemctl enable avahi-daemon"
+    echo "  sudo systemctl start avahi-daemon"
+    echo "  sudo systemctl status avahi-daemon"
     echo ""
   fi
-else
-  echo ""
-  echo "⚠️  Skipping restart - configuration has errors"
-  echo "Fix the errors above and restart manually:"
-  echo "  sudo systemctl restart lighttpd"
-  echo ""
 fi
 
-# === 9. Cleanup ===
+# === 9. Optional: Disable Undervoltage Warnings ===
+echo ""
+echo "=== Optional Configuration ==="
+echo ""
+echo "Raspberry Pi can show undervoltage warnings even with adequate power supplies."
+echo "If you're using a good quality power supply and want to disable these warnings,"
+echo "this will add 'avoid_warnings=1' to /boot/config.txt"
+echo ""
+read -p "Disable undervoltage warnings? (y/N): " -n 1 -r
+echo ""
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+  CONFIG_FILE="/boot/config.txt"
+  if [ -f "$CONFIG_FILE" ]; then
+    # Check if avoid_warnings is already set
+    if grep -q "^avoid_warnings=" "$CONFIG_FILE"; then
+      echo "Undervoltage warnings already configured in $CONFIG_FILE"
+      grep "^avoid_warnings=" "$CONFIG_FILE"
+    else
+      echo "Adding avoid_warnings=1 to $CONFIG_FILE..."
+      echo "" | sudo tee -a "$CONFIG_FILE" > /dev/null
+      echo "# Disable undervoltage warnings (314Sign installer)" | sudo tee -a "$CONFIG_FILE" > /dev/null
+      echo "avoid_warnings=1" | sudo tee -a "$CONFIG_FILE" > /dev/null
+      echo "✓ Undervoltage warnings disabled"
+      echo "⚠️  Changes take effect after reboot"
+    fi
+  else
+    echo "⚠️  /boot/config.txt not found - skipping undervoltage configuration"
+    echo "   This is normal if not running on Raspberry Pi OS"
+  fi
+else
+  echo "Undervoltage warnings left enabled (recommended for troubleshooting)"
+fi
+
+# === 9. Optional: Set up Kiosk Display Mode ===
+echo ""
+echo "=== Optional Kiosk Display Setup ==="
+echo ""
+echo "The web server is now running, but the Pi won't automatically display"
+echo "the kiosk on HDMI. To set up auto-boot kiosk mode with Chromium browser:"
+echo ""
+echo "This will install minimal X11 + Chromium and configure auto-start."
+echo "The Pi will boot directly to fullscreen kiosk display."
+echo ""
+read -p "Set up kiosk display mode now? (y/N): " -n 1 -r
+echo ""
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+  echo "Setting up kiosk display mode..."
+  
+  # Check if kiosk script exists in temp directory or installed location
+  KIOSK_SCRIPT=""
+  if [ -f "$TEMP_DIR/314Sign/scripts/os-lite-kiosk.sh" ]; then
+    KIOSK_SCRIPT="$TEMP_DIR/314Sign/scripts/os-lite-kiosk.sh"
+  elif [ -f "/var/www/html/scripts/os-lite-kiosk.sh" ]; then
+    KIOSK_SCRIPT="/var/www/html/scripts/os-lite-kiosk.sh"
+  fi
+  
+  if [ -n "$KIOSK_SCRIPT" ]; then
+    echo "Running kiosk setup script..."
+    chmod +x "$KIOSK_SCRIPT"
+    "$KIOSK_SCRIPT"
+  else
+    echo "Kiosk script not found locally, downloading from GitHub..."
+    if ! curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/scripts/os-lite-kiosk.sh | bash; then
+      echo "❌ Failed to download or run kiosk setup script"
+      echo "You can try manually:"
+      echo "  curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/scripts/os-lite-kiosk.sh | sudo bash"
+      exit 1
+    fi
+  fi
+  
+  echo ""
+  echo "✅ Kiosk display mode configured!"
+  echo "⚠️  Reboot required for changes to take effect"
+  echo "   sudo reboot"
+  else
+    echo "❌ Kiosk setup script not found!"
+    echo "You can install it manually later:"
+    echo "  curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/scripts/os-lite-kiosk.sh | sudo bash"
+  fi
+else
+  echo "Kiosk display setup skipped."
+  echo "To set up kiosk mode later, run:"
+  echo "  curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/scripts/os-lite-kiosk.sh | sudo bash"
+fi
+
+# === 10. Cleanup ===
 rm -rf "$TEMP_DIR"
 
 echo ""
 echo "✅ 314Sign installed successfully!"
+echo ""
+
+# Check if kiosk mode was set up (check common user directories)
+KIOSK_CONFIGURED=false
+for user_home in /home/pi /home/raspberry /root; do
+  if [ -f "$user_home/.config/openbox/autostart" ]; then
+    KIOSK_CONFIGURED=true
+    break
+  fi
+done
+
+if [ "$KIOSK_CONFIGURED" = true ]; then
+  echo "📺 Kiosk display mode: CONFIGURED"
+  echo "   The Pi will boot directly to fullscreen display"
+  echo "   ⚠️  sudo reboot required to activate"
+else
+  echo "📺 Kiosk display mode: NOT CONFIGURED"
+  echo "   Web server is running, but Pi won't display on HDMI"
+  echo "   Run kiosk setup later if needed:"
+  echo "   curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/scripts/os-lite-kiosk.sh | sudo bash"
+fi
 echo ""
 
 # Final verification
@@ -393,17 +530,30 @@ else
 fi
 
 echo "📺 Kiosk Display:"
-echo "   http://${HOSTNAME}.local"
+echo "   http://${HOSTNAME}.local:3000"
 echo ""
 echo "📱 Staff Editors:"
-echo "   • Quick Start:   http://${HOSTNAME}.local/start/"
-echo "   • Menu Editor:   http://${HOSTNAME}.local/edit/"
-echo "   • Style Config:  http://${HOSTNAME}.local/design/"
-echo "   • Auto Schedule: http://${HOSTNAME}.local/rules/"
+echo "   • Quick Start:   http://${HOSTNAME}.local:3000/start/"
+echo "   • Menu Editor:   http://${HOSTNAME}.local:3000/edit/"
+echo "   • Style Config:  http://${HOSTNAME}.local:3000/design/"
+echo "   • Auto Schedule: http://${HOSTNAME}.local:3000/rules/"
 echo ""
 echo "🔧 Monitoring:"
-echo "   • Health Check:  http://${HOSTNAME}.local/status.php"
+echo "   • Health Check:  http://${HOSTNAME}.local:3000/api/status"
+echo "   • Server Logs:   pm2 logs 314sign"
 echo "   • Run Backup:    sudo /var/www/html/scripts/backup.sh"
 echo ""
+echo "🖥️  Server Management:"
+echo "   • Restart:       pm2 restart 314sign"
+echo "   • Stop:          pm2 stop 314sign"
+echo "   • Status:        pm2 list"
+echo ""
 echo "Print QR codes from /var/www/html/qr-*.png"
+echo ""
+echo "📋 PM2 Commands:"
+echo "   pm2 start ecosystem.config.js    # Start server"
+echo "   pm2 stop ecosystem.config.js     # Stop server"
+echo "   pm2 restart ecosystem.config.js  # Restart server"
+echo "   pm2 logs 314sign                 # View logs"
+echo "   pm2 monit                        # Monitor processes"
 echo ""

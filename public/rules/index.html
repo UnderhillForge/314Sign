@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Schedule Rules</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      overscroll-behavior: none;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 1rem;
+      gap: 1rem;
+      padding-top: max(1rem, env(safe-area-inset-top));
+      padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    }
+    h2 {
+      font-size: 1.5rem;
+      color: #e0e0e0;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .toggle-section {
+      background: #2d2d2d;
+      padding: 1rem;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .toggle-label {
+      font-weight: 600;
+      color: #e0e0e0;
+      font-size: 1.1rem;
+    }
+    .toggle-switch {
+      position: relative;
+      width: 60px;
+      height: 34px;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #3a3a3a;
+      transition: .3s;
+      border-radius: 34px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background-color: #e0e0e0;
+      transition: .3s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #4a9eff;
+    }
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+    .rules-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      min-height: 0;
+    }
+    .rule-card {
+      background: #2d2d2d;
+      padding: 1rem;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .rule-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    .rule-name {
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: #e0e0e0;
+      flex: 1;
+    }
+    .delete-btn {
+      padding: 0.5rem;
+      background: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .delete-btn:active { background: #c82333; }
+    .rule-field {
+      margin-bottom: 0.75rem;
+    }
+    .rule-field label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #b0b0b0;
+      margin-bottom: 0.3rem;
+    }
+    .rule-field input, .rule-field select {
+      width: 100%;
+      padding: 0.5rem;
+      font-size: 0.9rem;
+      border: 2px solid #3a3a3a;
+      border-radius: 6px;
+      background: #2d2d2d;
+      color: #e0e0e0;
+    }
+    /* Style the rule name input in the header to match dark mode */
+    .rule-header input.rule-name {
+      width: 100%;
+      padding: 0.5rem 0.6rem;
+      font-size: 1.05rem;
+      font-weight: 600;
+      border: 2px solid #3a3a3a;
+      border-radius: 8px;
+      background: #232323;
+      color: #e8e8e8;
+      margin-right: 0.5rem;
+    }
+    .rule-header input.rule-name::placeholder {
+      color: #9a9a9a;
+    }
+    .days-checkboxes {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+      gap: 0.5rem;
+    }
+    .day-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .day-checkbox input {
+      width: auto;
+    }
+    .day-checkbox label {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #e0e0e0;
+    }
+    .time-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+    .add-rule-btn {
+      padding: 1rem;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .add-rule-btn:active { background: #218838; }
+    .actions {
+      display: flex;
+      gap: 1rem;
+      flex-shrink: 0;
+    }
+    button.primary {
+      flex: 1;
+      padding: 1rem;
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: white;
+      background: #4a9eff;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    button.primary:active { background: #3a8edd; }
+    button.secondary {
+      flex: 1;
+      background: #6c757d;
+    }
+    button.secondary:active { background: #5a6268; }
+    .status {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #b0b0b0;
+      flex-shrink: 0;
+    }
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: max(1.25rem, env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.85);
+      color: #fff;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      font-size: 1rem;
+      min-width: 160px;
+      max-width: 92%;
+      text-align: center;
+      z-index: 9999;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Schedule Rules</h2>
+    
+    <div class="toggle-section">
+      <span class="toggle-label">Auto-Schedule Enabled</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="enableToggle">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="rules-list" id="rulesList"></div>
+
+    <button class="add-rule-btn" onclick="addRule()">+ Add Rule</button>
+
+    <div class="actions">
+      <button class="primary" onclick="save()">Save Rules</button>
+      <button class="secondary" onclick="location.reload()">Cancel</button>
+    </div>
+    <div class="status" id="status"></div>
+    <div id="toast" class="toast"></div>
+  </div>
+
+  <script>
+    const rulesList = document.getElementById('rulesList');
+    const enableToggle = document.getElementById('enableToggle');
+    const status = document.getElementById('status');
+    
+    let rules = [];
+    const allDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    let availableMenus = [];
+
+    // Load available menu files from filesystem
+    function loadAvailableMenus() {
+      return fetch('../api/menu/files')
+        .then(r => r.ok ? r.json() : { data: [] })
+        .then(response => {
+          const menuFiles = response.data || [];
+          if (menuFiles.length > 0) {
+            availableMenus = menuFiles.map(menu => ({
+              label: menu.label,
+              value: menu.path
+            }));
+          } else {
+            // Minimal fallback
+            availableMenus = [
+              { label: 'Menu 1', value: 'menus/menu1.txt' },
+              { label: 'Menu 2', value: 'menus/menu2.txt' }
+            ];
+          }
+          console.log('Available menus loaded:', availableMenus.length);
+          return availableMenus;
+        })
+        .catch(err => {
+          console.error('Failed to load menu files:', err);
+          // Ultra-minimal fallback
+          availableMenus = [
+            { label: 'Menu', value: 'menus/menu.txt' }
+          ];
+          return availableMenus;
+        });
+    }
+
+    // Load rules from server
+    function loadRules() {
+      fetch('../rules.json')
+        .then(r => r.ok ? r.json() : { enabled: false, rules: [] })
+        .then(data => {
+          enableToggle.checked = data.enabled || false;
+          rules = data.rules || [];
+          renderRules();
+        })
+        .catch(() => {
+          rules = [];
+          enableToggle.checked = false;
+          renderRules();
+        });
+    }
+
+    // Render all rules
+    function renderRules() {
+      rulesList.innerHTML = '';
+      rules.forEach((rule, index) => {
+        const card = createRuleCard(rule, index);
+        rulesList.appendChild(card);
+      });
+    }
+
+    // Create a rule card element
+    function createRuleCard(rule, index) {
+      const card = document.createElement('div');
+      card.className = 'rule-card';
+      
+      card.innerHTML = `
+        <div class="rule-header">
+          <input type="text" class="rule-name" value="${rule.name || 'Untitled Rule'}" 
+                 onchange="updateRuleName(${index}, this.value)" 
+                 placeholder="Rule Name">
+          <button class="delete-btn" onclick="deleteRule(${index})">Delete</button>
+        </div>
+        
+        <div class="rule-field">
+          <label>Active Days</label>
+          <div class="days-checkboxes" id="days-${index}">
+            ${allDays.map(day => `
+              <div class="day-checkbox">
+                <input type="checkbox" id="day-${index}-${day}" 
+                       ${(rule.days || []).includes(day) ? 'checked' : ''}
+                       onchange="updateRuleDays(${index})">
+                <label for="day-${index}-${day}">${day.charAt(0).toUpperCase() + day.slice(1, 3)}</label>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="rule-field">
+          <label>Time Range</label>
+          <div class="time-row">
+            <input type="time" value="${rule.startTime || '09:00'}" 
+                   onchange="updateRuleTime(${index}, 'startTime', this.value)">
+            <input type="time" value="${rule.endTime || '17:00'}" 
+                   onchange="updateRuleTime(${index}, 'endTime', this.value)">
+          </div>
+        </div>
+
+        <div class="rule-field">
+          <label>Content Type</label>
+          <select onchange="updateRuleContentType(${index}, this.value)">
+            <option value="menu" ${!rule.slideshow ? 'selected' : ''}>Menu</option>
+            <option value="slideshow" ${rule.slideshow ? 'selected' : ''}>Slideshow</option>
+          </select>
+        </div>
+
+        <div class="rule-field" id="menuField${index}" style="${rule.slideshow ? 'display:none' : ''}">
+          <label>Display Menu</label>
+          <select onchange="updateRuleMenu(${index}, this.value)">
+            ${availableMenus.map(menu => `
+              <option value="${menu.value}" ${rule.menu === menu.value ? 'selected' : ''}>
+                ${menu.label}
+              </option>
+            `).join('')}
+          </select>
+        </div>
+
+        <div class="rule-field" id="slideshowField${index}" style="${!rule.slideshow ? 'display:none' : ''}">
+          <label>Slideshow Set</label>
+          <input type="text" value="${rule.slideshow || ''}" 
+                 placeholder="slideshows/sets/example.json"
+                 onchange="updateRuleSlideshow(${index}, this.value)"
+                 style="padding: 0.5rem; border-radius: 6px; border: 1px solid #555; background: #1a1a1a; color: #e0e0e0; font-size: 0.9rem; width: 100%;">
+        </div>
+      `;
+      
+      return card;
+    }
+
+    // Add new rule
+    function addRule() {
+      rules.push({
+        name: 'New Rule',
+        days: allDays.slice(),
+        startTime: '09:00',
+        endTime: '17:00',
+        menu: 'menus/breakfast.txt'
+      });
+      renderRules();
+    }
+
+    // Delete rule
+    function deleteRule(index) {
+      if (confirm('Delete this rule?')) {
+        rules.splice(index, 1);
+        renderRules();
+      }
+    }
+
+    // Update functions
+    function updateRuleName(index, value) {
+      rules[index].name = value;
+    }
+
+    function updateRuleDays(index) {
+      const selectedDays = [];
+      allDays.forEach(day => {
+        const checkbox = document.getElementById(`day-${index}-${day}`);
+        if (checkbox && checkbox.checked) {
+          selectedDays.push(day);
+        }
+      });
+      rules[index].days = selectedDays;
+    }
+
+    function updateRuleTime(index, field, value) {
+      rules[index][field] = value;
+    }
+
+    function updateRuleMenu(index, value) {
+      rules[index].menu = value;
+    }
+
+    function updateRuleContentType(index, value) {
+      if (value === 'slideshow') {
+        rules[index].slideshow = 'slideshows/sets/example.json';
+        delete rules[index].menu;
+      } else {
+        rules[index].menu = 'menus/breakfast.txt';
+        delete rules[index].slideshow;
+      }
+      renderRules();
+    }
+
+    function updateRuleSlideshow(index, value) {
+      rules[index].slideshow = value;
+    }
+
+    // Save rules
+    function save() {
+      const data = {
+        enabled: enableToggle.checked,
+        rules: rules
+      };
+
+      status.textContent = 'Saving...';
+
+      fetch('../rules.json', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data, null, 2)
+      })
+      .then(r => {
+        if (r.ok) {
+          status.textContent = 'Saved!';
+          showToast('Rules saved successfully');
+          setTimeout(() => status.textContent = '', 3000);
+        } else {
+          throw new Error('HTTP ' + r.status);
+        }
+      })
+      .catch(err => {
+        status.textContent = 'Save failed: ' + err.message;
+        showToast('Save failed', 3000);
+      });
+    }
+
+    // Toast notification
+    function showToast(msg, ms = 3000) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.style.display = 'block';
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, ms);
+    }
+
+    // Load on startup - first load menus, then load rules
+    loadAvailableMenus().then(() => loadRules());
+    
+    // Check for version updates and force reload
+    let currentVersion = null;
+    function checkVersion() {
+      fetch('../version.txt?' + Date.now(), { cache: 'no-store' })
+        .then(r => r.ok ? r.text() : '')
+        .then(version => {
+          version = version.trim();
+          if (!version) return;
+          
+          if (currentVersion === null) {
+            currentVersion = version;
+            console.log('[Version] Current version:', version);
+          } else if (version !== currentVersion) {
+            console.log('[Version] Update detected:', currentVersion, '->', version);
+            showToast('Update detected - reloading...', 'info');
+            setTimeout(() => location.reload(true), 1500);
+          }
+        })
+        .catch(() => {});
+    }
+    checkVersion();
+    setInterval(checkVersion, 30000); // Check every 30 seconds
+  </script>
+  <div style="position:fixed;bottom:0.5rem;right:0.5rem;font-size:0.7rem;color:#999;opacity:0.6;pointer-events:none">314Sign v0.9.2.60 | © 2025 J Stekervetz | CC BY-NC 4.0</div>
+</body>
+</html>

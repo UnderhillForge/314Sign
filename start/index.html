@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>314Sign Quick Start</title>
-  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1.0" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
@@ -136,38 +136,38 @@
       <h1>314Sign</h1>
       <p>Quick Start Menu</p>
     </div>
-    
+
     <div class="cards">
-      <a href="../edit/" class="card edit">
+      <a href="#" onclick="navigateTo('edit')" class="card edit">
         <div class="card-icon">✏️</div>
         <div class="card-title">Edit Menus</div>
         <div class="card-desc">Update breakfast, lunch, dinner, and closed messages</div>
       </a>
-      
-      <a href="../rules/" class="card rules">
+
+      <a href="#" onclick="navigateTo('rules')" class="card rules">
         <div class="card-icon">⏰</div>
         <div class="card-title">Schedule Rules</div>
         <div class="card-desc">Set automatic menu switching by time of day</div>
       </a>
-      
-      <a href="../design/" class="card design">
+
+      <a href="#" onclick="navigateTo('design')" class="card design">
         <div class="card-icon">🎨</div>
         <div class="card-title">Design</div>
         <div class="card-desc">Change background, fonts, colors, and brightness</div>
       </a>
-      
-      <a href="../slideshows/" class="card" style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); color: white;">
+
+      <a href="#" onclick="navigateTo('slideshows')" class="card" style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); color: white;">
         <div class="card-icon">📽️</div>
         <div class="card-title">Slideshows</div>
         <div class="card-desc" style="color: rgba(255,255,255,0.9);">Create slideshows with images, videos, and text</div>
       </a>
-      
-      <a href="../maintenance/" class="card" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); color: white;">
+
+      <a href="#" onclick="navigateTo('maintenance')" class="card" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); color: white;">
         <div class="card-icon">🔧</div>
         <div class="card-title">Maintenance</div>
         <div class="card-desc" style="color: rgba(255,255,255,0.9);">System health, updates, backups, and history</div>
       </a>
-      
+
       <a href="../" class="card view">
         <div class="card-icon">📺</div>
         <div class="card-title">View Kiosk</div>
@@ -175,9 +175,120 @@
       </a>
     </div>
   </div>
-  
+
   <div class="footer">
-    314Sign v0.9.2.1 | © 2025 J Stekervetz | CC BY-NC 4.0
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <span>314Sign v0.9.2.1 | © 2025 J Stekervetz | CC BY-NC 4.0</span>
+      <button onclick="logout()" style="background: rgba(220, 53, 69, 0.8); color: white; border: none; padding: 0.25rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">Logout</button>
+    </div>
   </div>
+
+  <script>
+    // Global token variable
+    let token = null;
+    let authCheckInProgress = false;
+    let authCheckCompleted = false;
+
+    // Initialize authentication
+    function initAuth() {
+      // Prevent multiple simultaneous auth checks
+      if (authCheckInProgress || authCheckCompleted) {
+        return;
+      }
+
+      authCheckInProgress = true;
+
+      // Get token from URL parameter or localStorage
+      const urlParams = new URLSearchParams(window.location.search);
+      token = urlParams.get('token') || localStorage.getItem('authToken');
+
+      if (!token) {
+        // No token, redirect to login
+        authCheckInProgress = false;
+        window.location.href = '../login/';
+        return;
+      } else {
+        // Store token for API calls
+        localStorage.setItem('authToken', token);
+
+        // Clean up URL (remove token from address bar)
+        const url = new URL(window.location);
+        url.searchParams.delete('token');
+        window.history.replaceState({}, '', url);
+      }
+
+      console.log('Starting authentication check...');
+
+      // Verify token on page load - bypass cache to avoid 304 issues
+      fetch('/api/auth/me?' + Date.now(), {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      })
+      .then(response => {
+        console.log('Auth response status:', response.status);
+        if (!response.ok) {
+          throw new Error('Token invalid');
+        }
+        return response.json();
+      })
+      .then(data => {
+        authCheckCompleted = true;
+        authCheckInProgress = false;
+
+        // Token valid, show user info if needed
+        if (data.data && data.data.username) {
+          console.log('Authenticated as:', data.data.username);
+        } else {
+          console.log('Token verified');
+        }
+      })
+      .catch(error => {
+        authCheckInProgress = false;
+        console.error('Authentication failed:', error);
+
+        // Token invalid, redirect to login
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('username');
+        window.location.href = '../login/';
+      });
+    }
+
+    function navigateTo(page) {
+      if (token) {
+        window.location.href = `../${page}/?token=${token}`;
+      } else {
+        window.location.href = `../${page}/`;
+      }
+    }
+
+    function logout() {
+      // Clear local storage
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('username');
+
+      // Call logout API
+      fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }).catch(() => {
+        // Ignore errors, just redirect
+      });
+
+      // Redirect to login
+      window.location.href = '../login/';
+    }
+
+    // Initialize when page loads
+    initAuth();
+  </script>
 </body>
 </html>

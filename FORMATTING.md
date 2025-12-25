@@ -83,6 +83,7 @@ Add color to prices, specials, or any text. Color applies until the end of the l
 {o}  Orange text (great for callouts)
 {p}  Pink text
 {w}  White text
+{lg} Light grey text (great for descriptions)
 ```
 
 ### Examples

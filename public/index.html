@@ -244,7 +244,7 @@
         console.log('[Rules] Skipped - demo mode active');
         return;
       }
-      fetch('/rules.json?' + Date.now())
+      fetch('rules.json?' + Date.now())
         .then(r => r.ok ? r.json() : null)
         .then(data => {
           if (!data || !data.enabled || !data.rules) return;
@@ -327,10 +327,9 @@
     // --------------------------------------------------------------------
     
     // First, load custom fonts from fonts/ directory
-    fetch('/api/fonts')
-      .then(r => r.ok ? r.json() : { data: [] })
-      .then(response => {
-        const customFonts = response.data || [];
+    fetch('fonts/index.php')
+      .then(r => r.ok ? r.json() : [])
+      .then(customFonts => {
         // Generate @font-face rules for custom fonts with cache-busting based on file mtimes
         if (customFonts.length > 0) {
           // Build a cache-buster based on mtimes: join all mtimes into a single string
@@ -364,7 +363,7 @@
       .catch(err => console.warn('[Fonts] Could not load custom fonts:', err))
       .then(() => {
         // Now load config after fonts are ready
-        return fetch('/page.json?' + Date.now(), {
+        return fetch('page.json?' + Date.now(), {
           cache: 'no-store',
           headers: { 'Cache-Control': 'no-cache' }
         });
@@ -462,7 +461,7 @@
           
           // Load per-menu font scale from menus-config.json (overrides global setting)
           const menuName = currentMenu.replace('menus/', '').replace('.txt', '');
-          fetch('/menus-config.json?' + Date.now(), { cache: 'no-store' })
+          fetch('menus-config.json?' + Date.now(), { cache: 'no-store' })
             .then(r => r.ok ? r.json() : {})
             .then(menusConfig => {
               const specials = document.getElementById('specials');

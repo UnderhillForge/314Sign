@@ -187,6 +187,190 @@ sudo chown www-data:www-data /var/www/html/bg/
 3. Verify all file permissions: `ls -laR /var/www/html/`
 4. Test WebDAV manually with curl (see above)
 
+## Network Connectivity Issues
+
+### Can't Access http://hostname.local URLs
+
+The setup script installs and configures avahi-daemon for .local hostname resolution. If you can't reach `http://yourpi.local`, try these steps:
+
+```bash
+# 1. Check if avahi-daemon is installed and running
+sudo systemctl status avahi-daemon
+
+# If not running:
+sudo systemctl enable avahi-daemon
+sudo systemctl start avahi-daemon
+
+# 2. Check if avahi-daemon is listening on port 5353
+sudo netstat -uln | grep 5353
+
+# 3. Test mDNS resolution
+ping yourpi.local
+
+# 4. Check hostname
+hostname
+hostname -f
+
+# 5. Restart avahi if needed
+sudo systemctl restart avahi-daemon
+```
+
+### Alternative: Use IP Address
+
+If .local resolution isn't working, use the Pi's IP address instead:
+
+```bash
+# Find the Pi's IP address
+hostname -I
+
+# Or check network interfaces
+ip addr show
+
+# Then access via IP:
+# http://192.168.1.100/ (replace with actual IP)
+```
+
+### Firewall Issues
+
+If you have ufw or another firewall enabled:
+
+```bash
+# Check firewall status
+sudo ufw status
+
+# Allow mDNS traffic (port 5353 UDP)
+sudo ufw allow 5353/udp
+
+# Allow HTTP (port 80)
+sudo ufw allow 80/tcp
+```
+
+### Network Troubleshooting Commands
+
+```bash
+# Test basic connectivity
+ping 8.8.8.8
+
+# Check local network
+ping 192.168.1.1  # Replace with your router IP
+
+# Check DNS resolution
+nslookup google.com
+
+# Check avahi browsing
+avahi-browse -a
+```
+
+## Kiosk Display Not Showing
+
+### Pi Boots to Console Instead of Kiosk
+
+If the Pi boots to command line instead of fullscreen kiosk display:
+
+#### Option 1: Set Up Kiosk Mode (If Not Done During Installation)
+```bash
+# Run the kiosk setup script
+curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/scripts/os-lite-kiosk.sh | sudo bash
+
+# Follow prompts for screen rotation
+sudo reboot
+```
+
+#### Option 2: Check If Kiosk Mode is Configured
+```bash
+# Check if kiosk files exist
+ls -la ~/.config/openbox/autostart
+ls -la ~/.xinitrc
+ls -la ~/.bash_profile
+
+# Check boot behavior
+sudo raspi-config nonint get_boot_cli  # Should return 1 (auto-login)
+
+# Check installed packages
+dpkg -l | grep -E "(chromium|xserver-xorg|openbox)"
+```
+
+#### Option 3: Manual Kiosk Start
+If kiosk mode is configured but not auto-starting:
+```bash
+# Start X11 manually
+startx -- -nocursor
+
+# Or check the auto-start configuration
+cat ~/.bash_profile
+```
+
+### Browser Not Launching in Kiosk Mode
+
+If X11 starts but browser doesn't show:
+
+```bash
+# Check browser installation
+which chromium || which chromium-browser || which firefox-esr
+
+# Test browser manually
+chromium --kiosk http://localhost/index.html
+
+# Check kiosk startup script
+cat ~/.config/openbox/autostart
+```
+
+### Screen Rotation Issues
+
+If display is rotated incorrectly:
+
+```bash
+# Re-run kiosk setup to change rotation
+curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/scripts/os-lite-kiosk.sh | sudo bash
+
+# Or manually adjust
+xrandr --output HDMI-1 --rotate normal  # or right, left, inverted
+```
+
+## Undervoltage Warnings
+
+### Raspberry Pi Shows Lightning Bolt Icon
+
+The lightning bolt icon indicates undervoltage detection. This can happen even with adequate power supplies.
+
+### Option 1: Check Power Supply (Recommended First)
+```bash
+# Test with high-power tasks
+stress -c 4 -t 60  # Install stress with: sudo apt install stress
+
+# Monitor voltage during stress test
+vcgencmd get_throttled
+watch -n 1 vcgencmd measure_volts core
+```
+
+### Option 2: Disable Warnings (If Power Supply is Adequate)
+If you're confident your power supply is good quality:
+
+```bash
+# Check current config
+grep -i avoid_warnings /boot/config.txt || echo "Not configured"
+
+# Add to /boot/config.txt
+echo "" | sudo tee -a /boot/config.txt
+echo "# Disable undervoltage warnings" | sudo tee -a /boot/config.txt
+echo "avoid_warnings=1" | sudo tee -a /boot/config.txt
+
+# Reboot to apply
+sudo reboot
+```
+
+### Option 3: Re-enable Warnings (For Troubleshooting)
+```bash
+# Remove the line from /boot/config.txt
+sudo sed -i '/avoid_warnings=1/d' /boot/config.txt
+sudo sed -i '/Disable undervoltage warnings/d' /boot/config.txt
+
+# Reboot to apply
+sudo reboot
+```
+
+**Note**: The 314Sign installer offers to disable these warnings during setup if you choose "y" when prompted.
+
 ## Advanced Security (Optional)
 
 ### Separate WebDAV User

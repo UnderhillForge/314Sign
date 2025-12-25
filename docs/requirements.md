@@ -37,6 +37,7 @@ What you need to run 314Sign — hardware, software, and network setup.
 The `setup-kiosk.sh` script installs:
 - **lighttpd** — Fast, lightweight web server
 - **PHP** (with CGI) — For image uploads and file listing
+- **avahi-daemon** — mDNS service for .local hostname resolution
 - **git** — To clone the repository
 - **qrencode** — Generate QR codes for mobile access
 
@@ -48,7 +49,7 @@ The `setup-kiosk.sh` script installs:
 
 ### What You Need
 - **Local Wi-Fi or Ethernet**: Pi must be on same network as staff phones/tablets
-- **mDNS (Avahi)**: Lets you use `http://hostname.local` instead of IP addresses (auto-installed)
+- **mDNS (Avahi)**: Lets you use `http://hostname.local` instead of IP addresses (**automatically installed by setup script**)
 - **Open ports**: 80 (HTTP), 22 (SSH)
 
 ### No Internet Required
@@ -74,11 +75,26 @@ curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/setup-ki
 ```
 
 **That's it.** The script handles everything:
-- Installs dependencies
+- Installs dependencies (lighttpd, PHP, avahi-daemon, etc.)
 - Configures lighttpd + WebDAV
 - Sets up file permissions
 - Generates QR codes for mobile access
-- Creates backup directory
+- **Optional**: Disables undervoltage warnings (prompts during installation)
+
+### Post-Installation Options
+
+**Kiosk Display Mode** (Optional)
+- During installation, you'll be asked if you want to set up auto-boot kiosk mode
+- Installs minimal X11 + Chromium browser for fullscreen display
+- Configures screen rotation options
+- Pi boots directly to kiosk display instead of console
+- Can be set up later if skipped during installation
+
+**Undervoltage Warning Override** (Optional)
+- During installation, you'll be asked if you want to disable undervoltage warnings
+- Adds `avoid_warnings=1` to `/boot/config.txt`
+- Useful if you have a good power supply but still get warnings
+- Can be safely skipped - warnings help diagnose power issues
 
 ### Optional: Auto-Boot to Kiosk (Pi OS Lite)
 If you want the Pi to automatically display the menu on boot:
