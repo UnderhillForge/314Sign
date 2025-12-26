@@ -1,200 +1,85 @@
-# 314Sign Formatting Guide
+# Text Formatting Guide
 
-Quick reference for text formatting in your content. All formatting happens in the edit page — just type naturally and use these simple codes.
-
----
-
-## Basic Text Formatting
-
-### Headings
-```
-## Large Heading
-### Medium Heading
-```
-
-Use headings to organize sections like "Today's Specials" or "Desserts"
-
-**Example:**
-```
-## Dinner Menu
-### Entrees
-```
-
----
-
-### Bold & Italic
-```
-**Bold text** - Great for item names
-*Italic text* - Perfect for descriptions
-```
-
-**Example:**
-```
-**Burger** - Classic beef with all the fixings
-*Served with fries and coleslaw*
-```
-
----
-
-## Lists
-
-### Bullet Lists
-```
-- French Fries
-- Onion Rings
-- Side Salad
-```
-
-Automatically adds bullet points (•) in front of each item.
-
----
+314Sign supports rich text formatting through simple color tags and text styling.
 
 ## Color Tags
 
-Add color to prices, specials, or any text. Color applies until the end of the line or the next color tag.
+Add colors to your menu text using these tags:
 
-### Available Colors
-```
-{r}   Red text
-{y}   Yellow text (perfect for prices!)
-{g}   Green text
-{b}   Blue text
-{o}   Orange text (great for callouts)
-{p}   Pink text
-{w}   White text
-{lg}  Light Grey text (good for fine print)
-```
+- `{r}` **red** text `{/r}`
+- `{y}` **yellow** text `{/y}`
+- `{g}` **green** text `{/g}`
+- `{b}` **blue** text `{/b}`
+- `{o}` **orange** text `{/o}`
+- `{p}` **pink** text `{/p}`
+- `{w}` **white** text `{/w}`
+- `{lg}` **light grey** text `{/lg}`
 
 ### Examples
+
 ```
-**Burger** - {y}$8.95
-**Steak** - {y}$16.95
-
-{o}Ask about our daily dessert special!
-
-{lg}Prices subject to change without notice
+{y}$8.95{/y} - Yellow price
+{r}SOLD OUT{/r} - Red alert text
+{g}Vegetarian{/g} - Green dietary indicator
 ```
-
-### Multiple Colors Per Line
-You can use multiple color tags on the same line:
-```
-**Steaks** - NY Strip {y}$15.95 {w}Ribeye {y}$18.95
-```
-
-### Colors in Header
-Color tags also work in the header text (configured in Design page):
-```
-Today's {y}Specials
-{w}Welcome to {o}314 Diner
-```
-
-**Tip:** You don't need closing tags — color lasts until the end of the line or next color tag!
-
----
-
-## Separators
-
-### Horizontal Line
-```
----
-```
-
-Use three dashes to create a dividing line between sections.
-
----
-
-## Font Size Override
-
-Override the global font size for specific sections of text using size tags.
-
-### Syntax
-```
-[sX]Your text here[/s]
-```
-
-Where X is the percentage of screen width (e.g., 10 for 10%, 15 for 15%)
-
-### Examples
-```
-[s15]**SUPER SALE**[/s]
-Normal sized text here
-
-[s10]
-**Today's Special**
-Big text for the whole section
-[/s]
-```
-
-**Note:** Size tags work across multiple lines until you close them with `[/s]`
-
----
 
 ## Text Alignment
 
-Center or right-align text using alignment tags.
+Control text positioning:
 
-### Syntax
-```
-[center]Centered text[/center]
-[right]Right-aligned text[/right]
-```
+- `[center]...[/center]` - Center align text
+- `[right]...[/right]` - Right align text
 
 ### Examples
-```
-[center]
-**Welcome to Our Restaurant**
-Open Daily 11am - 9pm
-[/center]
 
-[right]Prices subject to change[/right]
+```
+[center]Welcome to Our Restaurant![/center]
+[right]$12.95[/right]
 ```
 
-**Note:** Text is left-aligned by default. Alignment tags work across multiple lines.
+## Size Overrides
 
----
+Change text size with size tags:
 
-## Complete Menu Example
+- `[s15]...[/s]` - Custom size (15pt in this example)
+- `[s20]Large Heading[/s]` - 20pt text
+- `[s10]Small Note[/s]` - 10pt text
 
-```markdown
-## Tonight's Dinner Specials
+### Examples
 
-**Burger** - {y}$8.95  
-Classic beef burger with lettuce, tomato, onion
-
-**Stromboli** - {y}$10.95  
-Rolled with pepperoni, sausage, and mozzarella
-
-**Wings** - {y}12 for $11.50 | 6 for $7.95  
-*Choice of Buffalo, BBQ, or Garlic Parmesan*
-
----
-
-### Sides
-- French Fries - {y}$3.50
-- Onion Rings - {y}$4.25
-- Side Salad - {y}$3.95
-
-{o}**Ask about our daily dessert special!**
+```
+[s18]Special of the Day[/s]
+[s12]All prices include tax[/s]
 ```
 
+## Combining Tags
+
+You can combine color and size tags:
+
+```
+[y][s16]$9.99[/s][/y] - Yellow 16pt price
+[r][center]CLOSED[/center][/r] - Red centered closed sign
+```
+
+## Best Practices
+
+1. **Use colors sparingly** - Too many colors can be distracting
+2. **Consistent sizing** - Use similar sizes for similar content types
+3. **Contrast** - Ensure colored text is readable on your background
+4. **Preview changes** - Always preview before saving to kiosk
+
+## Quick Reference
+
+| Tag | Description | Example |
+|-----|-------------|---------|
+| `{r}...{/r}` | Red text | `{r}Error{/r}` |
+| `{y}...{/y}` | Yellow text | `{y}$5.99{/y}` |
+| `{g}...{/g}` | Green text | `{g}Vegan{/g}` |
+| `{b}...{/b}` | Blue text | `{b}Info{/b}` |
+| `[center]...[/center]` | Center align | `[center]Title[/center]` |
+| `[right]...[/right]` | Right align | `[right]$10.00[/right]` |
+| `[s15]...[/s]` | Size override | `[s15]Big Text[/s]` |
+
 ---
 
-## Quick Tips
-
-✅ **DO:**
-- Leave blank lines between sections for better spacing
-- Use `**bold**` for item names
-- Use `{y}` for prices (yellow stands out great)
-- Use `*italic*` for descriptions
-- Preview before saving
-
-❌ **DON'T:**
-- Forget the space after `##` in headings
-- Forget the space after `-` in lists
-- Use too many colors (keep it simple!)
-
----
-
-## Need Help?
-
-The editor has a built-in **Help** tab with live examples. Just tap the Help button (?) to see all formatting options with real-time previews!
+*Formatting is applied when you save your menu. Use the live preview to see changes before committing.*

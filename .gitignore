@@ -11,9 +11,6 @@ build/
 # Runtime files (generated at runtime)
 logs/
 *.log
-reload.txt
-demo-command.txt
-current-menu.json
 page.json
 
 # Database files

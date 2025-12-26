@@ -153,11 +153,11 @@
   let currentMenu = localStorage.getItem('currentMenu') || 'menus/dinner.txt';
   
   // Initialize current-menu.json with the current menu
-  fetch('set-current-menu.php', {
+  fetch('api/menu', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ menu: currentMenu })
-  }).catch(err => console.warn('Failed to initialize current-menu.json:', err));
+    body: JSON.stringify({ name: currentMenu.replace('menus/', '').replace('.txt', ''), content: '' })
+  }).catch(err => console.warn('Failed to initialize current menu:', err));
   
   let lastText = '';
   let lastEtag = null;
@@ -244,23 +244,24 @@
         console.log('[Rules] Skipped - demo mode active');
         return;
       }
-      fetch('rules.json?' + Date.now())
-        .then(r => r.ok ? r.json() : null)
-        .then(data => {
-          if (!data || !data.enabled || !data.rules) return;
-          
+      fetch('api/rules?' + Date.now())
+        .then(r => r.ok ? r.json() : { data: [] })
+        .then(response => response.data || [])
+        .then(rules => {
+          if (!rules || rules.length === 0) return;
+
           const now = new Date();
           const currentDay = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][now.getDay()];
           const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-          
+
           // Find matching rule
-          for (const rule of data.rules) {
+          for (const rule of rules) {
             if (!rule.days.includes(currentDay)) continue;
-            
+
             // Handle time ranges that cross midnight
             const startTime = rule.startTime || '00:00';
             const endTime = rule.endTime || '23:59';
-            
+
             let matches = false;
             if (startTime <= endTime) {
               // Normal range (e.g., 09:00 - 17:00)
@@ -269,11 +270,18 @@
               // Crosses midnight (e.g., 22:00 - 07:00)
               matches = currentTime >= startTime || currentTime < endTime;
             }
-            
-            if (matches && rule.menu && rule.menu !== currentMenu) {
-              console.log('Auto-switching to', rule.menu, 'based on rule:', rule.name);
-              switchMenu(rule.menu);
-              break;
+
+            if (matches) {
+              // Check if rule specifies a slideshow
+              if (rule.slideshow && !isPlayingSlideshow) {
+                console.log('Auto-starting slideshow:', rule.slideshow, 'based on rule:', rule.name);
+                loadSlideshowFromRule(rule.slideshow);
+                break;
+              } else if (rule.menu && rule.menu !== currentMenu && !isPlayingSlideshow) {
+                console.log('Auto-switching to', rule.menu, 'based on rule:', rule.name);
+                switchMenu(rule.menu);
+                break;
+              }
             }
           }
         })
@@ -285,12 +293,12 @@
       currentMenu = filename;
       localStorage.setItem('currentMenu', filename);
       
-      // Update current-menu.json for persistence and external control
-      fetch('set-current-menu.php', {
+      // Update current menu via API for persistence and external control
+      fetch('api/menu', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ menu: filename })
-      }).catch(err => console.warn('Failed to update current-menu.json:', err));
+        body: JSON.stringify({ name: filename.replace('menus/', '').replace('.txt', ''), content: '' })
+      }).catch(err => console.warn('Failed to update current menu:', err));
       
       // Load per-menu settings from menus-config.json
       const menuName = filename.replace('menus/', '').replace('.txt', '');
@@ -323,13 +331,14 @@
     }
 
     // --------------------------------------------------------------------
-    // 1. Load page.json (once)
+    // 1. Load config from API (once)
     // --------------------------------------------------------------------
-    
-    // First, load custom fonts from fonts/ directory
-    fetch('fonts/index.php')
-      .then(r => r.ok ? r.json() : [])
-      .then(customFonts => {
+
+    // First, load custom fonts from API
+    fetch('api/fonts')
+      .then(r => r.ok ? r.json() : { data: [] })
+      .then(response => {
+        const customFonts = response.data || [];
         // Generate @font-face rules for custom fonts with cache-busting based on file mtimes
         if (customFonts.length > 0) {
           // Build a cache-buster based on mtimes: join all mtimes into a single string
@@ -363,7 +372,7 @@
       .catch(err => console.warn('[Fonts] Could not load custom fonts:', err))
       .then(() => {
         // Now load config after fonts are ready
-        return fetch('page.json?' + Date.now(), {
+        return fetch('api/config?' + Date.now(), {
           cache: 'no-store',
           headers: { 'Cache-Control': 'no-cache' }
         });
@@ -379,14 +388,15 @@
             showClock: false,
             clock24Hour: true
           };
-          fetch('scripts/merge-config.php', {
+          fetch('api/config', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(defaultConfig)
           }).catch(err => console.warn('Failed to create default page.json:', err));
-          return {};
+          return { data: {} };
         }
       })
+      .then(response => response.data || {})
       .then(cfg => {
         // Apply background/font from config if present (or default)
         const bgImage = cfg.bg || 'backgd.jpg';
@@ -544,8 +554,8 @@
       setTimeout(checkScheduleRules, 2000);
       rulesCheckInterval = setInterval(checkScheduleRules, 300000);
       
-      // Check config, reload triggers, and demo commands every 2 seconds for responsiveness
-      setInterval(checkConfigChanges, 10000);
+      // Check config, reload triggers, and demo commands every 60 seconds (reduced frequency)
+      setInterval(checkConfigChanges, 60000);
       
       pollSpecials();
     }
@@ -556,8 +566,6 @@
   let lastHeaderFont = null;
   let lastBgImage = null;
   let lastRequestedMenu = null;
-  let lastRulesHash = null;
-  let lastMenusConfigHash = null;
   let lastBgBrightness = null;
     async function checkConfigChanges() {
       try {
@@ -649,46 +657,12 @@
               })
               .catch(() => {}),
             
-            // Check for rules changes (force reload to pick up new scheduling)
-            fetch('rules.json?' + Date.now(), { cache: 'no-store' })
-              .then(r => r.ok ? r.json() : null)
-              .then(rules => {
-                if (!rules) return;
-                const rulesHash = JSON.stringify(rules);
-                
-                if (lastRulesHash === null) {
-                  lastRulesHash = rulesHash;
-                  console.log('[Rules] Baseline set');
-                } else if (rulesHash !== lastRulesHash) {
-                  console.log('[Rules] Rules changed - reloading to apply new schedule');
-                  lastRulesHash = rulesHash;
-                  showReloadIndicator();
-                  setTimeout(() => location.reload(true), 1000);
-                }
-              })
-              .catch(() => {}),
-            
-            // Check for menus-config changes (force reload to pick up new menu settings)
-            fetch('menus-config.json?' + Date.now(), { cache: 'no-store' })
-              .then(r => r.ok ? r.json() : {})
-              .then(menusConfig => {
-                const menusConfigHash = JSON.stringify(menusConfig);
-                
-                if (lastMenusConfigHash === null) {
-                  lastMenusConfigHash = menusConfigHash;
-                  console.log('[Menus Config] Baseline set');
-                } else if (menusConfigHash !== lastMenusConfigHash) {
-                  console.log('[Menus Config] Menu settings changed - reloading to apply updates');
-                  lastMenusConfigHash = menusConfigHash;
-                  showReloadIndicator();
-                  setTimeout(() => location.reload(true), 1000);
-                }
-              })
-              .catch(() => {}),
+
             
             // Check for brightness changes (force reload for immediate effect)
-            fetch('page.json?' + Date.now(), { cache: 'no-store' })
-              .then(r => r.ok ? r.json() : {})
+            fetch('api/config?' + Date.now(), { cache: 'no-store' })
+              .then(r => r.ok ? r.json() : { data: {} })
+              .then(response => response.data || {})
               .then(cfg => {
                 if (Number.isFinite(cfg.bgBrightness) && cfg.bgBrightness !== lastBgBrightness) {
                   console.log('[Brightness] Changed from', lastBgBrightness, 'to', cfg.bgBrightness, '- reloading for immediate effect');
@@ -700,10 +674,11 @@
                 }
               })
               .catch(() => {}),
-            
+
             // Check for config changes (font scale, header size, brightness)
-            fetch('page.json?' + Date.now(), { cache: 'no-store' })
-              .then(r => r.ok ? r.json() : {})
+            fetch('api/config?' + Date.now(), { cache: 'no-store' })
+              .then(r => r.ok ? r.json() : { data: {} })
+              .then(response => response.data || {})
               .then(cfg => {
                 // NOTE: Don't check fontScalePercent here!
                 // Per-menu font scales (from menus-page.json) override global config
@@ -742,33 +717,29 @@
                   console.log('[Config] Background updated:', currentBg);
                 }
                 
-                  // Check for page.json to allow external control of which top-level page is served
-                  // Example `page.json` contents: { "page": "index" } or { "page": "start" } or { "page": "slideshows" }
-                  fetch('page.json?' + Date.now(), { cache: 'no-store' })
-                    .then(r => r.ok ? r.json() : null)
-                    .then(pj => {
-                      if (!pj || !pj.page) return;
-                      try {
-                        // Determine current top-level path ('' for root/index)
-                        const pathParts = window.location.pathname.replace(/^\//, '').split('/');
-                        const currentTop = pathParts[0] || 'index';
-                        const requested = String(pj.page || 'index');
-                        if (requested && requested !== currentTop) {
-                          console.log('[PageJSON] Requested page:', requested, 'current:', currentTop);
-                          // Navigate to the requested page directory (assumes a trailing slash index page exists)
-                          // Special-case 'index' to point to root
-                          const target = requested === 'index' ? '/' : ('/' + requested + '/');
-                          // Only navigate if different
-                          if (location.pathname !== target && !location.pathname.startsWith(target)) {
-                            // Respect demo mode: if demo mode is active, do not auto-navigate unless requested explicitly
-                            // (page.json updates are assumed authoritative; demo mode will be overridden)
-                            // Navigate after a short delay to allow other checks to complete
-                            setTimeout(() => { window.location.href = target; }, 100);
-                          }
+                  // Check for config to allow external control of which top-level page is served
+                  // Example config contents: { "page": "index" } or { "page": "start" } or { "page": "slideshows" }
+                  if (cfg.page) {
+                    try {
+                      // Determine current top-level path ('' for root/index)
+                      const pathParts = window.location.pathname.replace(/^\//, '').split('/');
+                      const currentTop = pathParts[0] || 'index';
+                      const requested = String(cfg.page || 'index');
+                      if (requested && requested !== currentTop) {
+                        console.log('[PageJSON] Requested page:', requested, 'current:', currentTop);
+                        // Navigate to the requested page directory (assumes a trailing slash index page exists)
+                        // Special-case 'index' to point to root
+                        const target = requested === 'index' ? '/' : ('/' + requested + '/');
+                        // Only navigate if different
+                        if (location.pathname !== target && !location.pathname.startsWith(target)) {
+                          // Respect demo mode: if demo mode is active, do not auto-navigate unless requested explicitly
+                          // (config updates are assumed authoritative; demo mode will be overridden)
+                          // Navigate after a short delay to allow other checks to complete
+                          setTimeout(() => { window.location.href = target; }, 100);
                         }
-                      } catch (e) { console.warn('[PageJSON] parse error', e); }
-                    })
-                    .catch(() => {});
+                      }
+                    } catch (e) { console.warn('[PageJSON] parse error', e); }
+                  }
 
                 // Check if background brightness changed
                 if (Number.isFinite(cfg.bgBrightness) && cfg.bgBrightness !== lastBgBrightness) {
@@ -814,11 +785,12 @@
     }
     
     function showReloadIndicator() {
-      const indicator = document.getElementById('reloadIndicator');
-      if (indicator) {
-        indicator.style.display = 'block';
-        console.log('[UI] Reload indicator shown - page will reload in 1 second');
-      }
+      // Hide the reloading indicator - users don't want to see it
+      // const indicator = document.getElementById('reloadIndicator');
+      // if (indicator) {
+      //   indicator.style.display = 'block';
+      //   console.log('[UI] Reload indicator shown - page will reload in 1 second');
+      // }
     }
 
     function executeDemoCommand(command) {
@@ -877,30 +849,31 @@
     }
 
     function pollSpecials() {
-      fetch(currentMenu + '?' + Date.now(), {
+      // Load menu content from database API instead of file
+      const menuName = currentMenu.replace('menus/', '').replace('.txt', '');
+      fetch('api/menu/' + menuName + '?' + Date.now(), {
         cache: 'no-store',
         headers: { 'Cache-Control': 'no-cache' }
       })
         .then(r => {
           if (!r.ok) throw new Error('HTTP ' + r.status);
-
-          const etag = r.headers.get('ETag');
-          const hasEtag = etag && etag !== lastEtag;
-
-          // If ETag changed → file changed → read text
-          if (hasEtag) {
-            lastEtag = etag;
-            return r.text();
+          return r.json();
+        })
+        .then(response => {
+          if (!response.success || !response.data) {
+            throw new Error('Invalid API response');
           }
 
-          // No ETag or same ETag → read text anyway (safe fallback)
-          return r.text().then(text => {
-            if (text === lastText) {
-              // No change → skip DOM update
-              return null;
-            }
-            return text;
-          });
+          const menuData = response.data;
+          const newText = menuData.content || '';
+
+          if (newText === lastText) {
+            // No change → skip DOM update
+            return null;
+          }
+
+          lastText = newText;
+          return newText;
         })
         .then(newText => {
           if (newText !== null && newText !== undefined) {
@@ -983,20 +956,26 @@
       }
     }
 
-    // Load slideshow JSON
-    function loadSlideshow(path) {
-      fetch(path)
+    // Load slideshow from database API
+    function loadSlideshow(slideshowName) {
+      // If slideshowName is a path, extract the name
+      if (slideshowName.includes('/')) {
+        slideshowName = slideshowName.split('/').pop().replace('.json', '');
+      }
+
+      fetch('api/slideshows/' + slideshowName)
         .then(r => r.ok ? r.json() : null)
+        .then(response => response ? response.data : null)
         .then(data => {
           if (data && data.slides && data.slides.length > 0) {
             slideshowData = data;
             isPlayingSlideshow = true;
-            
+
             // Hide header and specials div
             if (headerEl) headerEl.style.display = 'none';
             if (clockEl) clockEl.style.display = 'none';
             if (specialsDiv) specialsDiv.style.display = 'none';
-            
+
             // Start slideshow
             currentSlideIndex = 0;
             playSlide(0);
@@ -1263,30 +1242,31 @@
         console.log('[Rules] Skipping auto-switch check (demo mode active)');
         return;
       }
-      
-      fetch('rules.json?' + Date.now())
-        .then(r => r.ok ? r.json() : null)
-        .then(data => {
-          if (!data || !data.enabled || !data.rules) return;
-          
+
+      fetch('api/rules?' + Date.now())
+        .then(r => r.ok ? r.json() : { data: [] })
+        .then(response => response.data || [])
+        .then(rules => {
+          if (!rules || rules.length === 0) return;
+
           const now = new Date();
           const currentDay = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][now.getDay()];
           const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-          
+
           // Find matching rule
-          for (const rule of data.rules) {
+          for (const rule of rules) {
             if (!rule.days.includes(currentDay)) continue;
-            
+
             const startTime = rule.startTime || '00:00';
             const endTime = rule.endTime || '23:59';
-            
+
             let matches = false;
             if (startTime <= endTime) {
               matches = currentTime >= startTime && currentTime < endTime;
             } else {
               matches = currentTime >= startTime || currentTime < endTime;
             }
-            
+
             if (matches) {
               // Check if rule specifies a slideshow
               if (rule.slideshow && !isPlayingSlideshow) {

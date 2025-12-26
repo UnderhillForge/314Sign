@@ -236,7 +236,7 @@
 </head>
 <body>
   <div class="container">
-    <h2>Schedule Rules</h2>
+
     
     <div class="toggle-section">
       <span class="toggle-label">Auto-Schedule Enabled</span>
@@ -298,16 +298,23 @@
         });
     }
 
-    // Load rules from server
+    // Load rules from database API
     function loadRules() {
-      fetch('../rules.json')
-        .then(r => r.ok ? r.json() : { enabled: false, rules: [] })
-        .then(data => {
-          enableToggle.checked = data.enabled || false;
-          rules = data.rules || [];
+      fetch('../api/rules')
+        .then(r => r.ok ? r.json() : { success: false, data: [] })
+        .then(response => {
+          if (response.success && response.data) {
+            rules = response.data;
+            // Check if any rule is enabled to set the global toggle
+            enableToggle.checked = rules.some(rule => rule.enabled);
+          } else {
+            rules = [];
+            enableToggle.checked = false;
+          }
           renderRules();
         })
-        .catch(() => {
+        .catch(err => {
+          console.error('Failed to load rules:', err);
           rules = [];
           enableToggle.checked = false;
           renderRules();
@@ -451,32 +458,49 @@
     }
 
     // Save rules
-    function save() {
-      const data = {
-        enabled: enableToggle.checked,
-        rules: rules
-      };
-
+    async function save() {
       status.textContent = 'Saving...';
 
-      fetch('../rules.json', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data, null, 2)
-      })
-      .then(r => {
-        if (r.ok) {
-          status.textContent = 'Saved!';
-          showToast('Rules saved successfully');
-          setTimeout(() => status.textContent = '', 3000);
-        } else {
-          throw new Error('HTTP ' + r.status);
+      try {
+        // Delete all existing rules
+        const existingRules = await fetch('../api/rules').then(r => r.json());
+        if (existingRules.success && existingRules.data) {
+          for (const rule of existingRules.data) {
+            await fetch(`../api/rules/${rule.id}`, { method: 'DELETE' });
+          }
         }
-      })
-      .catch(err => {
+
+        // Create new rules
+        for (const rule of rules) {
+          const ruleData = {
+            name: rule.name,
+            days: rule.days || [],
+            startTime: rule.startTime || '09:00',
+            endTime: rule.endTime || '17:00',
+            menu: rule.slideshow ? undefined : rule.menu,
+            slideshow: rule.slideshow ? rule.slideshow : undefined
+          };
+
+          const response = await fetch('../api/rules', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(ruleData)
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to save rule: ' + rule.name);
+          }
+        }
+
+        status.textContent = 'Saved!';
+        showToast('Rules saved successfully');
+        setTimeout(() => status.textContent = '', 3000);
+
+      } catch (err) {
+        console.error('Save failed:', err);
         status.textContent = 'Save failed: ' + err.message;
         showToast('Save failed', 3000);
-      });
+      }
     }
 
     // Toast notification

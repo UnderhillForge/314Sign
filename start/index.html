@@ -168,6 +168,12 @@
         <div class="card-desc" style="color: rgba(255,255,255,0.9);">System health, updates, backups, and history</div>
       </a>
 
+      <a href="#" onclick="navigateTo('remotes')" class="card" style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); color: white;">
+        <div class="card-icon">📱</div>
+        <div class="card-title">Remote Displays</div>
+        <div class="card-desc" style="color: rgba(255,255,255,0.9);">Manage additional screens and remote viewers</div>
+      </a>
+
       <a href="../" class="card view">
         <div class="card-icon">📺</div>
         <div class="card-title">View Kiosk</div>
@@ -178,113 +184,61 @@
 
   <div class="footer">
     <div style="display: flex; align-items: center; gap: 1rem;">
-      <span>314Sign v0.9.2.1 | © 2025 J Stekervetz | CC BY-NC 4.0</span>
+      <span>314Sign v1.0.1.2 | © 2025 J Stekervetz | CC BY-NC 4.0</span>
       <button onclick="logout()" style="background: rgba(220, 53, 69, 0.8); color: white; border: none; padding: 0.25rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">Logout</button>
     </div>
   </div>
 
   <script>
-    // Global token variable
-    let token = null;
-    let authCheckInProgress = false;
-    let authCheckCompleted = false;
-
-    // Initialize authentication
+    // Initialize authentication (cookies are automatic)
     function initAuth() {
-      // Prevent multiple simultaneous auth checks
-      if (authCheckInProgress || authCheckCompleted) {
-        return;
-      }
-
-      authCheckInProgress = true;
-
-      // Get token from URL parameter or localStorage
-      const urlParams = new URLSearchParams(window.location.search);
-      token = urlParams.get('token') || localStorage.getItem('authToken');
-
-      if (!token) {
-        // No token, redirect to login
-        authCheckInProgress = false;
-        window.location.href = '../login/';
-        return;
-      } else {
-        // Store token for API calls
-        localStorage.setItem('authToken', token);
-
-        // Clean up URL (remove token from address bar)
-        const url = new URL(window.location);
-        url.searchParams.delete('token');
-        window.history.replaceState({}, '', url);
-      }
-
-      console.log('Starting authentication check...');
-
-      // Verify token on page load - bypass cache to avoid 304 issues
-      fetch('/api/auth/me?' + Date.now(), {
+      // Simple auth check - cookies are sent automatically
+      fetch('/api/auth/me', {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
+          'Pragma': 'no-cache'
         }
       })
       .then(response => {
-        console.log('Auth response status:', response.status);
+        console.log('Auth check status:', response.status);
         if (!response.ok) {
-          throw new Error('Token invalid');
+          // Not authenticated, redirect to login
+          window.location.href = '../login/';
+          return;
         }
         return response.json();
       })
       .then(data => {
-        authCheckCompleted = true;
-        authCheckInProgress = false;
-
-        // Token valid, show user info if needed
-        if (data.data && data.data.username) {
+        if (data?.success && data?.data?.username) {
           console.log('Authenticated as:', data.data.username);
-        } else {
-          console.log('Token verified');
         }
       })
       .catch(error => {
-        authCheckInProgress = false;
-        console.error('Authentication failed:', error);
-
-        // Token invalid, redirect to login
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('userRole');
-        localStorage.removeItem('username');
+        console.error('Authentication check failed:', error);
+        // On auth failure, redirect to login
         window.location.href = '../login/';
       });
     }
 
     function navigateTo(page) {
-      if (token) {
-        window.location.href = `../${page}/?token=${token}`;
-      } else {
-        window.location.href = `../${page}/`;
-      }
+      // Navigation is now simple - cookies are sent automatically
+      window.location.href = `../${page}/`;
     }
 
     function logout() {
-      // Clear local storage
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('userRole');
-      localStorage.removeItem('username');
-
-      // Call logout API
+      // Call logout API (clears cookie server-side)
       fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      }).catch(() => {
-        // Ignore errors, just redirect
+        method: 'POST'
+      })
+      .then(() => {
+        // Redirect to login after logout
+        window.location.href = '../login/';
+      })
+      .catch(() => {
+        // Even if API call fails, redirect to login
+        window.location.href = '../login/';
       });
-
-      // Redirect to login
-      window.location.href = '../login/';
     }
 
     // Initialize when page loads

@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Remote Devices Management</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      overscroll-behavior: none;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 0.75rem;
+      gap: 0.5rem;
+      /* Support iPhone notch & home bar */
+      padding-top: max(0.75rem, env(safe-area-inset-top));
+      padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    }
+    @media (min-width: 768px) {
+      .container {
+        padding: 1rem;
+        gap: 1rem;
+        padding-top: max(1rem, env(safe-area-inset-top));
+        padding-bottom: max(1rem, env(safe-area-inset-bottom));
+      }
+    }
+    h2 {
+      font-size: clamp(1.1rem, 4vw, 1.5rem);
+      color: #e0e0e0;
+      text-align: center;
+      flex-shrink: 0;
+      padding: 0.25rem 0;
+    }
+    .section {
+      background: #2d2d2d;
+      border-radius: 12px;
+      padding: 1rem;
+      flex-shrink: 0;
+    }
+    .section h3 {
+      color: #4ecdc4;
+      margin-bottom: 1rem;
+      font-size: 1.2rem;
+      border-bottom: 2px solid #4ecdc4;
+      padding-bottom: 0.5rem;
+    }
+    .register-form {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      align-items: end;
+    }
+    .register-form input {
+      padding: 1rem 0.75rem;
+      border: 2px solid #3a3a3a;
+      border-radius: 12px;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      font-size: 16px; /* Prevent zoom on iOS */
+      font-family: monospace;
+      min-height: 48px;
+      transition: all 0.2s ease;
+    }
+
+    .register-form input:focus {
+      outline: none;
+      border-color: #4ecdc4;
+      box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.1);
+    }
+    .register-form input::placeholder {
+      color: #888;
+    }
+    .register-form button {
+      padding: 1rem 1.5rem;
+      background: #4ecdc4;
+      color: #1a1a1a;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      min-height: 48px;
+      font-size: 16px;
+      transition: all 0.2s ease;
+    }
+    .register-form button:hover { background: #45b7aa; }
+    .register-form button:active {
+      transform: scale(0.98);
+      background: #3da89e;
+    }
+    .devices-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .device-card {
+      background: #1a1a1a;
+      border: 2px solid #3a3a3a;
+      border-radius: 12px;
+      padding: 1.25rem;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+    .device-card:hover {
+      border-color: #4ecdc4;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(78, 205, 196, 0.1);
+    }
+    .device-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+    .device-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #4ecdc4;
+      margin-bottom: 0.25rem;
+    }
+    .device-code {
+      font-family: monospace;
+      font-size: 0.9rem;
+      color: #888;
+      background: #2d2d2d;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+    }
+    .device-status {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      padding: 0.375rem 0.875rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      backdrop-filter: blur(4px);
+    }
+    .device-status.online {
+      background: rgba(76, 175, 80, 0.9);
+      color: white;
+    }
+    .device-status.online::before {
+      content: '●';
+      color: #4ade80;
+      font-size: 0.75rem;
+    }
+    .device-status.offline {
+      background: rgba(244, 67, 54, 0.9);
+      color: white;
+    }
+    .device-status.offline::before {
+      content: '○';
+      color: #f87171;
+      font-size: 0.75rem;
+    }
+    .device-status.inactive {
+      background: rgba(245, 158, 11, 0.9);
+      color: #92400e;
+    }
+    .device-status.inactive::before {
+      content: '⚠';
+      font-size: 0.75rem;
+    }
+    .device-info {
+      margin-bottom: 1rem;
+    }
+    .device-info p {
+      margin: 0.25rem 0;
+      font-size: 0.9rem;
+      color: #b0b0b0;
+    }
+    .device-config {
+      background: #2d2d2d;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-top: 1rem;
+    }
+    .device-config h4 {
+      color: #4ecdc4;
+      font-size: 1rem;
+      margin-bottom: 0.75rem;
+    }
+    .config-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+      align-items: center;
+    }
+    .config-row:last-child {
+      margin-bottom: 0;
+    }
+    .config-row label {
+      font-size: 0.9rem;
+      color: #e0e0e0;
+      min-width: 80px;
+      flex-shrink: 0;
+    }
+    .config-row select,
+    .config-row input {
+      flex: 1;
+      padding: 0.5rem;
+      border: 1px solid #555;
+      border-radius: 4px;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      font-size: 0.9rem;
+    }
+    .config-row input[readonly] {
+      background: #333;
+      cursor: not-allowed;
+    }
+    .device-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex: 1;
+      min-width: 80px;
+    }
+    .btn.primary { background: #4ecdc4; color: #1a1a1a; }
+    .btn.primary:hover { background: #45b7aa; }
+    .btn.secondary { background: #6c757d; color: #e0e0e0; }
+    .btn.secondary:hover { background: #5a6268; }
+    .btn.danger { background: #dc3545; color: white; }
+    .btn.danger:hover { background: #c82333; }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: #888;
+    }
+    .loading::after {
+      content: '';
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #4ecdc4;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 1s linear infinite;
+      margin-left: 0.5rem;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: #888;
+    }
+    .empty-state h3 {
+      color: #4ecdc4;
+      margin-bottom: 1rem;
+    }
+    .empty-state p {
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      z-index: 10000;
+      padding: 1rem;
+      overflow-y: auto;
+    }
+    .modal.active { display: flex; align-items: center; justify-content: center; }
+    .modal-content {
+      background: #2d2d2d;
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 500px;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid #3a3a3a;
+    }
+    .modal-header h3 { margin: 0; color: #e0e0e0; }
+    .close-modal {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #b0b0b0;
+      padding: 0;
+      width: 2rem;
+      height: 2rem;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #e0e0e0;
+      font-weight: 600;
+    }
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 2px solid #3a3a3a;
+      border-radius: 8px;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      font-size: 1rem;
+    }
+    .modal-actions {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: max(1.25rem, env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.9);
+      color: #fff;
+      padding: 1rem 1.5rem;
+      border-radius: 10px;
+      font-size: 1rem;
+      min-width: 200px;
+      max-width: 90%;
+      text-align: center;
+      z-index: 9999;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+      display: none;
+    }
+    .version {
+      position: fixed;
+      bottom: 0.5rem;
+      right: 0.5rem;
+      font-size: 0.7rem;
+      color: #666;
+      opacity: 0.6;
+      pointer-events: none;
+    }
+    /* Enhanced mobile optimizations */
+    @media (max-width: 768px) {
+      .modal {
+        padding: 0.5rem;
+        align-items: flex-end; /* Bottom sheet style */
+      }
+
+      .modal-content {
+        margin-bottom: 0;
+        border-radius: 16px 16px 0 0; /* Bottom sheet */
+        max-width: 100%;
+        max-height: 90vh;
+      }
+
+      .device-card {
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        border-radius: 16px;
+      }
+
+      .device-status {
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+        border-radius: 24px;
+      }
+
+      .loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        padding: 3rem 1rem;
+      }
+
+      .loading::after {
+        width: 40px;
+        height: 40px;
+        border: 3px solid #4ecdc4;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-left: 0;
+      }
+
+      .loading-text {
+        color: #888;
+        font-size: 0.9rem;
+        text-align: center;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 0.5rem;
+      }
+
+      .devices-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .config-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.25rem;
+      }
+
+      .config-row label {
+        min-width: auto;
+      }
+
+      .device-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .device-actions .btn {
+        width: 100%;
+        padding: 0.875rem;
+        min-height: 44px;
+      }
+
+      .register-form {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+      }
+
+      .register-form button {
+        width: 100%;
+        padding: 1rem;
+        min-height: 48px;
+      }
+
+      .modal-actions {
+        flex-direction: column;
+      }
+
+      .modal-actions .btn {
+        width: 100%;
+        padding: 1rem;
+        min-height: 48px;
+      }
+
+      .toast {
+        left: 1rem;
+        right: 1rem;
+        transform: none;
+        max-width: none;
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        font-size: 1rem;
+        line-height: 1.4;
+      }
+    }
+
+    /* TV and large screen optimizations */
+    @media (min-width: 1920px) {
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .device-card {
+        padding: 1.5rem;
+        border-radius: 16px;
+      }
+
+      .device-status {
+        padding: 0.5rem 1.25rem;
+        font-size: 0.8rem;
+      }
+
+      .section {
+        border-radius: 16px;
+        padding: 1.5rem;
+      }
+    }
+
+    /* 4K display optimization */
+    @media (min-width: 3840px) {
+      body {
+        font-size: 1.25rem;
+      }
+
+      .device-card {
+        padding: 2rem;
+      }
+
+      .section {
+        padding: 2rem;
+      }
+    }
+
+    /* Accessibility and motion preferences */
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+
+      .loading::after {
+        animation: none;
+      }
+
+      .device-card {
+        transition: none;
+      }
+
+      .btn {
+        transition: none;
+      }
+
+      .register-form input {
+        transition: none;
+      }
+    }
+
+    /* Focus indicators for keyboard navigation */
+    .btn:focus,
+    input:focus,
+    select:focus {
+      outline: 2px solid #4ecdc4;
+      outline-offset: 2px;
+      box-shadow: 0 0 0 4px rgba(78, 205, 196, 0.2);
+    }
+
+    /* Touch-friendly hover states (only on devices that support hover) */
+    @media (hover: hover) {
+      .btn:hover {
+        transform: translateY(-1px);
+      }
+
+      .device-card:hover {
+        transform: translateY(-2px);
+      }
+    }
+
+    /* High contrast mode support */
+    @media (prefers-contrast: high) {
+      .device-card {
+        border: 3px solid #666;
+      }
+
+      .section {
+        border: 2px solid #666;
+      }
+
+      .btn {
+        border: 2px solid currentColor;
+      }
+    }
+
+    /* Error states enhancement */
+    .error-state {
+      background: linear-gradient(135deg, #fee2e2, #fecaca);
+      border: 2px solid #f87171;
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+      color: #dc2626;
+    }
+
+    .error-state h3 {
+      color: #b91c1c;
+      margin-bottom: 0.5rem;
+    }
+
+    .error-state p {
+      color: #991b1b;
+      margin-bottom: 1rem;
+    }
+
+    .error-action {
+      background: #dc2626;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .error-action:hover {
+      background: #b91c1c;
+    }
+
+    .error-action:active {
+      transform: scale(0.98);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+
+    <div class="section">
+      <h3>Register New Remote</h3>
+      <form class="register-form" id="registerForm">
+        <input
+          type="text"
+          id="deviceCode"
+          placeholder="Enter 6-character device code (e.g., A1B2C3)"
+          pattern="[A-Za-z0-9]{6}"
+          maxlength="6"
+          required
+        />
+        <button type="submit">Register Device</button>
+      </form>
+      <p style="color: #888; font-size: 0.9rem; margin-top: 0.5rem;">
+        💡 Device codes are displayed on unregistered remote screens. Each code is unique to the hardware.
+      </p>
+    </div>
+
+    <div class="section">
+      <h3>Registered Devices</h3>
+      <div id="devicesContainer">
+        <div class="loading">Loading devices...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Device Configuration Modal -->
+  <div id="configModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Configure Remote Device</h3>
+        <button class="close-modal" onclick="closeConfigModal()">×</button>
+      </div>
+
+      <form id="configForm">
+        <div class="form-group">
+          <label for="configDisplayName">Display Name</label>
+          <input type="text" id="configDisplayName" placeholder="Remote Display 1" required />
+        </div>
+
+        <div class="form-group">
+          <label for="configMode">Display Mode</label>
+          <select id="configMode" required>
+            <option value="mirror">Mirror Main Kiosk</option>
+            <option value="menu">Always Show Current Menu</option>
+            <option value="slideshow">Display Slideshow</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="slideshowSelectGroup" style="display: none;">
+          <label for="configSlideshow">Slideshow</label>
+          <select id="configSlideshow">
+            <option value="">Loading slideshows...</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="configOrientation">Screen Orientation</label>
+          <select id="configOrientation" required>
+            <option value="0">Landscape (Normal)</option>
+            <option value="1">Portrait (90° clockwise)</option>
+            <option value="2">Landscape (180° upside down)</option>
+            <option value="3">Portrait (270° clockwise)</option>
+          </select>
+        </div>
+
+        <div class="modal-actions">
+          <button type="submit" class="btn primary">Save Configuration</button>
+          <button type="button" class="btn secondary" onclick="closeConfigModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast notifications -->
+  <div id="toast" class="toast"></div>
+
+  <script>
+    let devices = [];
+    let slideshows = [];
+    let currentConfigDeviceId = null;
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check authentication (cookies are automatic)
+      fetch('/api/auth/me', {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          // Not authenticated, redirect to login
+          window.location.href = '/login/';
+          return;
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data?.success) {
+          console.log('Authenticated as:', data.data.username);
+          // Load data once authenticated
+          loadDevices();
+          loadSlideshows();
+          setupEventListeners();
+        }
+      })
+      .catch(error => {
+        console.error('Auth check failed:', error);
+        window.location.href = '/login/';
+      });
+    });
+
+    // Setup event listeners
+    function setupEventListeners() {
+      // Register form
+      document.getElementById('registerForm').addEventListener('submit', handleRegister);
+
+      // Config form
+      document.getElementById('configForm').addEventListener('submit', handleConfigSave);
+
+      // Mode change handler
+      document.getElementById('configMode').addEventListener('change', function(e) {
+        const slideshowGroup = document.getElementById('slideshowSelectGroup');
+        slideshowGroup.style.display = e.target.value === 'slideshow' ? 'block' : 'none';
+      });
+    }
+
+    // Load devices
+    async function loadDevices() {
+      const container = document.getElementById('devicesContainer');
+      container.innerHTML = '<div class="loading"><span class="loading-text">Loading devices...</span></div>';
+
+      try {
+        const response = await fetch('/api/remotes', {
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        });
+        if (!response.ok) {
+          if (response.status === 401) {
+            window.location.href = '/login/';
+            return;
+          }
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        devices = data.data || [];
+        renderDevices();
+      } catch (error) {
+        console.error('Failed to load devices:', error);
+        container.innerHTML = `
+          <div class="error-state">
+            <h3>❌ Failed to Load Devices</h3>
+            <p>${error.message || 'Unable to connect to server. Please check your internet connection.'}</p>
+            <button class="error-action" onclick="loadDevices()">Try Again</button>
+          </div>
+        `;
+      }
+    }
+
+    // Load slideshows for dropdown
+    async function loadSlideshows() {
+      try {
+        const response = await fetch('/api/slideshows', {
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          slideshows = (data.data || []).map(item => item.name);
+        }
+      } catch (error) {
+        console.error('Failed to load slideshows:', error);
+      }
+    }
+
+    // Render devices grid
+    function renderDevices() {
+      const container = document.getElementById('devicesContainer');
+
+      if (devices.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <h3>No Remote Devices Exist</h3>
+            <p>Register your first remote device using the form above. Remote devices will display their unique 6-character codes on-screen for registration.</p>
+            <p style="margin-top: 1rem; font-size: 0.9rem; color: #888;">
+              💡 Remote devices allow you to control additional screens from this main kiosk. Each remote shows the same content or can display different menus/slideshows based on its configuration.
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      const devicesHtml = devices.map(device => {
+        const statusClass = getStatusClass(device);
+        const statusText = getStatusText(device);
+        const lastSeen = formatLastSeen(device.lastSeen);
+
+        return `
+          <div class="device-card" data-id="${device.id}">
+            <div class="device-header">
+              <div>
+                <div class="device-title">${device.displayName}</div>
+                <div class="device-code">${device.code}</div>
+              </div>
+              <div class="device-status ${statusClass}">${statusText}</div>
+            </div>
+
+            <div class="device-info">
+              <p><strong>Mode:</strong> ${formatMode(device.mode)}</p>
+              <p><strong>Orientation:</strong> ${formatOrientation(device.orientation)}</p>
+              <p><strong>Last Seen:</strong> ${lastSeen}</p>
+              <p><strong>Serial:</strong> ${device.serial}</p>
+            </div>
+
+            <div class="device-config">
+              <h4>Configuration</h4>
+              <div class="config-row">
+                <label>Display Name:</label>
+                <input type="text" value="${device.displayName}" readonly />
+              </div>
+              <div class="config-row">
+                <label>Mode:</label>
+                <input type="text" value="${formatMode(device.mode)}" readonly />
+              </div>
+              ${device.mode === 'slideshow' ? `
+                <div class="config-row">
+                  <label>Slideshow:</label>
+                  <input type="text" value="${device.slideshowName || 'Not set'}" readonly />
+                </div>
+              ` : ''}
+            </div>
+
+            <div class="device-actions">
+              <button class="btn primary" onclick="configureDevice('${device.id}')">Configure</button>
+              <button class="btn secondary" onclick="pingDevice('${device.code}')">Test Connection</button>
+              <button class="btn danger" onclick="unregisterDevice('${device.id}', '${device.code}')">Unregister</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = `<div class="devices-grid">${devicesHtml}</div>`;
+    }
+
+    // Handle device registration with auto-discovery
+    async function handleRegister(e) {
+      e.preventDefault();
+
+      const codeInput = document.getElementById('deviceCode');
+      const code = codeInput.value.toUpperCase().trim();
+
+      if (!code || !/^[A-Z0-9]{6}$/.test(code)) {
+        showToast('Please enter a valid 6-character device code', 'error');
+        return;
+      }
+
+      // Show discovery progress
+      showToast('Discovering device...', 'info');
+
+      try {
+        // Try auto-discovery first
+        const discoveredUrl = await discoverDevice(code);
+        let deviceUrl = null;
+
+        if (discoveredUrl) {
+          showToast(`Device found at ${discoveredUrl}`, 'success');
+          deviceUrl = discoveredUrl;
+        } else {
+          // Fallback: ask user for manual URL
+          const manualUrl = prompt(
+            `Could not auto-discover device ${code}.\n\nPlease enter the device URL manually (e.g., http://192.168.1.100):`,
+            `http://remote-${code}.local`
+          );
+
+          if (!manualUrl) {
+            showToast('Registration cancelled', 'error');
+            return;
+          }
+
+          deviceUrl = manualUrl;
+        }
+
+        // Register the device
+        const response = await fetch('/api/remotes/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code,
+            displayName: `Remote ${code}`,
+            mode: 'mirror',
+            deviceUrl // Store discovered URL for reference
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          showToast(`Device ${code} registered successfully!`, 'success');
+          codeInput.value = '';
+          loadDevices(); // Refresh the list
+        } else {
+          showToast(data.error || 'Failed to register device', 'error');
+        }
+      } catch (error) {
+        showToast('Network error during registration', 'error');
+      }
+    }
+
+    // Auto-discover device by trying different URL patterns
+    async function discoverDevice(code) {
+      const discoveryUrls = [
+        `http://remote-${code}.local`,
+        `http://remote-${code}`,
+        `http://192.168.1.${parseInt(code.slice(-3), 16) % 255}`, // Last 3 chars as pseudo-IP
+        `http://10.0.0.${parseInt(code.slice(-3), 16) % 255}`     // Alternative subnet
+      ];
+
+      for (const url of discoveryUrls) {
+        try {
+          // Try to ping the device with timeout
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+
+          const pingResponse = await fetch(`${url}/api/remotes/ping/${code}`, {
+            signal: controller.signal,
+            headers: { 'Cache-Control': 'no-cache' }
+          });
+
+          clearTimeout(timeoutId);
+
+          if (pingResponse.ok) {
+            return url;
+          }
+        } catch (error) {
+          // Try next URL (timeout or network error)
+          continue;
+        }
+      }
+
+      return null; // Not found
+    }
+
+    // Configure device
+    function configureDevice(deviceId) {
+      const device = devices.find(d => d.id == deviceId);
+      if (!device) return;
+
+      currentConfigDeviceId = deviceId;
+
+      // Populate form
+      document.getElementById('configDisplayName').value = device.displayName;
+      document.getElementById('configMode').value = device.mode;
+      document.getElementById('configOrientation').value = device.orientation.hdmi1 || 0;
+
+      // Handle slideshow selection
+      const slideshowGroup = document.getElementById('slideshowSelectGroup');
+      const slideshowSelect = document.getElementById('configSlideshow');
+
+      if (device.mode === 'slideshow') {
+        slideshowGroup.style.display = 'block';
+        // Populate slideshow dropdown
+        slideshowSelect.innerHTML = '<option value="">Select a slideshow...</option>' +
+          slideshows.map(name => `<option value="${name}" ${device.slideshowName === name ? 'selected' : ''}>${name}</option>`).join('');
+      } else {
+        slideshowGroup.style.display = 'none';
+      }
+
+      // Show modal
+      document.getElementById('configModal').classList.add('active');
+    }
+
+    // Save device configuration
+    async function handleConfigSave(e) {
+      e.preventDefault();
+
+      const displayName = document.getElementById('configDisplayName').value.trim();
+      const mode = document.getElementById('configMode').value;
+      const orientation = parseInt(document.getElementById('configOrientation').value);
+      const slideshowName = document.getElementById('configSlideshow').value;
+
+      if (!displayName) {
+        showToast('Display name is required', 'error');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/remotes/${currentConfigDeviceId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            displayName,
+            mode,
+            slideshowId: mode === 'slideshow' ? slideshowName : null,
+            orientation: { hdmi1: orientation, hdmi2: 0 }
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          showToast('Configuration saved successfully!', 'success');
+          closeConfigModal();
+          loadDevices(); // Refresh the list
+        } else {
+          showToast(data.error || 'Failed to save configuration', 'error');
+        }
+      } catch (error) {
+        showToast('Network error during save', 'error');
+      }
+    }
+
+    // Close config modal
+    function closeConfigModal() {
+      document.getElementById('configModal').classList.remove('active');
+      currentConfigDeviceId = null;
+    }
+
+    // Test device connection
+    async function pingDevice(code) {
+      try {
+        const response = await fetch(`/api/remotes/ping/${code}`, {
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+          showToast(`✅ ${data.message}`, 'success');
+        } else {
+          showToast(`❌ ${data.error}`, 'error');
+        }
+      } catch (error) {
+        showToast('Network error during ping test', 'error');
+      }
+    }
+
+    // Unregister device
+    async function unregisterDevice(deviceId, code) {
+      if (!confirm(`Are you sure you want to unregister device ${code}? This action cannot be undone.`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/remotes/${deviceId}`, {
+          method: 'DELETE',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          showToast(`Device ${code} unregistered successfully`, 'success');
+          loadDevices(); // Refresh the list
+        } else {
+          showToast(data.error || 'Failed to unregister device', 'error');
+        }
+      } catch (error) {
+        showToast('Network error during unregistration', 'error');
+      }
+    }
+
+    // Utility functions
+    function getStatusClass(device) {
+      const now = new Date();
+      const lastSeen = new Date(device.lastSeen);
+      const minutesAgo = (now - lastSeen) / (1000 * 60);
+
+      if (device.status !== 'active') return 'inactive';
+      if (minutesAgo < 5) return 'online';
+      return 'offline';
+    }
+
+    function getStatusText(device) {
+      const statusClass = getStatusClass(device);
+      switch (statusClass) {
+        case 'online': return 'Online';
+        case 'offline': return 'Offline';
+        case 'inactive': return 'Inactive';
+        default: return 'Unknown';
+      }
+    }
+
+    function formatLastSeen(lastSeen) {
+      const now = new Date();
+      const seen = new Date(lastSeen);
+      const minutesAgo = Math.floor((now - seen) / (1000 * 60));
+
+      if (minutesAgo < 1) return 'Just now';
+      if (minutesAgo < 60) return `${minutesAgo}m ago`;
+      if (minutesAgo < 1440) return `${Math.floor(minutesAgo / 60)}h ago`;
+      return `${Math.floor(minutesAgo / 1440)}d ago`;
+    }
+
+    function formatMode(mode) {
+      switch (mode) {
+        case 'mirror': return 'Mirror Main Kiosk';
+        case 'menu': return 'Current Menu Only';
+        case 'slideshow': return 'Slideshow Display';
+        default: return mode;
+      }
+    }
+
+    function formatOrientation(orientation) {
+      const hdmi1 = orientation?.hdmi1 || 0;
+      switch (hdmi1) {
+        case 0: return 'Landscape';
+        case 1: return 'Portrait (90°)';
+        case 2: return 'Landscape (180°)';
+        case 3: return 'Portrait (270°)';
+        default: return 'Unknown';
+      }
+    }
+
+    // Toast notification
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = 'toast';
+      if (type === 'error') toast.style.background = 'rgba(244, 67, 54, 0.9)';
+      else if (type === 'success') toast.style.background = 'rgba(76, 175, 80, 0.9)';
+      toast.style.display = 'block';
+
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 4000);
+    }
+
+    // Auto-refresh devices every 30 seconds
+    setInterval(loadDevices, 30000);
+  </script>
+</body>
+</html>

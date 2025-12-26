@@ -40,59 +40,63 @@
       flex-shrink: 0;
       padding: 0.25rem 0;
     }
-    .menu-tabs {
+    .menu-selector {
       display: flex;
-      gap: 0.5rem;
+      gap: 0.75rem;
+      align-items: center;
       background: #2d2d2d;
-      padding: 0.5rem;
+      padding: 0.75rem;
       border-radius: 8px;
       flex-shrink: 0;
-      overflow-x: auto;
+      flex-wrap: wrap;
     }
-    .menu-tab {
+    .menu-selector label {
+      font-weight: 600;
+      color: #e0e0e0;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+    .menu-selector select {
       flex: 1;
-      min-width: fit-content;
+      min-width: 150px;
+      padding: 0.5rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #e0e0e0;
+      background: #1a1a1a;
+      border: 2px solid #3a3a3a;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .menu-selector select:focus {
+      outline: none;
+      border-color: #4a9eff;
+    }
+    .menu-selector button {
       padding: 0.5rem 0.75rem;
       font-size: 0.85rem;
       font-weight: 600;
-      color: #b0b0b0;
-      background: #1a1a1a;
-      border: 2px solid transparent;
       border-radius: 6px;
       cursor: pointer;
-      transition: all 0.2s;
-      text-align: center;
-      position: relative;
       white-space: nowrap;
     }
-    .menu-tab.active {
-      color: #4a9eff;
-      background: #2d2d2d;
-      border-color: #4a9eff;
-    }
-    .menu-tab.kiosk-active {
-      background: #1a3d1a;
-      border-color: #28a745;
-      color: #5fd35f;
-    }
-    .menu-tab.kiosk-active.active {
-      background: #234d23;
-      border-color: #28a745;
-      color: #5fd35f;
-    }
-    .menu-tab .badge {
-      position: absolute;
-      top: -8px;
-      right: -8px;
+    .menu-selector .new-btn {
       background: #28a745;
       color: white;
-      font-size: 0.65rem;
-      padding: 2px 6px;
-      border-radius: 10px;
-      font-weight: 700;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      border: none;
     }
-    .menu-tab:active { background: #3a3a3a; }
+    .menu-selector .new-btn:hover { background: #218838; }
+    .menu-selector .delete-btn {
+      background: #dc3545;
+      color: white;
+      border: none;
+      margin-left: 0.5rem;
+    }
+    .menu-selector .delete-btn:hover { background: #c82333; }
+    .menu-selector .delete-btn:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+    }
     .controls {
       display: flex;
       gap: 0.5rem;
@@ -461,8 +465,13 @@
 <body>
   <div class="container">
     <h2>Daily Specials Editor</h2>
-    <div class="menu-tabs" id="menuTabs">
-      <!-- Dynamically populated from rules.json -->
+    <div class="menu-selector" id="menuSelector">
+      <label for="menuSelect">Menu:</label>
+      <select id="menuSelect">
+        <!-- Dynamically populated -->
+      </select>
+      <button class="new-btn" id="createNewBtn" onclick="createNewMenu()">+ New Menu</button>
+      <button class="delete-btn" id="deleteBtn" onclick="deleteCurrentMenu()" disabled>🗑️ Delete</button>
     </div>
     <div class="controls">
       <label for="fontSelect">Font Style:</label>
@@ -607,113 +616,312 @@
     const fontSelect = document.getElementById('fontSelect');
     const fontScaleInput = document.getElementById('fontScale');
     const fontScaleValue = document.getElementById('fontScaleValue');
-    const menuTabsContainer = document.getElementById('menuTabs');
-    let menuTabs = []; // Will be populated dynamically
+    const menuSelect = document.getElementById('menuSelect');
+    const deleteBtn = document.getElementById('deleteBtn');
     const viewButtons = document.querySelectorAll('.view-btn');
 
     // Remember which menu was last edited
     let currentFile = localStorage.getItem('editCurrentMenu') || null; // Will be set after loading menus
     // Keep the last-loaded file contents to detect external changes before save
     let loadedFileText = '';
+    let currentUserRole = 'editor'; // Default, will be updated after auth check
 
-    // Populate menu tabs from rules.json
-    function initializeMenuTabs() {
+    // Check user role for admin features
+    function checkUserRole() {
+      return fetch('../api/auth/me', {
+        headers: { 'Cache-Control': 'no-cache' }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success && data.data) {
+          currentUserRole = data.data.role;
+          updateDeleteButton();
+        }
+      })
+      .catch(() => {
+        // Default to editor if check fails
+        currentUserRole = 'editor';
+        updateDeleteButton();
+      });
+    }
+
+    // Update delete button visibility based on role
+    function updateDeleteButton() {
+      if (currentUserRole === 'admin') {
+        deleteBtn.disabled = false;
+        deleteBtn.style.display = 'inline-block';
+      } else {
+        deleteBtn.disabled = true;
+        deleteBtn.style.display = 'none';
+      }
+    }
+
+    // Populate menu dropdown from rules.json and filesystem
+    function initializeMenuDropdown() {
       return fetch('../rules.json')
         .then(r => r.ok ? r.json() : { rules: [] })
         .then(rulesData => {
           // Extract unique menu files and their names from rules
           const menuMap = new Map();
-          
+
           if (rulesData.rules && rulesData.rules.length > 0) {
             rulesData.rules.forEach(rule => {
               if (rule.menu && !menuMap.has(rule.menu)) {
-                // Use rule name as button label
+                // Use rule name as dropdown label
                 menuMap.set(rule.menu, rule.name);
               }
             });
           }
-          
-          // If no rules found, use defaults
-          if (menuMap.size === 0) {
-            menuMap.set('menus/breakfast.txt', 'Breakfast');
-            menuMap.set('menus/lunch.txt', 'Lunch');
-            menuMap.set('menus/dinner.txt', 'Dinner');
-            menuMap.set('menus/closed.txt', 'Closed');
-          }
-          
-          // Generate buttons
-          menuTabsContainer.innerHTML = '';
-          let isFirst = true;
-          menuMap.forEach((name, file) => {
-            const button = document.createElement('button');
-            button.className = 'menu-tab';
-            button.dataset.file = file;
-            button.textContent = name;
-            
-            // Set first button or saved menu as active
-            if (file === currentFile || (isFirst && !localStorage.getItem('editCurrentMenu'))) {
-              button.classList.add('active');
-              currentFile = file; // Update currentFile if using default
+
+          // Always include default menus if not already present
+          const defaults = [
+            ['menus/breakfast.txt', 'Breakfast'],
+            ['menus/lunch.txt', 'Lunch'],
+            ['menus/dinner.txt', 'Dinner'],
+            ['menus/closed.txt', 'Closed']
+          ];
+
+          defaults.forEach(([file, name]) => {
+            if (!menuMap.has(file)) {
+              menuMap.set(file, name);
             }
-            
-            button.addEventListener('click', () => switchMenu(file));
-            menuTabsContainer.appendChild(button);
-            isFirst = false;
           });
-          
-          // Update menuTabs array
-          menuTabs = document.querySelectorAll('.menu-tab');
+
+          // Populate dropdown
+          menuSelect.innerHTML = '<option value="">Select a menu...</option>';
+
+          let selectedIndex = 0;
+          let currentIndex = 0;
+
+          menuMap.forEach((name, file) => {
+            const option = document.createElement('option');
+            option.value = file;
+            option.textContent = name;
+            menuSelect.appendChild(option);
+
+            // Set selected option based on currentFile or first option
+            if (file === currentFile) {
+              selectedIndex = currentIndex + 1; // +1 because first option is placeholder
+            }
+            currentIndex++;
+          });
+
+          // Set selected index
+          if (selectedIndex > 0) {
+            menuSelect.selectedIndex = selectedIndex;
+          } else if (menuSelect.options.length > 1) {
+            menuSelect.selectedIndex = 1; // Select first menu
+            currentFile = menuSelect.options[1].value;
+          }
+
+          // Add change listener
+          menuSelect.addEventListener('change', () => {
+            const selectedFile = menuSelect.value;
+            if (selectedFile) {
+              switchMenu(selectedFile);
+            }
+          });
         })
         .catch(() => {
           // Fallback to dynamically discovered menu files if rules.json fails
           console.log('Rules not found, loading menus from filesystem...');
-          fetch('../menus/index.php?' + Date.now())
+          return fetch('../menus/index.php?' + Date.now())
             .then(r => r.ok ? r.json() : [])
             .then(menuFiles => {
+              menuSelect.innerHTML = '<option value="">Select a menu...</option>';
+
               if (menuFiles.length > 0) {
-                menuTabsContainer.innerHTML = '';
-                let isFirst = true;
-                menuFiles.forEach(menuFile => {
-                  const button = document.createElement('button');
-                  button.className = 'menu-tab';
-                  button.dataset.file = menuFile.path;
-                  button.textContent = menuFile.label;
-                  
-                  if (menuFile.path === currentFile || (isFirst && !localStorage.getItem('editCurrentMenu'))) {
-                    button.classList.add('active');
-                    currentFile = menuFile.path;
+                let selectedIndex = 0;
+                menuFiles.forEach((menuFile, index) => {
+                  const option = document.createElement('option');
+                  option.value = menuFile.path;
+                  option.textContent = menuFile.label;
+                  menuSelect.appendChild(option);
+
+                  if (menuFile.path === currentFile) {
+                    selectedIndex = index + 1;
                   }
-                  
-                  button.addEventListener('click', () => switchMenu(menuFile.path));
-                  menuTabsContainer.appendChild(button);
-                  isFirst = false;
                 });
+
+                if (selectedIndex > 0) {
+                  menuSelect.selectedIndex = selectedIndex;
+                } else if (menuSelect.options.length > 1) {
+                  menuSelect.selectedIndex = 1;
+                  currentFile = menuSelect.options[1].value;
+                }
               } else {
-                // Final fallback if filesystem scan fails
+                // Final fallback
                 console.warn('No menu files found, using minimal defaults');
-                menuTabsContainer.innerHTML = `
-                  <button class="menu-tab active" data-file="menus/menu1.txt">Menu 1</button>
-                  <button class="menu-tab" data-file="menus/menu2.txt">Menu 2</button>
+                menuSelect.innerHTML = `
+                  <option value="">Select a menu...</option>
+                  <option value="menus/breakfast.txt">Breakfast</option>
+                  <option value="menus/lunch.txt">Lunch</option>
+                  <option value="menus/dinner.txt">Dinner</option>
+                  <option value="menus/closed.txt">Closed</option>
                 `;
+
+                if (!currentFile) {
+                  menuSelect.selectedIndex = 1;
+                  currentFile = 'menus/breakfast.txt';
+                }
               }
-              
-              menuTabs = document.querySelectorAll('.menu-tab');
-              menuTabs.forEach(tab => {
-                tab.addEventListener('click', () => switchMenu(tab.dataset.file));
+
+              menuSelect.addEventListener('change', () => {
+                const selectedFile = menuSelect.value;
+                if (selectedFile) {
+                  switchMenu(selectedFile);
+                }
               });
             })
             .catch(err => {
               console.error('Failed to load menu files:', err);
               // Ultra-minimal fallback
-              menuTabsContainer.innerHTML = `
-                <button class="menu-tab active" data-file="menus/menu.txt">Menu</button>
+              menuSelect.innerHTML = `
+                <option value="">Select a menu...</option>
+                <option value="menus/menu.txt">Menu</option>
               `;
-              menuTabs = document.querySelectorAll('.menu-tab');
-              menuTabs.forEach(tab => {
-                tab.addEventListener('click', () => switchMenu(tab.dataset.file));
+              menuSelect.selectedIndex = 1;
+              currentFile = 'menus/menu.txt';
+
+              menuSelect.addEventListener('change', () => {
+                const selectedFile = menuSelect.value;
+                if (selectedFile) {
+                  switchMenu(selectedFile);
+                }
               });
             });
         });
+    }
+
+    // Create a new menu file
+    function createNewMenu() {
+      const menuName = prompt('Enter a name for the new menu (e.g., "Wing Night", "Holiday Special"):');
+
+      if (!menuName || !menuName.trim()) {
+        return;
+      }
+
+      // Create filename from menu name (sanitize)
+      const sanitizedName = menuName.trim().toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '') // Remove special chars except spaces and hyphens
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .substring(0, 50); // Limit length
+
+      const filename = `menus/${sanitizedName}.txt`;
+
+      // Check if file already exists
+      fetch('../' + filename)
+        .then(response => {
+          if (response.ok) {
+            alert(`A menu with the name "${menuName}" already exists. Please choose a different name.`);
+            return;
+          }
+          throw new Error('File does not exist, this is good');
+        })
+        .catch(() => {
+          // File doesn't exist, create it
+          const templateContent = `## ${menuName}
+
+Welcome to our special ${menuName.toLowerCase()} menu!
+
+{r}Special Item 1 - {y}$12.95
+{g}Made with fresh ingredients
+
+{r}Special Item 2 - {y}$15.95
+{g}House specialty
+
+{r}Special Item 3 - {y}$9.95
+{g}Customer favorite
+
+---
+{g}All specials available for a limited time!`;
+
+          fetch('../' + filename, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'text/plain' },
+            body: templateContent
+          })
+          .then(response => {
+            if (response.ok) {
+              // Refresh dropdown and switch to new menu
+              initializeMenuDropdown().then(() => {
+                // Find and select the new menu
+                for (let i = 0; i < menuSelect.options.length; i++) {
+                  if (menuSelect.options[i].value === filename) {
+                    menuSelect.selectedIndex = i;
+                    switchMenu(filename);
+                    break;
+                  }
+                }
+                showToast(`Created new menu: ${menuName}`, 'success');
+              });
+            } else {
+              showToast('Failed to create menu', 'error');
+            }
+          })
+          .catch(() => {
+            showToast('Failed to create menu', 'error');
+          });
+        });
+    }
+
+    // Delete current menu (admin only)
+    function deleteCurrentMenu() {
+      if (currentUserRole !== 'admin') {
+        showToast('Only administrators can delete menus', 'error');
+        return;
+      }
+
+      if (!currentFile) {
+        showToast('No menu selected', 'error');
+        return;
+      }
+
+      // Prevent deletion of system menus
+      const systemMenus = ['menus/breakfast.txt', 'menus/lunch.txt', 'menus/dinner.txt', 'menus/closed.txt'];
+      if (systemMenus.includes(currentFile)) {
+        showToast('Cannot delete system menus (Breakfast, Lunch, Dinner, Closed)', 'error');
+        return;
+      }
+
+      // Get menu display name and database name
+      const selectedOption = menuSelect.options[menuSelect.selectedIndex];
+      const menuName = selectedOption ? selectedOption.textContent : 'this menu';
+      const dbName = currentFile.replace('menus/', '').replace('.txt', '');
+
+      if (!confirm(`Are you sure you want to permanently delete "${menuName}"?\n\nThis action cannot be undone and will remove the menu completely.`)) {
+        return;
+      }
+
+      // Delete the menu via API
+      fetch('../api/menu/' + dbName, {
+        method: 'DELETE'
+      })
+      .then(response => {
+        if (response.ok) {
+          showToast(`Deleted menu: ${menuName}`, 'success');
+
+          // Remove from dropdown and switch to first available menu
+          initializeMenuDropdown().then(() => {
+            if (menuSelect.options.length > 1) {
+              menuSelect.selectedIndex = 1; // Select first menu
+              const newFile = menuSelect.options[1].value;
+              switchMenu(newFile);
+            } else {
+              // No menus left, clear selection
+              menuSelect.selectedIndex = 0;
+              currentFile = null;
+              textarea.value = '';
+              updatePreview();
+            }
+          });
+        } else {
+          showToast('Failed to delete menu', 'error');
+        }
+      })
+      .catch(() => {
+        showToast('Failed to delete menu', 'error');
+      });
     }
 
     // View switching
@@ -832,22 +1040,16 @@
     // Switch between menu files
     function switchMenu(filename) {
       currentFile = filename;
-      
+
       // Save current menu selection to localStorage
       localStorage.setItem('editCurrentMenu', filename);
-      
-      // Update tab styles
-      menuTabs.forEach(tab => {
-        if (tab.dataset.file === filename) {
-          tab.classList.add('active');
-        } else {
-          tab.classList.remove('active');
-        }
-      });
-      
+
+      // Update dropdown selection
+      menuSelect.value = filename;
+
       // Load the selected file
       loadFile(filename);
-      
+
       // Load font scale for this menu
       loadConfig();
     }
@@ -1328,17 +1530,10 @@
         .catch(() => showToast('Failed to trigger reload', 'error'));
     });
 
-    // Initialize menu tabs first, then load content
-    initializeMenuTabs().then(() => {
-      // Set active tab based on currentFile from localStorage
-      menuTabs.forEach(tab => {
-        if (tab.dataset.file === currentFile) {
-          tab.classList.add('active');
-        } else {
-          tab.classList.remove('active');
-        }
-      });
-
+    // Check user role first, then initialize menu dropdown
+    checkUserRole().then(() => {
+      return initializeMenuDropdown();
+    }).then(() => {
       // Load current file on startup
       loadFile(currentFile);
 

@@ -152,12 +152,12 @@
   const logoEl = document.getElementById('logo');
   let currentMenu = localStorage.getItem('currentMenu') || 'menus/dinner.txt';
   
-  // Initialize current-menu.json with the current menu
-  fetch('set-current-menu.php', {
-    method: 'POST',
+  // Initialize current menu in database
+  fetch('/api/config/current-menu', {
+    method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ menu: currentMenu })
-  }).catch(err => console.warn('Failed to initialize current-menu.json:', err));
+  }).catch(err => console.warn('Failed to initialize current menu:', err));
   
   let lastText = '';
   let lastEtag = null;
@@ -284,38 +284,14 @@
     function switchMenu(filename) {
       currentMenu = filename;
       localStorage.setItem('currentMenu', filename);
-      
-      // Update current-menu.json for persistence and external control
-      fetch('set-current-menu.php', {
-        method: 'POST',
+
+      // Update current menu in database for persistence and external control
+      fetch('/api/config/current-menu', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ menu: filename })
-      }).catch(err => console.warn('Failed to update current-menu.json:', err));
-      
-      // Load per-menu settings from menus-config.json
-      const menuName = filename.replace('menus/', '').replace('.txt', '');
-      fetch('menus-config.json?' + Date.now(), { cache: 'no-store' })
-        .then(r => r.ok ? r.json() : {})
-        .then(menusConfig => {
-          const specialsDiv = document.getElementById('specials');
-          
-          // Apply per-menu font scale
-          if (menusConfig[menuName] && Number.isFinite(menusConfig[menuName].fontScalePercent)) {
-            fontScalePercent = Number(menusConfig[menuName].fontScalePercent);
-            if (specialsDiv) {
-              specialsDiv.style.fontSize = `clamp(1rem, ${fontScalePercent}vw, 3rem)`;
-            }
-          }
-          
-          // Apply per-menu font
-          if (menusConfig[menuName] && menusConfig[menuName].font) {
-            if (specialsDiv) {
-              specialsDiv.style.fontFamily = menusConfig[menuName].font;
-            }
-          }
-        })
-        .catch(err => console.warn('Failed to load menu config:', err));
-      
+      }).catch(err => console.warn('Failed to update current menu:', err));
+
       // Reset state and poll immediately
       lastText = '';
       lastEtag = null;
@@ -565,13 +541,13 @@
         // Run all checks in parallel with timeout protection
         await Promise.race([
           Promise.all([
-            // Check for reload.txt changes (triggered by editor saves)
-            fetch('reload.txt?' + Date.now(), { cache: 'no-store' })
+            // Check for reload trigger changes (triggered by editor saves)
+            fetch('/api/config/reload-trigger?' + Date.now(), { cache: 'no-store' })
               .then(r => r.ok ? r.text() : '')
               .then(token => {
                 token = token.trim();
                 if (!token) return;
-                
+
                 if (lastReloadToken === null) {
                   lastReloadToken = token;
                   console.log('[Reload] Baseline set:', token);
@@ -584,13 +560,13 @@
               })
               .catch(() => {}),
             
-            // Check for current-menu.json changes (external menu control)
-            fetch('current-menu.json?' + Date.now(), { cache: 'no-store' })
+            // Check for current menu changes (external menu control)
+            fetch('/api/config/current-menu?' + Date.now(), { cache: 'no-store' })
               .then(r => r.ok ? r.json() : null)
               .then(data => {
                 if (!data || !data.menu) return;
                 const requestedMenu = data.menu;
-                
+
                 // Only switch if not in demo mode and menu is different
                 if (!demoModeActive && requestedMenu !== currentMenu) {
                   if (lastRequestedMenu === null) {
@@ -608,7 +584,7 @@
               .catch(() => {}),
             
             // Check for demo commands (remote control from demo panel)
-            fetch('demo-command.txt?' + Date.now(), { cache: 'no-store' })
+            fetch('/api/config/demo-command?' + Date.now(), { cache: 'no-store' })
               .then(r => r.ok ? r.text() : '')
               .then(command => {
                 command = command.trim();
@@ -616,12 +592,12 @@
                   lastDemoCommand = command;
                   console.log('[Demo] Command received:', command);
                   executeDemoCommand(command);
-                  
-                  // Reset command file to 'idle' after executing
-                  fetch('demo-command.txt', {
+
+                  // Reset command to 'idle' after executing
+                  fetch('/api/config/demo-command', {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: 'idle'
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: 'idle' })
                   }).catch(() => {});
                 }
               })
@@ -1306,12 +1282,12 @@
     };
 
     // Initialize: Clear any stale demo commands on page load
-    fetch('demo-command.txt', {
+    fetch('/api/config/demo-command', {
       method: 'PUT',
-      headers: { 'Content-Type': 'text/plain' },
-      body: 'idle'
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ command: 'idle' })
     }).catch(() => {
-      console.warn('Could not initialize demo-command.txt');
+      console.warn('Could not initialize demo-command');
     });
 
     // Check for slideshow on load

@@ -1,169 +1,230 @@
-# 314Sign Requirements
+# Requirements & System Setup
 
-What you need to run 314Sign — hardware, software, and network setup.
+Hardware and software requirements for running 314Sign.
 
----
+## Hardware Requirements
 
-## Hardware
+### Minimum Requirements
+- **Raspberry Pi 3B+** or newer (Pi Zero 2 W recommended)
+- **2GB RAM** minimum (4GB recommended)
+- **16GB microSD card** minimum (32GB recommended)
+- **Network connection** (Ethernet or Wi-Fi)
 
-| Component | Requirement | Notes |
-|-----------|-------------|-------|
-| **Raspberry Pi** | Pi 4 (4GB+) or Pi 5 | Tested on Pi 5; Pi 4 works great too |
-| **MicroSD Card** | 16GB+ (Class 10) | 32GB recommended for room to grow |
-| **Display** | Any HDMI monitor/TV | 1080p+ recommended |
-| **Network** | Wi-Fi or Ethernet | Local network only — no internet needed after setup |
-| **Power** | Official Pi power supply | Stable power prevents corruption |
+### Recommended Hardware
+- **Raspberry Pi 4** or **Raspberry Pi 5**
+- **4GB RAM** or more
+- **32GB microSD card** or larger
+- **Ethernet connection** for reliability
+- **HDMI display** or touchscreen
 
-**Total cost**: ~$100-150 if buying everything new (Pi + SD card + case + power)
+### Display Options
+- **Portrait or landscape** orientation supported
+- **HDMI monitors** (recommended)
+- **Touchscreens** supported
+- **TV displays** (1080p or higher recommended)
 
----
+## Software Requirements
 
-## Software
+### Operating System
+- **Raspberry Pi OS Lite** (64-bit) - **Required**
+- **Debian 11/12** or **Ubuntu 20.04+** (alternative)
+- **macOS 12+** or **Windows 10+** (development only)
 
-### Operating System (Choose One)
+### Node.js & Tools
+- **Node.js 18+** (LTS recommended)
+- **npm 8+**
+- **PM2** (process manager)
+- **SQLite3** (database)
+- **Git** (for updates)
 
-**Option 1: Raspberry Pi OS Lite (Recommended)**
-- Lightweight, no desktop bloat
-- One-command kiosk mode installer included
-- Best performance for dedicated signage
+## Network Requirements
 
-**Option 2: FullpageOS**
-- Pre-configured kiosk mode out of the box
-- Boots straight to fullscreen browser
-- Great if you want zero configuration
+### Connectivity
+- **Local network access** (LAN/Wi-Fi)
+- **DHCP** (automatic IP assignment)
+- **DNS resolution** working
+- **Port 80** available (default HTTP port)
 
-### What Gets Installed
+### Remote Access (Optional)
+- **SSH access** for administration
+- **VPN** for remote management
+- **Firewall** configuration if needed
 
-The `setup-kiosk.sh` script installs:
-- **lighttpd** — Fast, lightweight web server
-- **PHP** (with CGI) — For image uploads and file listing
-- **avahi-daemon** — mDNS service for .local hostname resolution
-- **git** — To clone the repository
-- **qrencode** — Generate QR codes for mobile access
+## Installation Steps
 
-**Total install size**: ~50MB. No Node.js, no databases, no heavy frameworks.
-
----
-
-## Network Setup
-
-### What You Need
-- **Local Wi-Fi or Ethernet**: Pi must be on same network as staff phones/tablets
-- **mDNS (Avahi)**: Lets you use `http://hostname.local` instead of IP addresses (**automatically installed by setup script**)
-- **Open ports**: 80 (HTTP), 22 (SSH)
-
-### No Internet Required
-After initial setup, 314Sign runs **100% offline**. Perfect for:
-- Restaurant private networks
-- Church halls without internet
-- VFW posts and private clubs
-- Locations with unreliable connectivity
-
----
-
-## Installation
-
-### Prerequisites
-1. Flash Raspberry Pi OS Lite 64-bit to microSD (use Raspberry Pi Imager)
-2. Boot Pi, enable SSH: `sudo raspi-config` → Interface Options → SSH
-3. Connect to Wi-Fi: `sudo raspi-config` → System Options → Wireless LAN
-4. Optional but recommended: Set hostname: `sudo raspi-config` → System Options → Hostname
-
-### One-Command Install
+### 1. Prepare Raspberry Pi
 ```bash
+# Download Raspberry Pi OS Lite (64-bit)
+# Flash to microSD card using Raspberry Pi Imager
+# Enable SSH and Wi-Fi during imaging
+# Boot Pi and connect via SSH
+ssh pi@raspberrypi.local
+```
+
+### 2. Update System
+```bash
+# Update package lists
+sudo apt update
+
+# Upgrade system packages
+sudo apt upgrade -y
+
+# Install required tools
+sudo apt install -y curl git htop
+```
+
+### 3. Install 314Sign
+```bash
+# One-command installation
 curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/setup-kiosk.sh | sudo bash
 ```
 
-**That's it.** The script handles everything:
-- Installs dependencies (lighttpd, PHP, avahi-daemon, etc.)
-- Configures lighttpd + WebDAV
-- Sets up file permissions
-- Generates QR codes for mobile access
-- **Optional**: Disables undervoltage warnings (prompts during installation)
-
-### Post-Installation Options
-
-**Kiosk Display Mode** (Optional)
-- During installation, you'll be asked if you want to set up auto-boot kiosk mode
-- Installs minimal X11 + Chromium browser for fullscreen display
-- Configures screen rotation options
-- Pi boots directly to kiosk display instead of console
-- Can be set up later if skipped during installation
-
-**Undervoltage Warning Override** (Optional)
-- During installation, you'll be asked if you want to disable undervoltage warnings
-- Adds `avoid_warnings=1` to `/boot/config.txt`
-- Useful if you have a good power supply but still get warnings
-- Can be safely skipped - warnings help diagnose power issues
-
-### Optional: Auto-Boot to Kiosk (Pi OS Lite)
-If you want the Pi to automatically display the menu on boot:
-
+### 4. Configure Kiosk Display (Optional)
 ```bash
-curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/scripts/os-lite-kiosk.sh | sudo bash
-sudo reboot
+# Auto-setup kiosk mode for Pi OS Lite
+sudo ./scripts/os-lite-kiosk.sh
+
+# Follow prompts for:
+# - Screen rotation (0=normal, 90, 180, 270)
+# - Browser selection (Chromium/Firefox)
 ```
 
-This installs minimal X11 + Chromium and configures fullscreen kiosk mode with optional screen rotation.
-
----
-
-## What You Don't Need
-
-❌ **No keyboard/mouse** — SSH-only after initial setup  
-❌ **No desktop environment** — Runs headless or minimal kiosk  
-❌ **No database** — Everything is JSON and text files  
-❌ **No cloud account** — Fully self-hosted  
-❌ **No monthly fees** — Own it forever  
-❌ **No internet connection** — Works 100% offline after setup
-
----
-
-## Browser Compatibility
-
-### For Editing (Staff Devices)
-Works on any modern browser:
-- ✅ Safari (iOS/iPad/Mac)
-- ✅ Chrome (Android/Windows/Mac)
-- ✅ Firefox (Windows/Mac/Linux)
-- ✅ Edge (Windows)
-
-### For Kiosk Display
-- ✅ Chromium (default on Pi)
-- ✅ Firefox ESR (fallback option)
-
----
-
-## Optional Enhancements
-
-### Custom Fonts
-Drop TTF font files into `/var/www/html/fonts/` and they'll auto-load in the editor dropdown.
-
-### More Backgrounds
-Add images via:
-- Upload through design page (from phone camera)
-- SCP/SFTP: Copy to `/var/www/html/bg/`
-- USB stick: Mount and copy files
-
-### Automated Backups
-Add to crontab for daily backups:
-```bash
-# Edit crontab
-sudo crontab -e
-
-# Add this line (runs at 2am daily)
-0 2 * * * /var/www/html/scripts/backup.sh /home/pi/backups
+### 5. Access Kiosk
+```
+Main kiosk: http://your-pi-hostname.local
+Edit menus: http://your-pi-hostname.local/edit/
+Design page: http://your-pi-hostname.local/design/
 ```
 
----
+## Development Setup
 
-## Need Help?
+### Local Development
+```bash
+# Clone repository
+git clone https://github.com/UnderhillForge/314Sign.git
+cd 314Sign
 
-- 📖 **Troubleshooting**: See [troubleshooting.md](troubleshooting.md)
-- 🎨 **Formatting**: See [FORMATTING.md](FORMATTING.md)
-- 🤝 **Contributing**: See [contributing.md](contributing.md)
-- �� **Issues**: [GitHub Issues](https://github.com/UnderhillForge/314Sign/issues)
+# Install dependencies
+npm install
 
----
+# Start development server
+npm run dev
 
-**314Sign: Simple requirements, powerful results.**
+# Build for production
+npm run build
+npm start
+```
+
+### Required Development Tools
+- **Node.js 18+** with npm
+- **Git** for version control
+- **VS Code** (recommended editor)
+- **Chrome/Firefox** for testing
+
+## Performance Optimization
+
+### Raspberry Pi Tuning
+```bash
+# Disable unnecessary services
+sudo systemctl disable bluetooth
+sudo systemctl disable avahi-daemon
+
+# Optimize memory usage
+echo "gpu_mem=256" | sudo tee -a /boot/config.txt
+
+# Use zram for swap compression
+echo "zram" | sudo tee -a /etc/modules
+```
+
+### Network Optimization
+- Use Ethernet over Wi-Fi when possible
+- Configure static IP for reliability
+- Disable power management on Wi-Fi
+
+### Storage Optimization
+- Use fast microSD cards (Class 10 or UHS-I)
+- Regular log rotation
+- Clean temp files periodically
+
+## Security Considerations
+
+### Basic Security
+```bash
+# Change default password
+passwd
+
+# Configure firewall (optional)
+sudo apt install ufw
+sudo ufw enable
+sudo ufw allow 80
+sudo ufw allow 22
+```
+
+### Access Control
+- Change default admin password immediately
+- Use strong passwords
+- Limit SSH access to trusted networks
+- Regularly update system packages
+
+## Troubleshooting Installation
+
+### Common Issues
+- **"Permission denied"**: Run setup with `sudo`
+- **"Command not found"**: Ensure curl is installed
+- **Network timeout**: Check internet connection
+- **Disk space**: Ensure 2GB+ free space
+
+### Verification Steps
+```bash
+# Check Node.js installation
+node --version
+npm --version
+
+# Check PM2 status
+pm2 list
+
+# Check web server
+curl http://localhost/api/status
+
+# Check database
+ls -la 314sign.db
+```
+
+## Supported Browsers
+
+### Display Browsers (Kiosk Mode)
+- **Chromium** (recommended for Pi OS Lite)
+- **Firefox ESR** (alternative)
+- **Epiphany** (fallback)
+
+### Editing Browsers
+- **Chrome 90+**
+- **Firefox 88+**
+- **Safari 14+**
+- **Edge 90+**
+- **Mobile browsers** supported
+
+## Backup & Recovery
+
+### Automatic Backups
+- Menu content saved to database
+- Configuration preserved across updates
+- Uploads stored in dedicated directories
+
+### Manual Backup
+```bash
+# Backup critical files
+tar -czf backup-$(date +%Y%m%d).tar.gz \
+  314sign.db \
+  config.json \
+  bg/uploaded_* \
+  fonts/*.ttf \
+  logs/
+```
+
+## Support & Resources
+
+- **GitHub Issues**: Report bugs and request features
+- **Documentation**: Comprehensive guides available
+- **Community**: Raspberry Pi forums for hardware help
+- **Updates**: Automatic update system included

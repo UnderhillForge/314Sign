@@ -1,7 +1,7 @@
 #!/bin/bash
 ###############################################################################
-# 314Sign GitHub Update Script
-# 
+# 314Sign GitHub Update Script (Node.js/TypeScript Version)
+#
 # Safely syncs local installation with GitHub repository, updating only
 # changed files while preserving local configuration and uploaded content.
 #
@@ -15,17 +15,16 @@
 #
 # What gets updated:
 #   - Core display files (index.html, edit/design/rules pages)
-#   - PHP backends (upload-bg.php, bg/index.php, status.php)
+#   - Node.js/TypeScript backend (src/, dist/, package.json)
+#   - API routes and middleware
 #   - Scripts (backup.sh, os-lite-kiosk.sh, permissions.sh)
 #   - Default background images
 #
 # What gets preserved:
+#   - 314sign.db (SQLite database with all content)
 #   - config.json (your settings)
-#   - menus-config.json (per-menu settings)
-#   - rules.json (your schedule)
-#   - rules.json (your schedule)
-#   - menus/*.txt (your menu content)
 #   - bg/uploaded_* (your uploaded images)
+#   - fonts/*.ttf (custom fonts)
 #   - logs/ directory
 ###############################################################################
 
@@ -118,50 +117,64 @@ if [[ "$CREATE_BACKUP" == true ]] && [[ "$DRY_RUN" == false ]]; then
 fi
 
 # Files to update (relative to web root)
-# Exclude config.json, menus-config.json, rules.json, menus/*.txt, uploaded images, and runtime state files
+# Exclude 314sign.db, config.json, uploaded images, custom fonts, and runtime state files
 declare -a UPDATE_FILES=(
+  # Core web interface files
   "index.html"
   "version.txt"
   "favicon.svg"
   "edit/index.html"
   "design/index.html"
-  "design/upload-bg.php"
-  "design/purge-history.php"
   "rules/index.html"
   "start/index.html"
   "maintenance/index.html"
-  "slideshows/index.html"
-  "bg/index.php"
-  "fonts/index.php"
-  "fonts/.htaccess"
-  "status.php"
-  "check-updates.php"
-  "apply-updates.php"
-  "restart-server.php"
-  "create-backup.php"
-  "trigger-reload.php"
-  "save-menu-history.php"
-  "get-menu-history.php"
-  "set-current-menu.php"
+  "login/index.html"
+
+  # Node.js/TypeScript backend files
+  "package.json"
+  "package-lock.json"
+  "tsconfig.json"
+  "ecosystem.config.js"
+
+  # TypeScript source files
+  "src/server.ts"
+  "src/database.ts"
+  "src/types/index.ts"
+  "src/utils/config.ts"
+  "src/middleware/auth.ts"
+  "src/routes/auth.ts"
+  "src/routes/backgrounds.ts"
+  "src/routes/config.ts"
+  "src/routes/fonts.ts"
+  "src/routes/menu.ts"
+  "src/routes/menu-control.ts"
+  "src/routes/remotes.ts"
+  "src/routes/rules.ts"
+  "src/routes/slideshows.ts"
+  "src/routes/status.ts"
+  "src/routes/system.ts"
+  "src/routes/upload.ts"
+
+  # Scripts and utilities
   "scripts/backup.sh"
-  "scripts/merge-config.php"
-  "scripts/read-file-debug.php"
-  "scripts/put-guard.php"
-  "scripts/validate-slideshow-set.php"
+  "scripts/deploy-check.sh"
+  "scripts/increment-version.sh"
+  "scripts/install-fonts.sh"
+  "scripts/migrate-to-db.js"
   "scripts/os-lite-kiosk.sh"
   "scripts/update-from-github.sh"
   "permissions.sh"
   "setup-kiosk.sh"
-  "create-webdav-user.sh"
+  "remote-setup.sh"
+
+  # System configuration files
   "sudoers-314sign"
-  "design/upload-logo.php"
-  "media/index.php"
-  "menus/index.php"
-  "slideshows/upload-media.php"
-  "slideshows/save-set.php"
-  "slideshows/sets/index.php"
+
+  # Default assets
+  "bg/backgd.jpg"
   "bg/backgd2.avif"
   "media/sample.avif"
+  "fonts/.htaccess"
 )
 
 # Optional documentation files (won't fail if missing)
@@ -324,6 +337,43 @@ if [[ "$DRY_RUN" == false ]] && [[ -x "$WEB_ROOT/permissions.sh" ]]; then
   echo ""
 fi
 
+# === Update Node.js dependencies and rebuild ===
+if [[ "$DRY_RUN" == false ]] && [[ -f "$WEB_ROOT/package.json" ]]; then
+  log_info "Updating Node.js dependencies..."
+  cd "$WEB_ROOT"
+  if npm install; then
+    log_success "Dependencies updated"
+  else
+    log_warning "npm install failed - dependencies may be outdated"
+  fi
+
+  log_info "Rebuilding TypeScript..."
+  if npm run build; then
+    log_success "TypeScript compiled successfully"
+  else
+    log_error "TypeScript build failed!"
+    log_error "Check the output above for compilation errors"
+    exit 1
+  fi
+
+  # Restart PM2 process if running
+  if command -v pm2 &> /dev/null; then
+    log_info "Restarting 314Sign server..."
+    if pm2 restart 314sign 2>/dev/null; then
+      log_success "Server restarted successfully"
+      pm2 save 2>/dev/null || true
+    else
+      log_warning "Could not restart server - it may not be running under PM2"
+      log_warning "Try: pm2 start ecosystem.config.js"
+    fi
+  else
+    log_warning "PM2 not found - cannot restart server automatically"
+    log_warning "Restart manually: cd /var/www/html && npm start"
+  fi
+
+  echo ""
+fi
+
 # Cleanup
 rm -rf "$TEMP_DIR"
 
@@ -349,7 +399,8 @@ if [[ $UPDATED_FILES -gt 0 ]] && [[ "$DRY_RUN" == false ]]; then
   echo "Next steps:"
   echo "  1. Check your kiosk display: http://$(hostname).local"
   echo "  2. Verify editor pages work: http://$(hostname).local/edit/"
-  echo "  3. Check logs if issues occur: tail -f /var/log/lighttpd/error.log"
+  echo "  3. Check server status: pm2 list"
+  echo "  4. Check logs if issues occur: pm2 logs 314sign"
   echo ""
   log_warning "If you made local customizations to updated files, they were overwritten."
   log_warning "Restore from backup if needed."
@@ -360,4 +411,3 @@ fi
 
 echo ""
 exit 0
-

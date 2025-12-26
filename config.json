@@ -1,0 +1,24 @@
+{
+  "version": "1.0.1.1",
+  "bg": "test-bg-1766707095723-72437770.png",
+  "font": "Lato, sans-serif",
+  "headerFont": "IBM Plex Mono, monospace",
+  "headerText": "Todays Specials",
+  "headerSizePercent": 5.5,
+  "bgBrightness": 0.2,
+  "showClock": true,
+  "clock24Hour": false,
+  "autoFormatItemColor": "w",
+  "autoFormatPriceColor": "y",
+  "autoFormatDescColor": "lg",
+  "availableFonts": {
+    "Lato": "Lato, sans-serif",
+    "Arial": "Arial, sans-serif",
+    "Georgia": "Georgia, serif",
+    "Comic Sans": "'Comic Sans MS', cursive",
+    "Indie Flower": "'Indie Flower', cursive",
+    "Permanent Marker": "'Permanent Marker', cursive",
+    "Caveat": "'Caveat', cursive",
+    "Dancing Script": "'Dancing Script', cursive"
+  }
+}

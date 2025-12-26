@@ -1,55 +1,55 @@
 import express from 'express';
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { MenuItem, ApiResponse } from '../types/index.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { dbHelpers } from '../database.js';
+import { authenticateToken, requireAdmin } from './auth.js';
 
 const router = express.Router();
 
-// GET /api/menu - List all menus
+// POST /api/menu - Update current menu (for kiosk initialization)
+router.post('/', async (req, res) => {
+  try {
+    const { name, content } = req.body;
+
+    if (typeof name !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid request body',
+        message: 'Name must be a string'
+      } as ApiResponse);
+    }
+
+    // For current menu updates, we just need to acknowledge
+    // The actual current menu is managed by localStorage and current-menu.json
+    res.json({
+      success: true,
+      message: `Current menu set to ${name}`,
+      data: { name, content: content || '' }
+    } as ApiResponse);
+  } catch (error) {
+    console.error('Error updating current menu:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update current menu',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    } as ApiResponse);
+  }
+});
+
+// GET /api/menu - List all menus (database only)
 router.get('/', async (req, res) => {
   try {
-    const menusDir = path.join(__dirname, '../../menus');
+    const menus = dbHelpers.getAllMenus();
 
-    let menuFiles: string[] = [];
-    try {
-      menuFiles = await fs.readdir(menusDir);
-    } catch (error) {
-      // Menus directory doesn't exist
-      return res.json({
-        success: true,
-        data: []
-      } as ApiResponse<MenuItem[]>);
-    }
-
-    const menus: MenuItem[] = [];
-
-    for (const file of menuFiles) {
-      if (file.endsWith('.txt')) {
-        const menuName = file.replace('.txt', '');
-        const filePath = path.join(menusDir, file);
-
-        try {
-          const content = await fs.readFile(filePath, 'utf-8');
-          const stats = await fs.stat(filePath);
-
-          menus.push({
-            name: menuName,
-            content: content.trim(),
-            lastModified: stats.mtime
-          });
-        } catch (error) {
-          console.warn(`Error reading menu file ${file}:`, error);
-        }
-      }
-    }
+    // Transform database results to API format
+    const menuItems: MenuItem[] = menus.map((menu: any) => ({
+      name: menu.name,
+      content: menu.content,
+      lastModified: new Date(menu.updated_at)
+    }));
 
     res.json({
       success: true,
-      data: menus
+      data: menuItems
     } as ApiResponse<MenuItem[]>);
   } catch (error) {
     console.error('Error listing menus:', error);
@@ -64,33 +64,16 @@ router.get('/', async (req, res) => {
 // GET /api/menu/files - List menu files (for frontend dropdowns)
 router.get('/files', async (req, res) => {
   try {
-    const menusDir = path.join(__dirname, '../../menus');
+    const menus = dbHelpers.getAllMenus();
 
-    let menuFiles: string[] = [];
-    try {
-      menuFiles = await fs.readdir(menusDir);
-    } catch (error) {
-      // Menus directory doesn't exist
-      return res.json({
-        success: true,
-        data: []
-      } as ApiResponse<any[]>);
-    }
+    const files: any[] = menus.map((menu: any) => ({
+      filename: menu.name + '.txt',
+      path: 'menus/' + menu.name + '.txt',
+      label: menu.name.charAt(0).toUpperCase() + menu.name.slice(1)
+    }));
 
-    const files: any[] = [];
-
-    for (const file of menuFiles) {
-      if (file.endsWith('.txt') && file !== 'index.php') {
-        files.push({
-          filename: file,
-          path: 'menus/' + file,
-          label: file.replace('.txt', '').replace(/^\w/, c => c.toUpperCase())
-        });
-      }
-    }
-
-    // Natural sort for human-friendly ordering
-    files.sort((a, b) => a.filename.localeCompare(b.filename, undefined, { numeric: true, sensitivity: 'base' }));
+    // Sort alphabetically
+    files.sort((a, b) => a.label.localeCompare(b.label));
 
     res.json({
       success: true,
@@ -110,32 +93,26 @@ router.get('/files', async (req, res) => {
 router.get('/:name', async (req, res) => {
   try {
     const { name } = req.params;
-    const filePath = path.join(__dirname, '../../menus', `${name}.txt`);
+    const menu = dbHelpers.getMenuByName(name);
 
-    try {
-      const content = await fs.readFile(filePath, 'utf-8');
-      const stats = await fs.stat(filePath);
-
-      const menu: MenuItem = {
-        name,
-        content: content.trim(),
-        lastModified: stats.mtime
-      };
-
-      res.json({
-        success: true,
-        data: menu
-      } as ApiResponse<MenuItem>);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        return res.status(404).json({
-          success: false,
-          error: 'Menu not found',
-          message: `Menu '${name}' does not exist`
-        } as ApiResponse);
-      }
-      throw error;
+    if (!menu) {
+      return res.status(404).json({
+        success: false,
+        error: 'Menu not found',
+        message: `Menu '${name}' does not exist`
+      } as ApiResponse);
     }
+
+    const menuItem: MenuItem = {
+      name: menu.name,
+      content: menu.content,
+      lastModified: new Date(menu.updated_at)
+    };
+
+    res.json({
+      success: true,
+      data: menuItem
+    } as ApiResponse<MenuItem>);
   } catch (error) {
     console.error('Error reading menu:', error);
     res.status(500).json({
@@ -146,11 +123,11 @@ router.get('/:name', async (req, res) => {
   }
 });
 
-// PUT /api/menu/:name - Update menu content
+// PUT /api/menu/:name - Update or create menu content
 router.put('/:name', async (req, res) => {
   try {
     const { name } = req.params;
-    const { content } = req.body;
+    const { content, font, fontScalePercent } = req.body;
 
     if (typeof content !== 'string') {
       return res.status(400).json({
@@ -160,67 +137,56 @@ router.put('/:name', async (req, res) => {
       } as ApiResponse);
     }
 
-    const menusDir = path.join(__dirname, '../../menus');
+    // Check if menu exists
+    const existingMenu = dbHelpers.getMenuByName(name);
 
-    // Ensure menus directory exists
-    try {
-      await fs.access(menusDir);
-    } catch (error) {
-      await fs.mkdir(menusDir, { recursive: true });
+    if (existingMenu) {
+      // Update existing menu
+      dbHelpers.updateMenu(content, name, font, fontScalePercent);
+    } else {
+      // Create new menu
+      dbHelpers.createMenu(name, content, font, fontScalePercent);
     }
 
-    const filePath = path.join(menusDir, `${name}.txt`);
+    // Get menu data (whether created or updated)
+    const menu = dbHelpers.getMenuByName(name);
+    if (!menu) {
+      throw new Error('Menu not found after create/update');
+    }
 
-    // Write content to file
-    await fs.writeFile(filePath, content, 'utf-8');
-
-    // Read back to confirm and get metadata
-    const stats = await fs.stat(filePath);
-
-    const menu: MenuItem = {
-      name,
-      content,
-      lastModified: stats.mtime
+    const menuItem: MenuItem = {
+      name: menu.name,
+      content: menu.content,
+      lastModified: new Date(menu.updated_at)
     };
 
     res.json({
       success: true,
-      data: menu,
-      message: 'Menu updated successfully'
+      data: menuItem,
+      message: existingMenu ? 'Menu updated successfully' : 'Menu created successfully'
     } as ApiResponse<MenuItem>);
   } catch (error) {
-    console.error('Error updating menu:', error);
+    console.error('Error updating/creating menu:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to update menu',
+      error: 'Failed to update/create menu',
       message: error instanceof Error ? error.message : 'Unknown error'
     } as ApiResponse);
   }
 });
 
-// DELETE /api/menu/:name - Delete menu
-router.delete('/:name', async (req, res) => {
+// DELETE /api/menu/:name - Delete menu (admin only)
+router.delete('/:name', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { name } = req.params;
-    const filePath = path.join(__dirname, '../../menus', `${name}.txt`);
 
-    try {
-      await fs.unlink(filePath);
+    // Delete menu from database
+    dbHelpers.deleteMenu(name);
 
-      res.json({
-        success: true,
-        message: `Menu '${name}' deleted successfully`
-      } as ApiResponse);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        return res.status(404).json({
-          success: false,
-          error: 'Menu not found',
-          message: `Menu '${name}' does not exist`
-        } as ApiResponse);
-      }
-      throw error;
-    }
+    res.json({
+      success: true,
+      message: `Menu '${name}' deleted successfully`
+    } as ApiResponse);
   } catch (error) {
     console.error('Error deleting menu:', error);
     res.status(500).json({

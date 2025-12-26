@@ -1,30 +1,493 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Font Test - 314Sign</title>
-  <style>
-    body { background: #000; color: #fff; font-size: 72px; padding: 40px; line-height: 1.8; }
-    div { margin: 20px 0; border: 2px solid #333; padding: 20px; }
-    .test1 { font-family: Lato, sans-serif; }
-    .test2 { font-family: 'Bebas Neue', sans-serif; }
-    .test3 { font-family: 'Permanent Marker', cursive; }
-    .test4 { font-family: 'Dancing Script', cursive; }
-    .test5 { font-family: Satisfy, cursive; }
-    .test6 { font-family: Caveat, cursive; }
-    .test7 { font-family: 'Comic Neue', cursive; }
-    .test8 { font-family: 'Architects Daughter', cursive; }
-    .test9 { font-family: 'Shadows Into Light', cursive; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>314Sign - Font Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .content {
+            padding: 20px;
+        }
+        .font-section {
+            margin-bottom: 40px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .font-header {
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .font-name {
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .font-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-loaded { background: #d4edda; color: #155724; }
+        .status-fallback { background: #fff3cd; color: #856404; }
+        .status-missing { background: #f8d7da; color: #721c24; }
+        .font-samples {
+            padding: 20px;
+        }
+        .sample-row {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        .sample-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .sample-text {
+            margin: 0;
+            line-height: 1.4;
+        }
+        .size-demo {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .size-sample {
+            flex: 1;
+            min-width: 120px;
+        }
+        .test-text {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        .test-text textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+            resize: vertical;
+        }
+        .test-text button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .test-text button:hover {
+            background: #0056b3;
+        }
+        .actions {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+        .actions button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0 5px;
+        }
+        .actions button:hover {
+            background: #218838;
+        }
+        .refresh-notice {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border: 1px solid #bee5eb;
+        }
+    </style>
 </head>
 <body>
-  <div class="test1">1. Lato - The Quick Brown Fox</div>
-  <div class="test2">2. Bebas Neue - THE QUICK BROWN FOX</div>
-  <div class="test3">3. Permanent Marker - The Quick Brown Fox</div>
-  <div class="test4">4. Dancing Script - The Quick Brown Fox</div>
-  <div class="test5">5. Satisfy - The Quick Brown Fox</div>
-  <div class="test6">6. Caveat - The Quick Brown Fox</div>
-  <div class="test7">7. Comic Neue - The Quick Brown Fox</div>
-  <div class="test8">8. Architects Daughter - The Quick Brown Fox</div>
-  <div class="test9">9. Shadows Into Light - The Quick Brown Fox</div>
+    <div class="container">
+        <div class="header">
+            <h1>314Sign Font Test</h1>
+            <p>Test and preview all available fonts for your digital signage</p>
+        </div>
+
+        <div class="content">
+            <div class="refresh-notice">
+                <strong>💡 Tip:</strong> Upload custom TTF fonts to the fonts/ directory to make them available system-wide.
+                Refresh this page after uploading new fonts.
+            </div>
+
+            <!-- Test Custom Text -->
+            <div class="test-text">
+                <div class="sample-label">Test Custom Text</div>
+                <textarea id="custom-text" placeholder="Type your test text here...">The quick brown fox jumps over the lazy dog. 1234567890</textarea>
+                <button onclick="updateAllFonts()">🔄 Update All Fonts</button>
+            </div>
+
+            <!-- Lato Font -->
+            <div class="font-section">
+                <div class="font-header">
+                    <span class="font-name">Lato (Default)</span>
+                    <span class="font-status status-loaded" id="lato-status">LOADED</span>
+                </div>
+                <div class="font-samples">
+                    <div class="sample-row">
+                        <div class="sample-label">Size Examples</div>
+                        <div class="size-demo">
+                            <div class="size-sample">
+                                <div class="sample-text" id="lato-12" style="font-family: 'Lato', sans-serif; font-size: 12px;">Lato 12px - The quick brown fox</div>
+                            </div>
+                            <div class="size-sample">
+                                <div class="sample-text" id="lato-16" style="font-family: 'Lato', sans-serif; font-size: 16px;">Lato 16px - The quick brown fox</div>
+                            </div>
+                            <div class="size-sample">
+                                <div class="sample-text" id="lato-20" style="font-family: 'Lato', sans-serif; font-size: 20px;">Lato 20px - The quick brown fox</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bebas Neue Font -->
+            <div class="font-section">
+                <div class="font-header">
+                    <span class="font-name">Bebas Neue (Display)</span>
+                    <span class="font-status status-loaded" id="bebas-status">LOADED</span>
+                </div>
+                <div class="font-samples">
+                    <div class="sample-row">
+                        <div class="sample-label">Size Examples</div>
+                        <div class="size-demo">
+                            <div class="size-sample">
+                                <div class="sample-text" id="bebas-16" style="font-family: 'Bebas Neue', sans-serif; font-size: 16px;">BEBAS 16px - THE QUICK BROWN FOX</div>
+                            </div>
+                            <div class="size-sample">
+                                <div class="sample-text" id="bebas-24" style="font-family: 'Bebas Neue', sans-serif; font-size: 24px;">BEBAS 24px - THE QUICK BROWN FOX</div>
+                            </div>
+                            <div class="size-sample">
+                                <div class="sample-text" id="bebas-32" style="font-family: 'Bebas Neue', sans-serif; font-size: 32px;">BEBAS 32px - THE QUICK BROWN FOX</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Caveat Font -->
+            <div class="font-section">
+                <div class="font-header">
+                    <span class="font-name">Caveat (Handwritten)</span>
+                    <span class="font-status status-loaded" id="caveat-status">LOADED</span>
+                </div>
+                <div class="font-samples">
+                    <div class="sample-row">
+                        <div class="sample-label">Size Examples</div>
+                        <div class="size-demo">
+                            <div class="size-sample">
+                                <div class="sample-text" id="caveat-18" style="font-family: 'Caveat', cursive; font-size: 18px;">Caveat 18px - The quick brown fox</div>
+                            </div>
+                            <div class="size-sample">
+                                <div class="sample-text" id="caveat-24" style="font-family: 'Caveat', cursive; font-size: 24px;">Caveat 24px - The quick brown fox</div>
+                            </div>
+                            <div class="size-sample">
+                                <div class="sample-text" id="caveat-30" style="font-family: 'Caveat', cursive; font-size: 30px;">Caveat 30px - The quick brown fox</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Permanent Marker Font -->
+            <div class="font-section">
+                <div class="font-header">
+                    <span class="font-name">Permanent Marker (Bold)</span>
+                    <span class="font-status status-loaded" id="marker-status">LOADED</span>
+                </div>
+                <div class="font-samples">
+                    <div class="sample-row">
+                        <div class="sample-label">Size Examples</div>
+                        <div class="size-demo">
+                            <div class="size-sample">
+                                <div class="sample-text" id="marker-20" style="font-family: 'Permanent Marker', cursive; font-size: 20px;">Permanent Marker 20px - The quick brown fox</div>
+                            </div>
+                            <div class="size-sample">
+                                <div class="sample-text" id="marker-28" style="font-family: 'Permanent Marker', cursive; font-size: 28px;">Permanent Marker 28px - The quick brown fox</div>
+                            </div>
+                            <div class="size-sample">
+                                <div class="sample-text" id="marker-36" style="font-family: 'Permanent Marker', cursive; font-size: 36px;">Permanent Marker 36px - The quick brown fox</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Walter Turncoat Font -->
+            <div class="font-section">
+                <div class="font-header">
+                    <span class="font-name">Walter Turncoat (Fun)</span>
+                    <span class="font-status status-loaded" id="walter-status">LOADED</span>
+                </div>
+                <div class="font-samples">
+                    <div class="sample-row">
+                        <div class="sample-label">Size Examples</div>
+                        <div class="size-demo">
+                            <div class="size-sample">
+                                <div class="sample-text" id="walter-16" style="font-family: 'Walter Turncoat', cursive; font-size: 16px;">Walter Turncoat 16px - The quick brown fox</div>
+                            </div>
+                            <div class="size-sample">
+                                <div class="sample-text" id="walter-22" style="font-family: 'Walter Turncoat', cursive; font-size: 22px;">Walter Turncoat 22px - The quick brown fox</div>
+                            </div>
+                            <div class="size-sample">
+                                <div class="sample-text" id="walter-28" style="font-family: 'Walter Turncoat', cursive; font-size: 28px;">Walter Turncoat 28px - The quick brown fox</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shadows Into Light Font -->
+            <div class="font-section">
+                <div class="font-header">
+                    <span class="font-name">Shadows Into Light (Script)</span>
+                    <span class="font-status status-loaded" id="shadows-status">LOADED</span>
+                </div>
+                <div class="font-samples">
+                    <div class="sample-row">
+                        <div class="sample-label">Size Examples</div>
+                        <div class="size-demo">
+                            <div class="size-sample">
+                                <div class="sample-text" id="shadows-18" style="font-family: 'Shadows Into Light', cursive; font-size: 18px;">Shadows Into Light 18px - The quick brown fox</div>
+                            </div>
+                            <div class="size-sample">
+                                <div class="sample-text" id="shadows-24" style="font-family: 'Shadows Into Light', cursive; font-size: 24px;">Shadows Into Light 24px - The quick brown fox</div>
+                            </div>
+                            <div class="size-sample">
+                                <div class="sample-text" id="shadows-30" style="font-family: 'Shadows Into Light', cursive; font-size: 30px;">Shadows Into Light 30px - The quick brown fox</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Custom Fonts Section (dynamically populated) -->
+            <div class="font-section" id="custom-fonts-section" style="display: none;">
+                <div class="font-header">
+                    <span class="font-name">Custom Fonts</span>
+                    <span class="font-status status-info">CUSTOM</span>
+                </div>
+                <div class="font-samples" id="custom-fonts-container">
+                    <!-- Custom fonts will be added here -->
+                </div>
+            </div>
+
+            <div class="actions">
+                <button onclick="checkFontLoading()">🔍 Check Font Loading</button>
+                <button onclick="window.location.reload()">🔄 Refresh Page</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Font loading status tracking
+        const fontStatus = {
+            'Lato': { loaded: false, element: 'lato-status' },
+            'Bebas Neue': { loaded: false, element: 'bebas-status' },
+            'Caveat': { loaded: false, element: 'caveat-status' },
+            'Permanent Marker': { loaded: false, element: 'marker-status' },
+            'Walter Turncoat': { loaded: false, element: 'walter-status' },
+            'Shadows Into Light': { loaded: false, element: 'shadows-status' }
+        };
+
+        // Test text for dynamic updates
+        let currentTestText = 'The quick brown fox jumps over the lazy dog. 1234567890';
+
+        // Update all font samples with custom text
+        function updateAllFonts() {
+            const customText = document.getElementById('custom-text').value;
+            if (customText.trim()) {
+                currentTestText = customText;
+            }
+
+            // Update all sample texts
+            document.querySelectorAll('.sample-text').forEach(element => {
+                const fontFamily = element.style.fontFamily.split(',')[0].replace(/'/g, '');
+                const fontSize = element.style.fontSize;
+                const fontSizeNum = parseInt(fontSize);
+
+                // Create appropriate sample text based on font
+                let sampleText = currentTestText;
+                if (fontFamily === 'Bebas Neue') {
+                    sampleText = sampleText.toUpperCase();
+                }
+
+                element.textContent = `${fontFamily} ${fontSize} - ${sampleText}`;
+            });
+        }
+
+        // Check if fonts are actually loaded
+        function checkFontLoading() {
+            // Create test elements to check font loading
+            const testContainer = document.createElement('div');
+            testContainer.style.position = 'absolute';
+            testContainer.style.left = '-9999px';
+            testContainer.style.fontSize = '24px';
+            document.body.appendChild(testContainer);
+
+            Object.keys(fontStatus).forEach(fontName => {
+                const testDiv = document.createElement('div');
+                testDiv.style.fontFamily = `'${fontName}', monospace`;
+                testDiv.textContent = 'mmmmmmmmmmlli';
+                testContainer.appendChild(testDiv);
+
+                // Check if font loaded by comparing widths
+                setTimeout(() => {
+                    const width = testDiv.offsetWidth;
+                    const fallbackDiv = document.createElement('div');
+                    fallbackDiv.style.fontFamily = 'monospace';
+                    fallbackDiv.textContent = 'mmmmmmmmmmlli';
+                    testContainer.appendChild(fallbackDiv);
+
+                    setTimeout(() => {
+                        const fallbackWidth = fallbackDiv.offsetWidth;
+                        const statusElement = document.getElementById(fontStatus[fontName].element);
+
+                        if (Math.abs(width - fallbackWidth) > 1) {
+                            // Font loaded (widths differ significantly)
+                            statusElement.className = 'font-status status-loaded';
+                            statusElement.textContent = 'LOADED';
+                            fontStatus[fontName].loaded = true;
+                        } else {
+                            // Font not loaded (using fallback)
+                            statusElement.className = 'font-status status-fallback';
+                            statusElement.textContent = 'FALLBACK';
+                            fontStatus[fontName].loaded = false;
+                        }
+
+                        testContainer.removeChild(fallbackDiv);
+                    }, 100);
+                }, 100);
+
+                setTimeout(() => {
+                    testContainer.removeChild(testDiv);
+                }, 300);
+            });
+
+            // Clean up
+            setTimeout(() => {
+                document.body.removeChild(testContainer);
+            }, 500);
+
+            // Check for custom fonts
+            checkCustomFonts();
+        }
+
+        // Check for custom uploaded fonts
+        async function checkCustomFonts() {
+            try {
+                const response = await fetch('/api/fonts');
+                if (response.ok) {
+                    const fonts = await response.json();
+                    const customFonts = fonts.filter(font =>
+                        !['Lato', 'Bebas Neue', 'Caveat', 'Permanent Marker', 'Walter Turncoat', 'Shadows Into Light'].includes(font.name)
+                    );
+
+                    if (customFonts.length > 0) {
+                        displayCustomFonts(customFonts);
+                    }
+                }
+            } catch (error) {
+                console.log('Could not check custom fonts:', error);
+            }
+        }
+
+        // Display custom fonts section
+        function displayCustomFonts(customFonts) {
+            const section = document.getElementById('custom-fonts-section');
+            const container = document.getElementById('custom-fonts-container');
+
+            container.innerHTML = '';
+
+            customFonts.forEach(font => {
+                const fontDiv = document.createElement('div');
+                fontDiv.className = 'sample-row';
+                fontDiv.innerHTML = `
+                    <div class="sample-label">${font.name} (Custom)</div>
+                    <div class="size-demo">
+                        <div class="size-sample">
+                            <div class="sample-text" style="font-family: '${font.name}', sans-serif; font-size: 16px;">
+                                ${font.name} 16px - ${currentTestText}
+                            </div>
+                        </div>
+                        <div class="size-sample">
+                            <div class="sample-text" style="font-family: '${font.name}', sans-serif; font-size: 20px;">
+                                ${font.name} 20px - ${currentTestText}
+                            </div>
+                        </div>
+                        <div class="size-sample">
+                            <div class="sample-text" style="font-family: '${font.name}', sans-serif; font-size: 24px;">
+                                ${font.name} 24px - ${currentTestText}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(fontDiv);
+            });
+
+            section.style.display = 'block';
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set initial custom text
+            document.getElementById('custom-text').value = currentTestText;
+
+            // Check font loading after a short delay
+            setTimeout(checkFontLoading, 500);
+        });
+
+        // Allow Enter key in textarea to trigger update
+        document.getElementById('custom-text').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                updateAllFonts();
+            }
+        });
+    </script>
 </body>
 </html>

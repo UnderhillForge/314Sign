@@ -23,23 +23,14 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 
 // Middleware for admin pages (redirects to login if not authenticated)
 export function requireAuthPage(req: Request, res: Response, next: NextFunction) {
-  // Check for token in query parameter or localStorage (set by frontend)
-  const queryToken = req.query.token as string;
-
-  if (!queryToken) {
-    // No token provided, redirect to login
-    return res.redirect('/login/');
-  }
-
-  // Set authorization header for the auth middleware
-  req.headers['authorization'] = `Bearer ${queryToken}`;
-
-  // Use the existing authentication middleware
+  // Use the existing authentication middleware (now works with cookies)
   authenticateToken(req, res, (err?: any) => {
     if (err || !req.user) {
       // Authentication failed, redirect to login
+      console.log('[Auth] Authentication failed, redirecting to login:', err);
       return res.redirect('/login/');
     }
+    console.log('[Auth] Authentication successful for:', req.user.username);
     next();
   });
 }

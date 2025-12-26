@@ -222,32 +222,27 @@
       successMessage.style.display = 'none';
     }
 
-    // Check if already logged in - only redirect if not already on start page
-    const token = localStorage.getItem('authToken');
+    // Check if already logged in (cookies are automatic)
     const currentPath = window.location.pathname;
 
     // Don't redirect if we're already on the start page
-    if (token && currentPath !== '/start/') {
-      // Verify token is still valid with cache-busting
-      fetch('/api/auth/me?' + Date.now(), {
+    if (currentPath !== '/start/') {
+      // Verify authentication (cookies sent automatically)
+      fetch('/api/auth/me', {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Cache-Control': 'no-cache, no-store, must-revalidate'
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
         }
       })
       .then(response => {
         if (response.ok) {
-          // Token is valid, redirect to start menu
+          // User is authenticated, redirect to start menu
           window.location.href = '/start/';
-        } else {
-          // Token invalid, remove it
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('userRole');
         }
+        // If not authenticated, stay on login page (normal behavior)
       })
       .catch(() => {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('userRole');
+        // Network error, stay on login page
       });
     }
 
@@ -278,16 +273,12 @@
         const data = await response.json();
 
         if (response.ok && data.success) {
-          // Store token and user info
-          localStorage.setItem('authToken', data.data.token);
-          localStorage.setItem('userRole', data.data.user.role);
-          localStorage.setItem('username', data.data.user.username);
-
+          // Cookie is set automatically by the server
           showSuccess('Login successful! Redirecting...');
 
-          // Redirect to start menu with token in URL
+          // Redirect to start menu (cookie handles authentication)
           setTimeout(() => {
-            window.location.href = `/start/?token=${data.data.token}`;
+            window.location.href = '/start/';
           }, 1000);
         } else {
           showError(data.message || 'Login failed');

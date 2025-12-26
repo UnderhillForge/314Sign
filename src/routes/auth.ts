@@ -12,12 +12,28 @@ const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || '314sign-secret-key-change-in-production';
 const JWT_EXPIRES_IN = '24h';
 
-// Middleware to verify JWT token
+// Middleware to verify JWT token from cookie or header
 export function authenticateToken(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+  console.log(`[Auth] authenticateToken called for ${req.method} ${req.path}`);
+
+  let token: string | undefined;
+
+  // Check for token in httpOnly cookie first (secure)
+  token = req.cookies?.auth_token;
+
+  // Fallback: Check Authorization header (for API clients)
+  if (!token) {
+    const authHeader = req.headers['authorization'];
+    token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+  }
+
+  // Final fallback: Check query parameter (legacy support)
+  if (!token) {
+    token = req.query.token as string;
+  }
 
   if (!token) {
+    console.log('[Auth] No token found');
     return res.status(401).json({
       success: false,
       error: 'Access token required',
@@ -27,6 +43,7 @@ export function authenticateToken(req: express.Request, res: express.Response, n
 
   jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
     if (err) {
+      console.log('[Auth] Token verification failed:', err.message);
       return res.status(403).json({
         success: false,
         error: 'Invalid token',
@@ -35,19 +52,30 @@ export function authenticateToken(req: express.Request, res: express.Response, n
     }
 
     req.user = user;
+    console.log(`[Auth] Token verified for user: ${user.username}, role: ${user.role}`);
     next();
   });
 }
 
 // Middleware to check admin role
 export function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
+  console.log('[Auth] requireAdmin check:', {
+    hasUser: !!req.user,
+    userRole: req.user?.role,
+    userId: req.user?.id,
+    userName: req.user?.username
+  });
+
   if (!req.user || req.user.role !== 'admin') {
+    console.log('[Auth] Access denied: not admin');
     return res.status(403).json({
       success: false,
       error: 'Admin access required',
       message: 'This operation requires administrator privileges'
     } as ApiResponse);
   }
+
+  console.log('[Auth] Access granted: admin confirmed');
   next();
 }
 
@@ -112,10 +140,18 @@ router.post('/login', async (req, res) => {
       { expiresIn: JWT_EXPIRES_IN }
     );
 
+    // Set HTTP-only cookie (secure, automatic, XSS-safe)
+    res.cookie('auth_token', token, {
+      httpOnly: true,           // Prevents JavaScript access (XSS protection)
+      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+      sameSite: 'strict',       // CSRF protection
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
+      path: '/'                 // Available on all paths
+    });
+
     res.json({
       success: true,
       data: {
-        token,
         user: {
           id: user.id,
           username: user.username,
@@ -138,7 +174,14 @@ router.post('/login', async (req, res) => {
 
 // POST /api/auth/logout
 router.post('/logout', authenticateToken, (req, res) => {
-  // For stateless JWT, logout is handled client-side by removing the token
+  // Clear the authentication cookie
+  res.clearCookie('auth_token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/'
+  });
+
   res.json({
     success: true,
     message: 'Logout successful'

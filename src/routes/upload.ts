@@ -170,6 +170,39 @@ router.post('/logo', upload.single('logo'), async (req, res) => {
   }
 });
 
+// POST /api/upload - General file upload (for design interface)
+router.post('/', upload.single('background'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No file uploaded',
+        message: 'Please select a file to upload'
+      } as ApiResponse);
+    }
+
+    const result: UploadResult = {
+      filename: req.file.filename,
+      url: `/bg/${req.file.filename}`,
+      size: req.file.size,
+      type: req.file.mimetype
+    };
+
+    res.json({
+      success: true,
+      data: result,
+      message: 'File uploaded successfully'
+    } as ApiResponse<UploadResult>);
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to upload file',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    } as ApiResponse);
+  }
+});
+
 // POST /api/upload/general - General file upload
 router.post('/general', upload.single('file'), async (req, res) => {
   try {
@@ -198,6 +231,68 @@ router.post('/general', upload.single('file'), async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to upload file',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    } as ApiResponse);
+  }
+});
+
+// DELETE /api/upload/bg/:filename - Delete background image
+router.delete('/bg/:filename', async (req, res) => {
+  try {
+    const { filename } = req.params;
+
+    if (!filename) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing filename',
+        message: 'Filename parameter is required'
+      } as ApiResponse);
+    }
+
+    // Validate filename to prevent directory traversal
+    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid filename',
+        message: 'Filename contains invalid characters'
+      } as ApiResponse);
+    }
+
+    const filePath = path.join(__dirname, '../../bg', filename);
+
+    // Check if file exists
+    try {
+      await fs.access(filePath);
+    } catch (error) {
+      return res.status(404).json({
+        success: false,
+        error: 'File not found',
+        message: `Background image '${filename}' does not exist`
+      } as ApiResponse);
+    }
+
+    // Don't allow deletion of default background images
+    const defaultImages = ['backgd.jpg', 'backgd2.avif'];
+    if (defaultImages.includes(filename)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Cannot delete default image',
+        message: 'Default background images cannot be deleted'
+      } as ApiResponse);
+    }
+
+    // Delete the file
+    await fs.unlink(filePath);
+
+    res.json({
+      success: true,
+      message: `Background image '${filename}' deleted successfully`
+    } as ApiResponse);
+  } catch (error) {
+    console.error('Error deleting background image:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete background image',
       message: error instanceof Error ? error.message : 'Unknown error'
     } as ApiResponse);
   }

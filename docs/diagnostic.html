@@ -1,131 +1,456 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>314Sign Diagnostic</title>
-  <style>
-    body {
-      font-family: monospace;
-      padding: 2rem;
-      background: #1a1a1a;
-      color: #0f0;
-      max-width: 800px;
-      margin: 0 auto;
-    }
-    h1 { color: #0ff; }
-    .test { 
-      margin: 1rem 0;
-      padding: 1rem;
-      background: #2a2a2a;
-      border-left: 4px solid #0f0;
-    }
-    .test.fail { border-left-color: #f00; }
-    .result { margin-top: 0.5rem; color: #ff0; }
-    button {
-      padding: 0.5rem 1rem;
-      font-size: 1rem;
-      background: #0f0;
-      color: #000;
-      border: none;
-      cursor: pointer;
-      font-family: monospace;
-      font-weight: bold;
-    }
-    button:hover { background: #0ff; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>314Sign - System Diagnostics</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .content {
+            padding: 20px;
+        }
+        .section {
+            margin-bottom: 30px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .section-header {
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .status-indicator {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-good { background: #d4edda; color: #155724; }
+        .status-warning { background: #fff3cd; color: #856404; }
+        .status-error { background: #f8d7da; color: #721c24; }
+        .status-info { background: #d1ecf1; color: #0c5460; }
+        .details {
+            padding: 15px;
+            background: #f8f9fa;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .metric:last-child {
+            border-bottom: none;
+        }
+        .actions {
+            text-align: center;
+            margin-top: 20px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button.danger {
+            background: #dc3545;
+        }
+        button.danger:hover {
+            background: #c82333;
+        }
+        pre {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 10px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .refresh-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .refresh-btn:hover {
+            background: #218838;
+        }
+    </style>
 </head>
 <body>
-  <h1>314Sign System Diagnostic</h1>
-  
-  <div class="test" id="test1">
-    <strong>Test 1: Config.json</strong>
-    <div class="result" id="result1">Testing...</div>
-  </div>
-  
-  <div class="test" id="test2">
-    <strong>Test 2: Reload.txt</strong>
-    <div class="result" id="result2">Testing...</div>
-  </div>
-  
-  <div class="test" id="test3">
-    <strong>Test 3: trigger-reload.php</strong>
-    <div class="result" id="result3">Testing...</div>
-  </div>
-  
-  <div class="test" id="test4">
-    <strong>Test 4: Current Font</strong>
-    <div class="result" id="result4">Testing...</div>
-  </div>
-  
-  <div style="margin-top: 2rem;">
-    <button onclick="runTests()">Re-run Tests</button>
-    <button onclick="testReload()">Test Reload Trigger</button>
-  </div>
+    <button class="refresh-btn" onclick="location.reload()">🔄 Refresh</button>
 
-  <script>
-    function runTests() {
-      // Test 1: Config
-      fetch('page.json?' + Date.now())
-        .then(r => r.json())
-        .then(cfg => {
-          document.getElementById('result1').innerHTML = 
-            `✓ Font: ${cfg.font}<br>✓ HeaderFont: ${cfg.headerFont}<br>✓ Background: ${cfg.bg}`;
-          document.getElementById('test1').classList.remove('fail');
-        })
-        .catch(err => {
-          document.getElementById('result1').textContent = '✗ Failed: ' + err.message;
-          document.getElementById('test1').classList.add('fail');
+    <div class="container">
+        <div class="header">
+            <h1>314Sign System Diagnostics</h1>
+            <p>Comprehensive system health check and troubleshooting information</p>
+        </div>
+
+        <div class="content">
+            <div class="section">
+                <div class="section-header">
+                    <span>System Information</span>
+                    <span class="status-indicator status-info">INFO</span>
+                </div>
+                <div class="details">
+                    <div class="metric">
+                        <span>Hostname:</span>
+                        <span id="hostname">Loading...</span>
+                    </div>
+                    <div class="metric">
+                        <span>314Sign Version:</span>
+                        <span id="version">Loading...</span>
+                    </div>
+                    <div class="metric">
+                        <span>Node.js Version:</span>
+                        <span id="node-version">Loading...</span>
+                    </div>
+                    <div class="metric">
+                        <span>Platform:</span>
+                        <span id="platform">Loading...</span>
+                    </div>
+                    <div class="metric">
+                        <span>Uptime:</span>
+                        <span id="uptime">Loading...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <span>Database Status</span>
+                    <span class="status-indicator" id="db-status">CHECKING</span>
+                </div>
+                <div class="details">
+                    <div class="metric">
+                        <span>Database File:</span>
+                        <span id="db-file">Loading...</span>
+                    </div>
+                    <div class="metric">
+                        <span>Database Size:</span>
+                        <span id="db-size">Loading...</span>
+                    </div>
+                    <div class="metric">
+                        <span>Tables:</span>
+                        <span id="db-tables">Loading...</span>
+                    </div>
+                    <div class="metric">
+                        <span>Last Modified:</span>
+                        <span id="db-modified">Loading...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <span>Process Status</span>
+                    <span class="status-indicator" id="pm2-status">CHECKING</span>
+                </div>
+                <div class="details">
+                    <div class="metric">
+                        <span>PM2 Process:</span>
+                        <span id="pm2-process">Loading...</span>
+                    </div>
+                    <div class="metric">
+                        <span>Process ID:</span>
+                        <span id="process-id">Loading...</span>
+                    </div>
+                    <div class="metric">
+                        <span>Memory Usage:</span>
+                        <span id="memory-usage">Loading...</span>
+                    </div>
+                    <div class="metric">
+                        <span>CPU Usage:</span>
+                        <span id="cpu-usage">Loading...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <span>File System</span>
+                    <span class="status-indicator" id="fs-status">CHECKING</span>
+                </div>
+                <div class="details">
+                    <div class="metric">
+                        <span>Web Root:</span>
+                        <span id="web-root">Loading...</span>
+                    </div>
+                    <div class="metric">
+                        <span>Disk Usage:</span>
+                        <span id="disk-usage">Loading...</span>
+                    </div>
+                    <div class="metric">
+                        <span>Permissions:</span>
+                        <span id="permissions">Loading...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <span>Network Status</span>
+                    <span class="status-indicator" id="network-status">CHECKING</span>
+                </div>
+                <div class="details">
+                    <div class="metric">
+                        <span>Server Port:</span>
+                        <span id="server-port">Loading...</span>
+                    </div>
+                    <div class="metric">
+                        <span>Local IP:</span>
+                        <span id="local-ip">Loading...</span>
+                    </div>
+                    <div class="metric">
+                        <span>Connectivity:</span>
+                        <span id="connectivity">Loading...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <span>Recent Logs</span>
+                    <span class="status-indicator status-info">INFO</span>
+                </div>
+                <div class="details">
+                    <pre id="recent-logs">Loading logs...</pre>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button onclick="runHealthCheck()">🔍 Run Health Check</button>
+                <button onclick="clearLogs()">🗑️ Clear Logs</button>
+                <button onclick="restartServer()">🔄 Restart Server</button>
+                <button class="danger" onclick="factoryReset()">⚠️ Factory Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load diagnostic data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDiagnostics();
         });
-      
-      // Test 2: Reload.txt
-      fetch('reload.txt?' + Date.now())
-        .then(r => r.text())
-        .then(content => {
-          document.getElementById('result2').textContent = '✓ reload.txt exists. Token: ' + content.trim();
-          document.getElementById('test2').classList.remove('fail');
-        })
-        .catch(err => {
-          document.getElementById('result2').textContent = '✗ reload.txt not found or inaccessible';
-          document.getElementById('test2').classList.add('fail');
-        });
-      
-      // Test 3: trigger-reload.php
-      fetch('trigger-reload.php', { method: 'POST' })
-        .then(r => r.json())
-        .then(data => {
-          if (data.success) {
-            document.getElementById('result3').textContent = '✓ Trigger works. New token: ' + data.timestamp;
-            document.getElementById('test3').classList.remove('fail');
-          } else {
-            document.getElementById('result3').textContent = '✗ Trigger failed: ' + (data.error || 'unknown');
-            document.getElementById('test3').classList.add('fail');
-          }
-        })
-        .catch(err => {
-          document.getElementById('result3').textContent = '✗ trigger-reload.php not found';
-          document.getElementById('test3').classList.add('fail');
-        });
-      
-      // Test 4: Current font
-      const bodyFont = getComputedStyle(document.body).fontFamily;
-      document.getElementById('result4').textContent = '✓ Current: ' + bodyFont;
-    }
-    
-    function testReload() {
-      fetch('trigger-reload.php', { method: 'POST' })
-        .then(r => r.json())
-        .then(data => {
-          if (data.success) {
-            alert('Reload triggered! Token: ' + data.timestamp + '\n\nIf the kiosk is running, it should reload within 10 seconds.');
-          } else {
-            alert('Trigger failed: ' + (data.error || 'unknown'));
-          }
-        });
-    }
-    
-    // Run tests on load
-    window.addEventListener('DOMContentLoaded', runTests);
-  </script>
+
+        async function loadDiagnostics() {
+            try {
+                const response = await fetch('/api/status');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const data = await response.json();
+                updateUI(data);
+            } catch (error) {
+                console.error('Failed to load diagnostics:', error);
+                showError('Failed to load system status');
+            }
+        }
+
+        function updateUI(data) {
+            // System Information
+            document.getElementById('hostname').textContent = data.hostname || 'Unknown';
+            document.getElementById('version').textContent = data.version || 'Unknown';
+            document.getElementById('node-version').textContent = data.nodeVersion || 'Unknown';
+            document.getElementById('platform').textContent = data.platform || 'Unknown';
+            document.getElementById('uptime').textContent = formatUptime(data.uptime);
+
+            // Database Status
+            updateStatus('db-status', data.database?.status || 'ERROR');
+            document.getElementById('db-file').textContent = data.database?.file || 'Not found';
+            document.getElementById('db-size').textContent = formatBytes(data.database?.size);
+            document.getElementById('db-tables').textContent = data.database?.tables || 'Unknown';
+            document.getElementById('db-modified').textContent = data.database?.modified || 'Unknown';
+
+            // Process Status
+            updateStatus('pm2-status', data.process?.status || 'ERROR');
+            document.getElementById('pm2-process').textContent = data.process?.name || 'Not running';
+            document.getElementById('process-id').textContent = data.process?.pid || 'N/A';
+            document.getElementById('memory-usage').textContent = formatBytes(data.process?.memory);
+            document.getElementById('cpu-usage').textContent = `${data.process?.cpu || 0}%`;
+
+            // File System
+            updateStatus('fs-status', data.filesystem?.status || 'ERROR');
+            document.getElementById('web-root').textContent = data.filesystem?.webRoot || 'Unknown';
+            document.getElementById('disk-usage').textContent = data.filesystem?.diskUsage || 'Unknown';
+            document.getElementById('permissions').textContent = data.filesystem?.permissions || 'Unknown';
+
+            // Network Status
+            updateStatus('network-status', data.network?.status || 'ERROR');
+            document.getElementById('server-port').textContent = data.network?.port || 'Unknown';
+            document.getElementById('local-ip').textContent = data.network?.localIP || 'Unknown';
+            document.getElementById('connectivity').textContent = data.network?.connectivity || 'Unknown';
+        }
+
+        function updateStatus(elementId, status) {
+            const element = document.getElementById(elementId);
+            element.className = 'status-indicator';
+
+            switch(status.toLowerCase()) {
+                case 'good':
+                case 'ok':
+                case 'running':
+                    element.classList.add('status-good');
+                    element.textContent = 'GOOD';
+                    break;
+                case 'warning':
+                case 'degraded':
+                    element.classList.add('status-warning');
+                    element.textContent = 'WARNING';
+                    break;
+                case 'error':
+                case 'failed':
+                case 'stopped':
+                    element.classList.add('status-error');
+                    element.textContent = 'ERROR';
+                    break;
+                default:
+                    element.classList.add('status-info');
+                    element.textContent = status.toUpperCase();
+            }
+        }
+
+        function formatUptime(seconds) {
+            if (!seconds) return 'Unknown';
+
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+
+            let result = '';
+            if (days > 0) result += `${days}d `;
+            if (hours > 0) result += `${hours}h `;
+            result += `${minutes}m`;
+
+            return result;
+        }
+
+        function formatBytes(bytes) {
+            if (!bytes) return 'Unknown';
+
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        async function runHealthCheck() {
+            try {
+                const response = await fetch('/api/system/health-check');
+                if (response.ok) {
+                    alert('Health check completed successfully!');
+                    location.reload();
+                } else {
+                    alert('Health check failed. Check logs for details.');
+                }
+            } catch (error) {
+                alert('Failed to run health check: ' + error.message);
+            }
+        }
+
+        async function clearLogs() {
+            if (confirm('Are you sure you want to clear all logs? This cannot be undone.')) {
+                try {
+                    const response = await fetch('/api/system/clear-logs', { method: 'POST' });
+                    if (response.ok) {
+                        alert('Logs cleared successfully!');
+                        location.reload();
+                    } else {
+                        alert('Failed to clear logs.');
+                    }
+                } catch (error) {
+                    alert('Failed to clear logs: ' + error.message);
+                }
+            }
+        }
+
+        async function restartServer() {
+            if (confirm('Are you sure you want to restart the server? This will temporarily interrupt service.')) {
+                try {
+                    const response = await fetch('/api/system/restart', { method: 'POST' });
+                    alert('Restart command sent. Server will restart momentarily.');
+                    setTimeout(() => location.reload(), 3000);
+                } catch (error) {
+                    alert('Failed to restart server: ' + error.message);
+                }
+            }
+        }
+
+        async function factoryReset() {
+            const confirmation = prompt(
+                '⚠️ DANGER ZONE ⚠️\n\n' +
+                'Factory reset will:\n' +
+                '• Delete all menus and content\n' +
+                '• Reset all configuration\n' +
+                '• Remove uploaded files\n\n' +
+                'Type "RESET" to confirm:'
+            );
+
+            if (confirmation === 'RESET') {
+                try {
+                    const response = await fetch('/api/system/factory-reset', { method: 'POST' });
+                    if (response.ok) {
+                        alert('Factory reset completed. Server will restart.');
+                        setTimeout(() => window.location.href = '/', 5000);
+                    } else {
+                        alert('Factory reset failed.');
+                    }
+                } catch (error) {
+                    alert('Factory reset failed: ' + error.message);
+                }
+            } else {
+                alert('Factory reset cancelled.');
+            }
+        }
+
+        function showError(message) {
+            // Update all status indicators to error
+            document.querySelectorAll('.status-indicator').forEach(el => {
+                el.className = 'status-indicator status-error';
+                el.textContent = 'ERROR';
+            });
+
+            // Show error in logs section
+            document.getElementById('recent-logs').textContent = `Error: ${message}\n\nUnable to connect to 314Sign server. Please check:\n• Is the server running?\n• Is port 80 accessible?\n• Check PM2 status: pm2 list`;
+        }
+
+        // Auto-refresh every 30 seconds
+        setInterval(loadDiagnostics, 30000);
+    </script>
 </body>
 </html>

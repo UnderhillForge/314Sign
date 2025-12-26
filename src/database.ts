@@ -40,6 +40,8 @@ export async function initializeDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT UNIQUE NOT NULL,
       content TEXT NOT NULL,
+      font TEXT,
+      font_scale_percent REAL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -72,6 +74,11 @@ export async function initializeDatabase() {
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
+    -- Insert default values for dynamic state (replacing JSON files)
+    INSERT OR IGNORE INTO config (key, value) VALUES ('current_menu', 'menus/dinner.txt');
+    INSERT OR IGNORE INTO config (key, value) VALUES ('reload_trigger', '0');
+    INSERT OR IGNORE INTO config (key, value) VALUES ('demo_command', 'idle');
+
     CREATE TABLE IF NOT EXISTS uploads (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       filename TEXT NOT NULL,
@@ -82,12 +89,46 @@ export async function initializeDatabase() {
       uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS slideshows (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT UNIQUE NOT NULL,
+      data TEXT NOT NULL, -- JSON data
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS db_rules (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT UNIQUE NOT NULL,
+      data TEXT NOT NULL, -- JSON data
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+
+
+    CREATE TABLE IF NOT EXISTS remotes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      serial TEXT UNIQUE NOT NULL, -- Hardware serial number
+      code TEXT UNIQUE NOT NULL, -- Display code for registration
+      display_name TEXT NOT NULL,
+      mode TEXT NOT NULL DEFAULT 'mirror', -- 'mirror', 'menu', 'slideshow'
+      slideshow_name TEXT, -- Name of slideshow file if mode is 'slideshow'
+      orientation TEXT NOT NULL DEFAULT '{}', -- JSON orientation settings
+      status TEXT NOT NULL DEFAULT 'active', -- 'active', 'inactive'
+      last_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
     -- Indexes for performance
     CREATE INDEX IF NOT EXISTS idx_menus_name ON menus(name);
     CREATE INDEX IF NOT EXISTS idx_menu_history_menu_name ON menu_history(menu_name);
     CREATE INDEX IF NOT EXISTS idx_rules_enabled ON rules(enabled);
     CREATE INDEX IF NOT EXISTS idx_config_key ON config(key);
     CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
+    CREATE INDEX IF NOT EXISTS idx_remotes_code ON remotes(code);
+    CREATE INDEX IF NOT EXISTS idx_remotes_status ON remotes(status);
+    CREATE INDEX IF NOT EXISTS idx_remotes_last_seen ON remotes(last_seen);
   `);
 
   // Insert default admin user if no users exist
@@ -103,6 +144,98 @@ export async function initializeDatabase() {
     `).run('admin', hashedPassword, 'admin');
 
     console.log('Created default admin user: admin/admin123');
+  }
+
+  // Insert default menus if none exist
+  const menuCount = db.prepare('SELECT COUNT(*) as count FROM menus').get() as { count: number };
+  if (menuCount.count === 0) {
+    const defaultMenus = [
+      {
+        name: 'breakfast',
+        content: `## Breakfast Specials
+
+{r}Hot Coffee - {y}$2.50
+{g}Fresh brewed daily, unlimited refills
+
+{r}Breakfast Burrito - {y}$8.95
+{g}Sausage, eggs, cheese, salsa
+
+{r}Pancakes - {y}$6.95
+{g}Three fluffy pancakes with maple syrup
+
+{r}Oatmeal - {y}$4.95
+{g}Steel cut oats with fresh berries
+
+---
+{g}All breakfast served with toast and juice`
+      },
+      {
+        name: 'lunch',
+        content: `## Lunch Specials
+
+{r}Grilled Cheese Sandwich - {y}$6.95
+{g}Cheddar cheese on sourdough bread
+
+{r}BLT Sandwich - {y}$7.95
+{g}Bacon, lettuce, tomato on toasted bread
+
+{r}Chicken Salad - {y}$9.95
+{g}Grilled chicken with mixed greens
+
+{r}Soup of the Day - {y}$5.95
+{g}Ask your server for today's selection
+
+---
+{g}All sandwiches served with chips or fries`
+      },
+      {
+        name: 'dinner',
+        content: `## Dinner Specials
+
+{r}Ribeye Steak - {y}$24.95
+{g}8oz choice ribeye with garlic mashed potatoes
+
+{r}Grilled Salmon - {y}$18.95
+{g}Fresh Atlantic salmon with seasonal vegetables
+
+{r}Chicken Parmesan - {y}$16.95
+{g}Breaded chicken breast with marinara sauce
+
+{r}Pasta Primavera - {y}$14.95
+{g}Seasonal vegetables in garlic olive oil
+
+---
+{g}All dinners include house salad and breadsticks`
+      },
+      {
+        name: 'closed',
+        content: `## Sorry, We're Closed
+
+{r}Store Hours:
+{g}Monday - Friday: 7:00 AM - 9:00 PM
+Saturday: 8:00 AM - 10:00 PM
+Sunday: 9:00 AM - 8:00 PM
+
+{r}Holiday Hours May Vary
+
+{g}Thank you for your business!
+We look forward to serving you soon.
+
+---
+{r}Follow us on social media for updates!`
+      }
+    ];
+
+    const insertMenu = db.prepare(`
+      INSERT INTO menus (name, content, font, font_scale_percent)
+      VALUES (?, ?, ?, ?)
+    `);
+
+    for (const menu of defaultMenus) {
+      insertMenu.run(menu.name, menu.content, 'Arial, sans-serif', 10);
+    }
+
+    console.log('Created default menus: breakfast, lunch, dinner, closed');
   }
 
   // Initialize prepared statements after tables are created
@@ -161,12 +294,12 @@ function initializeStatements() {
   getAllMenusStmt = db.prepare('SELECT * FROM menus ORDER BY name');
   getMenuByNameStmt = db.prepare('SELECT * FROM menus WHERE name = ?');
   createMenuStmt = db.prepare(`
-    INSERT INTO menus (name, content)
-    VALUES (?, ?)
+    INSERT INTO menus (name, content, font, font_scale_percent)
+    VALUES (?, ?, ?, ?)
   `);
   updateMenuStmt = db.prepare(`
     UPDATE menus
-    SET content = ?, updated_at = CURRENT_TIMESTAMP
+    SET content = ?, font = ?, font_scale_percent = ?, updated_at = CURRENT_TIMESTAMP
     WHERE name = ?
   `);
   deleteMenuStmt = db.prepare('DELETE FROM menus WHERE name = ?');
@@ -231,8 +364,8 @@ export const dbHelpers = {
   // Menus
   getAllMenus: () => getAllMenusStmt.all(),
   getMenuByName: (name: string) => getMenuByNameStmt.get(name),
-  createMenu: (name: string, content: string) => createMenuStmt.run(name, content),
-  updateMenu: (content: string, name: string) => updateMenuStmt.run(content, name),
+  createMenu: (name: string, content: string, font?: string, fontScalePercent?: number) => createMenuStmt.run(name, content, font, fontScalePercent),
+  updateMenu: (content: string, name: string, font?: string, fontScalePercent?: number) => updateMenuStmt.run(content, font, fontScalePercent, name),
   deleteMenu: (name: string) => deleteMenuStmt.run(name),
 
   // Menu History
