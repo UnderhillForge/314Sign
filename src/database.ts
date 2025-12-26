@@ -146,24 +146,6 @@ export async function initializeDatabase() {
     console.log('Created default admin user: admin/admin123');
   }
 
-  // Initialize version from version.txt if not in database
-  const dbVersion = dbHelpers.getConfig('version');
-  if (!dbVersion) {
-    try {
-      const fs = await import('fs/promises');
-      const versionPath = path.join(process.cwd(), 'version.txt');
-      const versionContent = await fs.readFile(versionPath, 'utf-8');
-      const version = versionContent.toString().trim();
-
-      if (version) {
-        dbHelpers.setConfig('version', version);
-        console.log('Stored version in database:', version);
-      }
-    } catch (error) {
-      console.warn('Could not initialize version from version.txt:', error);
-    }
-  }
-
   // Insert default menus if none exist
   const menuCount = db.prepare('SELECT COUNT(*) as count FROM menus').get() as { count: number };
   if (menuCount.count === 0) {
@@ -258,6 +240,24 @@ We look forward to serving you soon.
 
   // Initialize prepared statements after tables are created
   initializeStatements();
+
+  // Initialize version from version.txt if not in database
+  const dbVersion = dbHelpers.getConfig('version');
+  if (!dbVersion) {
+    try {
+      const fs = await import('fs/promises');
+      const versionPath = path.join(process.cwd(), 'version.txt');
+      const versionContent = await fs.readFile(versionPath, 'utf-8');
+      const version = versionContent.toString().trim();
+
+      if (version) {
+        dbHelpers.setConfig('version', version);
+        console.log('Stored version in database:', version);
+      }
+    } catch (error) {
+      console.warn('Could not initialize version from version.txt:', error);
+    }
+  }
 }
 
 // Prepared statements - created after database initialization

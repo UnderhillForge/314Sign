@@ -329,33 +329,6 @@
     </div>
 
     <div id="main-content" style="display: none;">
-      <div id="status-info" class="status-info"></div>
-
-      <div class="version-input">
-        <strong>📋 Version:</strong>
-        <input type="text" id="current-version" readonly />
-        <button onclick="editVersion()">✏️ Edit</button>
-        <button onclick="refreshVersion()">🔄 Refresh</button>
-      </div>
-
-      <div id="user-management" class="user-management" style="display: none;">
-        <h3>👥 User Management</h3>
-
-        <div class="user-form">
-          <input type="text" id="new-username" placeholder="Username" />
-          <input type="password" id="new-password" placeholder="Password" />
-          <select id="new-role">
-            <option value="editor">Editor</option>
-            <option value="admin">Admin</option>
-          </select>
-          <button onclick="createUser()">➕ Create User</button>
-        </div>
-
-        <div id="user-list" class="user-list">
-          <!-- User list will be populated here -->
-        </div>
-      </div>
-
       <div class="content-area">
         <div class="section">
           <h2>System Status</h2>
@@ -383,6 +356,23 @@
           </div>
         </div>
 
+        <div id="user-management" class="user-management" style="display: none;">
+          <h3>👥 User Management</h3>
+
+          <form class="user-form" onsubmit="createUser(event)">
+            <input type="text" id="new-username" placeholder="Username" required autocomplete="username" />
+            <input type="password" id="new-password" placeholder="Password" required autocomplete="new-password" />
+            <select id="new-role">
+              <option value="editor">Editor</option>
+              <option value="admin">Admin</option>
+            </select>
+            <button type="submit">➕ Create User</button>
+          </form>
+
+          <div id="user-list" class="user-list">
+            <!-- User list will be populated here -->
+          </div>
+        </div>
         <div class="section">
           <h2>Database</h2>
           <div class="btn-grid">
@@ -421,7 +411,6 @@
   <script>
     const mainContent = document.getElementById('main-content');
     const loading = document.getElementById('loading');
-    const statusInfo = document.getElementById('status-info');
 
     // Check authentication on page load
     async function checkAuth() {
@@ -453,66 +442,19 @@
       mainContent.style.display = 'flex';
       mainContent.style.flexDirection = 'column';
 
-      // Show user info
-      statusInfo.innerHTML = `
-        <p><strong>User:</strong> ${userData.username} (${userData.role})</p>
-        <p><strong>Last login:</strong> ${new Date(userData.lastLogin).toLocaleString()}</p>
-      `;
-
       // Show user management interface
       document.getElementById('user-management').style.display = 'block';
 
       // Load initial status and users
       refreshStatus();
       loadUsers();
-      refreshVersion();
     }
 
-    function editVersion() {
-      const versionInput = document.getElementById('current-version');
-      const currentVersion = versionInput.value;
 
-      const newVersion = prompt('Enter new version:', currentVersion);
-      if (!newVersion || !newVersion.trim()) {
-        return;
-      }
 
-      updateVersion(newVersion.trim());
-    }
+    async function createUser(event) {
+      event.preventDefault();
 
-    async function updateVersion(newVersion) {
-      try {
-        const response = await fetch('/api/config', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify({ key: 'version', value: newVersion })
-        });
-
-        if (response.ok) {
-          document.getElementById('current-version').value = newVersion;
-          alert('Version updated successfully');
-        } else {
-          alert('Failed to update version');
-        }
-      } catch (error) {
-        alert('Error updating version: ' + error.message);
-      }
-    }
-
-    async function refreshVersion() {
-      try {
-        const response = await fetch('/api/version');
-        if (response.ok) {
-          const data = await response.json();
-          document.getElementById('current-version').value = data.data.version;
-        }
-      } catch (error) {
-        console.error('Error loading version:', error);
-      }
-    }
-
-    async function createUser() {
       const username = document.getElementById('new-username').value.trim();
       const password = document.getElementById('new-password').value;
       const role = document.getElementById('new-role').value;
@@ -523,7 +465,7 @@
       }
 
       try {
-        const response = await fetch('/api/auth/users', {
+        const response = await fetch('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'same-origin',
@@ -544,13 +486,13 @@
       }
     }
 
-    async function deleteUser(username) {
+    async function deleteUser(userId, username) {
       if (!confirm(`Are you sure you want to delete user "${username}"? This cannot be undone.`)) {
         return;
       }
 
       try {
-        const response = await fetch(`/api/auth/users/${username}`, {
+        const response = await fetch(`/api/auth/users/${userId}`, {
           method: 'DELETE',
           credentials: 'same-origin'
         });
@@ -559,7 +501,8 @@
           alert('User deleted successfully');
           loadUsers();
         } else {
-          alert('Failed to delete user');
+          const data = await response.json();
+          alert('Failed to delete user: ' + (data.message || 'Unknown error'));
         }
       } catch (error) {
         alert('Error deleting user: ' + error.message);
@@ -648,7 +591,7 @@
           <div class="role">${user.role}</div>
           <div class="last-login">${lastLogin}</div>
           <button class="edit-btn" onclick="changePassword('${user.username}')">🔑</button>
-          <button class="delete-btn" onclick="deleteUser('${user.username}')">🗑️</button>
+          <button class="delete-btn" onclick="deleteUser(${user.id}, '${user.username}')">🗑️</button>
         `;
 
         userList.appendChild(userItem);
@@ -657,28 +600,47 @@
 
     async function refreshStatus() {
       try {
-        // Update status indicators
-        document.getElementById('server-status').textContent = 'Online';
-        document.getElementById('server-status').className = 'value good';
-
-        document.getElementById('db-status').textContent = 'Connected';
-        document.getElementById('db-status').className = 'value good';
-
-        // Load version dynamically
-        const versionResponse = await fetch('/api/version');
-        if (versionResponse.ok) {
-          const versionData = await versionResponse.json();
-          document.getElementById('version').textContent = versionData.data.version;
-        }
-
-        // Get uptime from system API
+        // Get all status info from single API call
         const statusResponse = await fetch('/api/status');
         if (statusResponse.ok) {
-          const status = await statusResponse.json();
+          const statusData = await statusResponse.json();
+          const status = statusData.data;
+
+          // Update server status with hostname and IP
+          const serverInfo = status.hostname !== 'unknown' && status.ipAddress !== 'unknown'
+            ? `${status.hostname} (${status.ipAddress})`
+            : 'Online';
+          document.getElementById('server-status').textContent = serverInfo;
+          document.getElementById('server-status').className = 'value good';
+
+          document.getElementById('db-status').textContent = 'Connected';
+          document.getElementById('db-status').className = 'value good';
+
+          // Update version
+          document.getElementById('version').textContent = status.version || 'Unknown';
+
+          // Update uptime
           document.getElementById('uptime').textContent = status.uptime || 'Unknown';
+        } else {
+          // Fallback if main status fails
+          document.getElementById('server-status').textContent = 'Online';
+          document.getElementById('server-status').className = 'value good';
+
+          document.getElementById('db-status').textContent = 'Connected';
+          document.getElementById('db-status').className = 'value good';
+
+          document.getElementById('version').textContent = 'Loading...';
+          document.getElementById('uptime').textContent = 'Loading...';
         }
       } catch (error) {
         console.error('Status refresh error:', error);
+        // Set error states
+        document.getElementById('server-status').textContent = 'Error';
+        document.getElementById('server-status').className = 'value error';
+        document.getElementById('db-status').textContent = 'Error';
+        document.getElementById('db-status').className = 'value error';
+        document.getElementById('version').textContent = 'Error';
+        document.getElementById('uptime').textContent = 'Error';
       }
     }
 

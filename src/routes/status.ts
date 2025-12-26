@@ -2,6 +2,7 @@ import express from 'express';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import os from 'os';
 import { ServerStatus, ApiResponse } from '../types/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -69,18 +70,55 @@ router.get('/', async (req, res) => {
       console.warn('Could not read version from version.txt');
     }
 
-    // Get system uptime (Linux only)
+    // Get system uptime using Node.js os module
     let uptime: string | null = null;
     try {
-      const uptimePath = '/proc/uptime';
-      const uptimeContent = await fs.readFile(uptimePath, 'utf-8');
-      const uptimeSeconds = parseInt(uptimeContent.toString().split(' ')[0]);
+      const uptimeSeconds = os.uptime();
       const days = Math.floor(uptimeSeconds / 86400);
       const hours = Math.floor((uptimeSeconds % 86400) / 3600);
       const minutes = Math.floor((uptimeSeconds % 3600) / 60);
       uptime = `${days}d ${hours}h ${minutes}m`;
     } catch (error) {
-      // uptime not available
+      console.warn('Could not get uptime:', error);
+    }
+
+    // Get hostname and IP address
+    let hostname = 'unknown';
+    let ipAddress = 'unknown';
+    try {
+      hostname = os.hostname() || 'localhost';
+
+      // Get network interfaces
+      const networkInterfaces = os.networkInterfaces();
+
+      for (const interfaceName of Object.keys(networkInterfaces)) {
+        const interfaces = networkInterfaces[interfaceName];
+        if (!interfaces) continue;
+
+        for (const iface of interfaces) {
+          // Skip internal and non-IPv4 addresses
+          if (iface.internal || iface.family !== 'IPv4') continue;
+
+          // Prefer external interfaces over loopback, but take any IPv4 address
+          if (iface.address !== '127.0.0.1' &&
+              (!ipAddress || ipAddress === 'unknown' || interfaceName.startsWith('lo'))) {
+            ipAddress = iface.address;
+          }
+        }
+      }
+
+      // Fallback for development environments
+      if (ipAddress === 'unknown') {
+        ipAddress = '127.0.0.1';
+      }
+      if (hostname === 'unknown') {
+        hostname = 'localhost';
+      }
+
+    } catch (error) {
+      // Provide reasonable defaults if system calls fail
+      hostname = 'localhost';
+      ipAddress = '127.0.0.1';
     }
 
     // Check menu files
@@ -176,6 +214,8 @@ router.get('/', async (req, res) => {
 
     const status = {
       version,
+      hostname: hostname || 'localhost',
+      ipAddress: ipAddress || '127.0.0.1',
       timestamp: new Date().toISOString(),
       uptime,
       menus,
