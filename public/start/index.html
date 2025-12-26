@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>314Sign - Admin Panel</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      overscroll-behavior: none;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 0.75rem;
+      gap: 0.5rem;
+      /* Support iPhone notch & home bar */
+      padding-top: max(0.75rem, env(safe-area-inset-top));
+      padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    }
+    @media (min-width: 768px) {
+      .container {
+        padding: 1rem;
+        gap: 1rem;
+        padding-top: max(1rem, env(safe-area-inset-top));
+        padding-bottom: max(1rem, env(safe-area-inset-bottom));
+      }
+    }
+    h1 {
+      font-size: clamp(1.1rem, 4vw, 1.5rem);
+      color: #e0e0e0;
+      text-align: center;
+      flex-shrink: 0;
+      padding: 0.25rem 0;
+    }
+    .status-info {
+      background: #2d2d2d;
+      padding: 0.75rem;
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .status-info p {
+      margin: 0.25rem 0;
+      font-size: 0.9rem;
+      color: #e0e0e0;
+    }
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 0.75rem;
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 0.5rem 0;
+    }
+    .menu-item {
+      background: #2d2d2d;
+      border: 2px solid #3a3a3a;
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+      text-decoration: none;
+      color: #e0e0e0;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      min-height: 120px;
+      justify-content: center;
+    }
+    .menu-item:hover {
+      background: #3a3a3a;
+      border-color: #4a9eff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(74, 158, 255, 0.2);
+    }
+    .menu-item .icon {
+      font-size: 1.8rem;
+    }
+    .menu-item .title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      line-height: 1.2;
+    }
+    .menu-item .description {
+      font-size: 0.8rem;
+      opacity: 0.8;
+      line-height: 1.2;
+    }
+    .logout-btn {
+      flex-shrink: 0;
+      padding: 0.75rem;
+      background: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .logout-btn:hover { background: #c82333; }
+    .version {
+      position: fixed;
+      bottom: 0.5rem;
+      right: 0.5rem;
+      font-size: 0.7rem;
+      color: #666;
+      opacity: 0.6;
+      pointer-events: none;
+    }
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: #b0b0b0;
+      font-size: 1.1rem;
+    }
+    @media (max-width: 480px) {
+      .menu-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+      }
+      .menu-item {
+        padding: 0.75rem;
+        min-height: 100px;
+      }
+      .menu-item .icon {
+        font-size: 1.5rem;
+      }
+      .menu-item .title {
+        font-size: 0.9rem;
+      }
+      .menu-item .description {
+        font-size: 0.75rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>314Sign Admin Panel</h1>
+
+    <div id="loading" class="loading">
+      Loading...
+    </div>
+
+    <div id="main-content" style="display: none;">
+      <div id="status-info" class="status-info"></div>
+
+      <div class="menu-grid">
+        <a href="/edit/" class="menu-item">
+          <div class="icon">📝</div>
+          <div class="title">Menu Editor</div>
+          <div class="description">Edit menu content</div>
+        </a>
+
+        <a href="/design/" class="menu-item">
+          <div class="icon">🎨</div>
+          <div class="title">Design</div>
+          <div class="description">Backgrounds & logos</div>
+        </a>
+
+        <a href="/rules/" class="menu-item">
+          <div class="icon">📅</div>
+          <div class="title">Schedule Rules</div>
+          <div class="description">Auto menu switching</div>
+        </a>
+
+        <a href="/slideshows/" class="menu-item">
+          <div class="icon">🎬</div>
+          <div class="title">Slideshows</div>
+          <div class="description">Create presentations</div>
+        </a>
+
+        <a href="/remotes/" class="menu-item">
+          <div class="icon">📱</div>
+          <div class="title">Remote Control</div>
+          <div class="description">Mobile interface</div>
+        </a>
+
+        <a href="/maintenance/" class="menu-item">
+          <div class="icon">🔧</div>
+          <div class="title">Maintenance</div>
+          <div class="description">System maintenance</div>
+        </a>
+
+        <a href="/" class="menu-item">
+          <div class="icon">👁️</div>
+          <div class="title">View Display</div>
+          <div class="description">See current specials</div>
+        </a>
+      </div>
+
+      <button id="logout-btn" class="logout-btn">Logout</button>
+    </div>
+  </div>
+
+  <div id="version-footer">314Sign v1.0.2.4 | © 2025 J Stekervetz | CC BY-NC 4.0</div>
+
+  <script>
+    const mainContent = document.getElementById('main-content');
+    const loading = document.getElementById('loading');
+    const statusInfo = document.getElementById('status-info');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    // Load version dynamically
+    async function loadVersion() {
+      try {
+        const response = await fetch('/api/version');
+        if (response.ok) {
+          const data = await response.json();
+          const versionFooter = document.getElementById('version-footer');
+          if (versionFooter) {
+            versionFooter.textContent = `314Sign v${data.data.version} | © 2025 J Stekervetz | CC BY-NC 4.0`;
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load version:', error);
+      }
+    }
+
+    // Check authentication on page load
+    async function checkAuth() {
+      try {
+        const response = await fetch('/api/auth/me', {
+          credentials: 'same-origin'
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            // User is authenticated, show admin panel
+            showAdminPanel(data.data);
+            return;
+          }
+        }
+
+        // Not authenticated, redirect to login with return URL
+        const currentUrl = encodeURIComponent(window.location.pathname);
+        window.location.href = '/login/?redirect=' + currentUrl;
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        window.location.href = '/login/';
+      }
+    }
+
+    function showAdminPanel(userData) {
+      loading.style.display = 'none';
+      mainContent.style.display = 'flex';
+      mainContent.style.flexDirection = 'column';
+
+      // Show user info
+      statusInfo.innerHTML = `
+        <p><strong>User:</strong> ${userData.username} (${userData.role})</p>
+        <p><strong>Last login:</strong> ${new Date(userData.lastLogin).toLocaleString()}</p>
+      `;
+    }
+
+    // Logout functionality
+    logoutBtn.addEventListener('click', async () => {
+      try {
+        const response = await fetch('/api/auth/logout', {
+          method: 'POST',
+          credentials: 'same-origin'
+        });
+
+        if (response.ok) {
+          window.location.href = '/login/';
+        } else {
+          alert('Logout failed. Please try again.');
+        }
+      } catch (error) {
+        console.error('Logout error:', error);
+        alert('Network error during logout.');
+      }
+    });
+
+    // Initialize
+    loadVersion();
+    checkAuth();
+  </script>
+</body>
+</html>

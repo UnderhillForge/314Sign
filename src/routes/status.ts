@@ -9,6 +9,50 @@ const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
+// GET /api/version - Get application version
+router.get('/version', async (req, res) => {
+  try {
+    const versionPath = path.join(__dirname, '../../version.txt');
+
+    // Try database first
+    const db = await import('../database.js');
+    const dbVersion = db.dbHelpers.getConfig('version');
+
+    let version: string;
+    if (dbVersion) {
+      version = dbVersion.value;
+    } else {
+      // Fallback to version.txt
+      try {
+        const versionContent = await fs.readFile(versionPath, 'utf-8');
+        version = versionContent.toString().trim();
+      } catch (error) {
+        console.warn('Could not read version from version.txt');
+        version = '0.9.2.1'; // ultimate fallback
+      }
+
+      // Store in database for future use
+      try {
+        db.dbHelpers.setConfig('version', version);
+      } catch (dbError) {
+        console.warn('Could not store version in database:', dbError);
+      }
+    }
+
+    res.json({
+      success: true,
+      data: { version }
+    } as ApiResponse<any>);
+  } catch (error) {
+    console.error('Error getting version:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get version',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    } as ApiResponse);
+  }
+});
+
 // GET /api/status - Get server status
 router.get('/', async (req, res) => {
   try {

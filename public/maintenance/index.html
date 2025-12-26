@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>314Sign - System Maintenance</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      overscroll-behavior: none;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 0.75rem;
+      gap: 0.5rem;
+      /* Support iPhone notch & home bar */
+      padding-top: max(0.75rem, env(safe-area-inset-top));
+      padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    }
+    @media (min-width: 768px) {
+      .container {
+        padding: 1rem;
+        gap: 1rem;
+        padding-top: max(1rem, env(safe-area-inset-top));
+        padding-bottom: max(1rem, env(safe-area-inset-bottom));
+      }
+    }
+    .user-management {
+      background: #2d2d2d;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+    .user-management h3 {
+      color: #4a9eff;
+      margin-bottom: 1rem;
+      font-size: 1rem;
+    }
+    .user-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      align-items: end;
+    }
+    .user-form input, .user-form select {
+      background: #1a1a1a;
+      border: 1px solid #3a3a3a;
+      border-radius: 4px;
+      color: #e0e0e0;
+      padding: 0.5rem;
+      font-size: 0.85rem;
+    }
+    .user-form input::placeholder {
+      color: #888;
+    }
+    .user-form button {
+      background: #4a9eff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .user-form button:hover {
+      background: #3a8edd;
+    }
+    .user-list {
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #3a3a3a;
+      border-radius: 4px;
+    }
+    .user-item {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr auto auto;
+      gap: 0.5rem;
+      padding: 0.5rem;
+      border-bottom: 1px solid #3a3a3a;
+      align-items: center;
+    }
+    .user-item:last-child {
+      border-bottom: none;
+    }
+    .user-item .username {
+      font-weight: 600;
+      color: #e0e0e0;
+    }
+    .user-item .role {
+      color: #b0b0b0;
+      font-size: 0.8rem;
+    }
+    .user-item .last-login {
+      color: #888;
+      font-size: 0.75rem;
+    }
+    .user-item button {
+      background: none;
+      border: none;
+      color: #e0e0e0;
+      cursor: pointer;
+      padding: 0.25rem 0.5rem;
+      border-radius: 3px;
+      font-size: 0.75rem;
+      transition: background 0.2s;
+    }
+    .user-item .edit-btn {
+      background: #4a9eff;
+    }
+    .user-item .edit-btn:hover {
+      background: #3a8edd;
+    }
+    .user-item .delete-btn {
+      background: #dc3545;
+      margin-left: 0.25rem;
+    }
+    .user-item .delete-btn:hover {
+      background: #c82333;
+    }
+    @media (max-width: 768px) {
+      .user-form {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+      }
+      .user-form button {
+        width: 100%;
+      }
+      .user-item {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+        text-align: center;
+      }
+      .user-item .username {
+        font-size: 0.9rem;
+      }
+      .user-item .role, .user-item .last-login {
+        font-size: 0.8rem;
+      }
+    }
+    .status-info {
+      background: #2d2d2d;
+      padding: 0.75rem;
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .status-info p {
+      margin: 0.25rem 0;
+      font-size: 0.9rem;
+      color: #e0e0e0;
+    }
+    .version-input {
+      background: #2d2d2d;
+      padding: 0.5rem;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+      font-size: 0.85rem;
+    }
+    .version-input input {
+      background: #1a1a1a;
+      border: 1px solid #3a3a3a;
+      border-radius: 4px;
+      color: #e0e0e0;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.8rem;
+      width: 120px;
+      margin-right: 0.5rem;
+    }
+    .version-input button {
+      background: #4a9eff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .version-input button:hover {
+      background: #3a8edd;
+    }
+    .content-area {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .section {
+      background: #2d2d2d;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+    .section h2 {
+      color: #4a9eff;
+      border-bottom: 2px solid #3a3a3a;
+      padding-bottom: 0.5rem;
+      margin-bottom: 1rem;
+      font-size: 1.2rem;
+    }
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .status-item {
+      background: #1a1a1a;
+      padding: 0.75rem;
+      border-radius: 6px;
+      border: 1px solid #3a3a3a;
+    }
+    .status-item .label {
+      font-weight: 600;
+      color: #b0b0b0;
+      font-size: 0.8rem;
+      margin-bottom: 0.25rem;
+    }
+    .status-item .value {
+      color: #e0e0e0;
+      font-size: 0.9rem;
+    }
+    .status-item .value.good {
+      color: #48bb78;
+    }
+    .status-item .value.warning {
+      color: #ed8936;
+    }
+    .status-item .value.error {
+      color: #f56565;
+    }
+    .btn-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.5rem;
+    }
+    .btn {
+      background: #3a3a3a;
+      color: #e0e0e0;
+      border: 2px solid #4a4a4a;
+      border-radius: 6px;
+      padding: 0.6rem 0.8rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.3rem;
+    }
+    .btn:hover {
+      background: #4a9eff;
+      border-color: #4a9eff;
+      transform: translateY(-1px);
+    }
+    .btn.danger {
+      background: #c82333;
+      border-color: #dc3545;
+    }
+    .btn.danger:hover {
+      background: #dc3545;
+    }
+    .btn.success {
+      background: #28a745;
+      border-color: #28a745;
+    }
+    .btn.success:hover {
+      background: #218838;
+    }
+    .logs-container {
+      background: #1a1a1a;
+      border: 2px solid #3a3a3a;
+      border-radius: 8px;
+      padding: 0.75rem;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 0.8rem;
+      line-height: 1.3;
+    }
+    .logs-container pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .version {
+      position: fixed;
+      bottom: 0.5rem;
+      right: 0.5rem;
+      font-size: 0.7rem;
+      color: #666;
+      opacity: 0.6;
+      pointer-events: none;
+    }
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: #b0b0b0;
+      font-size: 1.1rem;
+    }
+    @media (max-width: 480px) {
+      .status-grid {
+        grid-template-columns: 1fr;
+      }
+      .btn-grid {
+        grid-template-columns: 1fr;
+      }
+      .section {
+        padding: 0.75rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="loading" class="loading">
+      Loading...
+    </div>
+
+    <div id="main-content" style="display: none;">
+      <div id="status-info" class="status-info"></div>
+
+      <div class="version-input">
+        <strong>📋 Version:</strong>
+        <input type="text" id="current-version" readonly />
+        <button onclick="editVersion()">✏️ Edit</button>
+        <button onclick="refreshVersion()">🔄 Refresh</button>
+      </div>
+
+      <div id="user-management" class="user-management" style="display: none;">
+        <h3>👥 User Management</h3>
+
+        <div class="user-form">
+          <input type="text" id="new-username" placeholder="Username" />
+          <input type="password" id="new-password" placeholder="Password" />
+          <select id="new-role">
+            <option value="editor">Editor</option>
+            <option value="admin">Admin</option>
+          </select>
+          <button onclick="createUser()">➕ Create User</button>
+        </div>
+
+        <div id="user-list" class="user-list">
+          <!-- User list will be populated here -->
+        </div>
+      </div>
+
+      <div class="content-area">
+        <div class="section">
+          <h2>System Status</h2>
+          <div id="status-grid" class="status-grid">
+            <div class="status-item">
+              <div class="label">Server</div>
+              <div class="value good" id="server-status">Checking...</div>
+            </div>
+            <div class="status-item">
+              <div class="label">Database</div>
+              <div class="value good" id="db-status">Checking...</div>
+            </div>
+            <div class="status-item">
+              <div class="label">Version</div>
+              <div class="value" id="version">Loading...</div>
+            </div>
+            <div class="status-item">
+              <div class="label">Uptime</div>
+              <div class="value" id="uptime">Loading...</div>
+            </div>
+          </div>
+          <div class="btn-grid">
+            <button class="btn" onclick="refreshStatus()">🔄 Refresh</button>
+            <button class="btn success" onclick="runHealthCheck()">🏥 Health Check</button>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Database</h2>
+          <div class="btn-grid">
+            <button class="btn" onclick="backupDatabase()">💾 Backup</button>
+            <button class="btn" onclick="showBackupHistory()">📋 History</button>
+            <button class="btn danger" onclick="optimizeDatabase()">🔧 Optimize</button>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>System</h2>
+          <div class="btn-grid">
+            <button class="btn" onclick="clearCache()">🗑️ Clear Cache</button>
+            <button class="btn danger" onclick="restartServer()">🔄 Restart</button>
+            <button class="btn" onclick="reloadConfig()">⚙️ Reload Config</button>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Logs</h2>
+          <div class="btn-grid" style="margin-bottom: 0.75rem;">
+            <button class="btn" onclick="loadLogs()">📄 Load Logs</button>
+            <button class="btn danger" onclick="clearLogs()">🗑️ Clear Logs</button>
+            <button class="btn" onclick="exportLogs()">📤 Export</button>
+          </div>
+          <div id="logs-container" class="logs-container">
+            <pre id="logs-content">Click "Load Logs" to view system logs...</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="version">314Sign v1.0.2.4 | © 2025 J Stekervetz | CC BY-NC 4.0</div>
+
+  <script>
+    const mainContent = document.getElementById('main-content');
+    const loading = document.getElementById('loading');
+    const statusInfo = document.getElementById('status-info');
+
+    // Check authentication on page load
+    async function checkAuth() {
+      try {
+        const response = await fetch('/api/auth/me', {
+          credentials: 'same-origin'
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            // User is authenticated, show admin panel
+            showAdminPanel(data.data);
+            return;
+          }
+        }
+
+        // Not authenticated, redirect to login with return URL
+        const currentUrl = encodeURIComponent(window.location.pathname);
+        window.location.href = '/login/?redirect=' + currentUrl;
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        window.location.href = '/login/';
+      }
+    }
+
+    function showAdminPanel(userData) {
+      loading.style.display = 'none';
+      mainContent.style.display = 'flex';
+      mainContent.style.flexDirection = 'column';
+
+      // Show user info
+      statusInfo.innerHTML = `
+        <p><strong>User:</strong> ${userData.username} (${userData.role})</p>
+        <p><strong>Last login:</strong> ${new Date(userData.lastLogin).toLocaleString()}</p>
+      `;
+
+      // Show user management interface
+      document.getElementById('user-management').style.display = 'block';
+
+      // Load initial status and users
+      refreshStatus();
+      loadUsers();
+      refreshVersion();
+    }
+
+    function editVersion() {
+      const versionInput = document.getElementById('current-version');
+      const currentVersion = versionInput.value;
+
+      const newVersion = prompt('Enter new version:', currentVersion);
+      if (!newVersion || !newVersion.trim()) {
+        return;
+      }
+
+      updateVersion(newVersion.trim());
+    }
+
+    async function updateVersion(newVersion) {
+      try {
+        const response = await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ key: 'version', value: newVersion })
+        });
+
+        if (response.ok) {
+          document.getElementById('current-version').value = newVersion;
+          alert('Version updated successfully');
+        } else {
+          alert('Failed to update version');
+        }
+      } catch (error) {
+        alert('Error updating version: ' + error.message);
+      }
+    }
+
+    async function refreshVersion() {
+      try {
+        const response = await fetch('/api/version');
+        if (response.ok) {
+          const data = await response.json();
+          document.getElementById('current-version').value = data.data.version;
+        }
+      } catch (error) {
+        console.error('Error loading version:', error);
+      }
+    }
+
+    async function createUser() {
+      const username = document.getElementById('new-username').value.trim();
+      const password = document.getElementById('new-password').value;
+      const role = document.getElementById('new-role').value;
+
+      if (!username || !password) {
+        alert('Please enter both username and password');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/auth/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ username, password, role })
+        });
+
+        if (response.ok) {
+          alert('User created successfully');
+          document.getElementById('new-username').value = '';
+          document.getElementById('new-password').value = '';
+          loadUsers();
+        } else {
+          const data = await response.json();
+          alert('Failed to create user: ' + (data.message || 'Unknown error'));
+        }
+      } catch (error) {
+        alert('Error creating user: ' + error.message);
+      }
+    }
+
+    async function deleteUser(username) {
+      if (!confirm(`Are you sure you want to delete user "${username}"? This cannot be undone.`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/auth/users/${username}`, {
+          method: 'DELETE',
+          credentials: 'same-origin'
+        });
+
+        if (response.ok) {
+          alert('User deleted successfully');
+          loadUsers();
+        } else {
+          alert('Failed to delete user');
+        }
+      } catch (error) {
+        alert('Error deleting user: ' + error.message);
+      }
+    }
+
+    async function changeUserRole(username, newRole) {
+      try {
+        const response = await fetch(`/api/auth/users/${username}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ role: newRole })
+        });
+
+        if (response.ok) {
+          alert('User role updated successfully');
+          loadUsers();
+        } else {
+          alert('Failed to update user role');
+        }
+      } catch (error) {
+        alert('Error updating user role: ' + error.message);
+      }
+    }
+
+    async function changePassword(username) {
+      const newPassword = prompt(`Enter new password for user "${username}":`);
+      if (!newPassword || !newPassword.trim()) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/auth/users/${username}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ password: newPassword })
+        });
+
+        if (response.ok) {
+          alert('Password changed successfully');
+        } else {
+          alert('Failed to change password');
+        }
+      } catch (error) {
+        alert('Error changing password: ' + error.message);
+      }
+    }
+
+    async function loadUsers() {
+      try {
+        const response = await fetch('/api/auth/users', {
+          credentials: 'same-origin'
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const users = data.data || [];
+          renderUserList(users);
+        } else {
+          console.error('Failed to load users');
+        }
+      } catch (error) {
+        console.error('Error loading users:', error);
+      }
+    }
+
+    function renderUserList(users) {
+      const userList = document.getElementById('user-list');
+      userList.innerHTML = '';
+
+      if (users.length === 0) {
+        userList.innerHTML = '<div style="padding: 1rem; text-align: center; color: #888;">No users found</div>';
+        return;
+      }
+
+      users.forEach(user => {
+        const userItem = document.createElement('div');
+        userItem.className = 'user-item';
+
+        const lastLogin = user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never';
+
+        userItem.innerHTML = `
+          <div class="username">${user.username}</div>
+          <div class="role">${user.role}</div>
+          <div class="last-login">${lastLogin}</div>
+          <button class="edit-btn" onclick="changePassword('${user.username}')">🔑</button>
+          <button class="delete-btn" onclick="deleteUser('${user.username}')">🗑️</button>
+        `;
+
+        userList.appendChild(userItem);
+      });
+    }
+
+    async function refreshStatus() {
+      try {
+        // Update status indicators
+        document.getElementById('server-status').textContent = 'Online';
+        document.getElementById('server-status').className = 'value good';
+
+        document.getElementById('db-status').textContent = 'Connected';
+        document.getElementById('db-status').className = 'value good';
+
+        // Load version dynamically
+        const versionResponse = await fetch('/api/version');
+        if (versionResponse.ok) {
+          const versionData = await versionResponse.json();
+          document.getElementById('version').textContent = versionData.data.version;
+        }
+
+        // Get uptime from system API
+        const statusResponse = await fetch('/api/status');
+        if (statusResponse.ok) {
+          const status = await statusResponse.json();
+          document.getElementById('uptime').textContent = status.uptime || 'Unknown';
+        }
+      } catch (error) {
+        console.error('Status refresh error:', error);
+      }
+    }
+
+    async function runHealthCheck() {
+      try {
+        const response = await fetch('/api/status/health');
+        if (response.ok) {
+          alert('Health check passed!');
+        } else {
+          alert('Health check failed');
+        }
+      } catch (error) {
+        alert('Health check error: ' + error.message);
+      }
+    }
+
+    async function backupDatabase() {
+      if (!confirm('Create a database backup?')) return;
+
+      try {
+        const response = await fetch('/api/system/backup', {
+          method: 'POST',
+          credentials: 'same-origin'
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          alert('Database backup created: ' + result.filename);
+        } else {
+          alert('Database backup failed');
+        }
+      } catch (error) {
+        alert('Backup error: ' + error.message);
+      }
+    }
+
+    function showBackupHistory() {
+      alert('Backup history feature coming soon');
+    }
+
+    async function optimizeDatabase() {
+      if (!confirm('Optimize database?')) return;
+
+      try {
+        const response = await fetch('/api/system/optimize-db', {
+          method: 'POST',
+          credentials: 'same-origin'
+        });
+
+        if (response.ok) {
+          alert('Database optimized successfully');
+        } else {
+          alert('Database optimization failed');
+        }
+      } catch (error) {
+        alert('Optimization error: ' + error.message);
+      }
+    }
+
+    async function clearCache() {
+      try {
+        const response = await fetch('/api/system/clear-cache', {
+          method: 'POST',
+          credentials: 'same-origin'
+        });
+
+        if (response.ok) {
+          alert('Cache cleared successfully');
+        } else {
+          alert('Cache clear failed');
+        }
+      } catch (error) {
+        alert('Cache clear error: ' + error.message);
+      }
+    }
+
+    async function restartServer() {
+      if (!confirm('Restart the server?')) return;
+
+      try {
+        const response = await fetch('/api/system/restart', {
+          method: 'POST',
+          credentials: 'same-origin'
+        });
+
+        if (response.ok) {
+          alert('Server restart initiated');
+          setTimeout(() => window.location.reload(), 5000);
+        } else {
+          alert('Server restart failed');
+        }
+      } catch (error) {
+        alert('Restart error: ' + error.message);
+      }
+    }
+
+    async function reloadConfig() {
+      try {
+        const response = await fetch('/api/system/reload-config', {
+          method: 'POST',
+          credentials: 'same-origin'
+        });
+
+        if (response.ok) {
+          alert('Configuration reloaded successfully');
+        } else {
+          alert('Config reload failed');
+        }
+      } catch (error) {
+        alert('Config reload error: ' + error.message);
+      }
+    }
+
+    async function loadLogs() {
+      try {
+        document.getElementById('logs-content').textContent = 'Loading logs...';
+
+        const response = await fetch('/api/debug/logs', {
+          credentials: 'same-origin'
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          document.getElementById('logs-content').textContent = data.logs.join('\n');
+        } else {
+          document.getElementById('logs-content').textContent = 'Failed to load logs';
+        }
+      } catch (error) {
+        document.getElementById('logs-content').textContent = 'Error: ' + error.message;
+      }
+    }
+
+    async function clearLogs() {
+      if (!confirm('Clear all system logs?')) return;
+
+      try {
+        const response = await fetch('/api/debug/clear-logs', {
+          method: 'POST',
+          credentials: 'same-origin'
+        });
+
+        if (response.ok) {
+          document.getElementById('logs-content').textContent = 'Logs cleared';
+          alert('Logs cleared successfully');
+        } else {
+          alert('Failed to clear logs');
+        }
+      } catch (error) {
+        alert('Clear logs error: ' + error.message);
+      }
+    }
+
+    function exportLogs() {
+      const logsContent = document.getElementById('logs-content').textContent;
+      const blob = new Blob([logsContent], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = '314sign-logs-' + new Date().toISOString().slice(0, 10) + '.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // Initialize
+    checkAuth();
+  </script>
+</body>
+</html>

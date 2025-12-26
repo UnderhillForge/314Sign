@@ -141,7 +141,7 @@
     <span id="clock">00:00</span>
   </header>
   <div id="specials">Loading…</div>
-  <div class="version">314Sign v0.9.2.60 | © 2025 J Stekervetz | CC BY-NC 4.0</div>
+  <div class="version">314Sign v1.0.2.4 | © 2025 J Stekervetz | CC BY-NC 4.0</div>
   <div id="reloadIndicator">🔄 Reloading...</div>
 
   <script>
@@ -153,7 +153,7 @@
   let currentMenu = localStorage.getItem('currentMenu') || 'menus/dinner.txt';
   
   // Initialize current-menu.json with the current menu
-  fetch('api/menu', {
+  fetch('/api/menu', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name: currentMenu.replace('menus/', '').replace('.txt', ''), content: '' })
@@ -244,7 +244,7 @@
         console.log('[Rules] Skipped - demo mode active');
         return;
       }
-      fetch('api/rules?' + Date.now())
+      fetch('/api/rules?' + Date.now())
         .then(r => r.ok ? r.json() : { data: [] })
         .then(response => response.data || [])
         .then(rules => {
@@ -294,7 +294,7 @@
       localStorage.setItem('currentMenu', filename);
       
       // Update current menu via API for persistence and external control
-      fetch('api/menu', {
+      fetch('/api/menu', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: filename.replace('menus/', '').replace('.txt', ''), content: '' })
@@ -335,7 +335,7 @@
     // --------------------------------------------------------------------
 
     // First, load custom fonts from API
-    fetch('api/fonts')
+    fetch('/api/fonts')
       .then(r => r.ok ? r.json() : { data: [] })
       .then(response => {
         const customFonts = response.data || [];
@@ -372,7 +372,7 @@
       .catch(err => console.warn('[Fonts] Could not load custom fonts:', err))
       .then(() => {
         // Now load config after fonts are ready
-        return fetch('api/config?' + Date.now(), {
+        return fetch('/api/config?' + Date.now(), {
           cache: 'no-store',
           headers: { 'Cache-Control': 'no-cache' }
         });
@@ -388,7 +388,7 @@
             showClock: false,
             clock24Hour: true
           };
-          fetch('api/config', {
+          fetch('/api/config', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(defaultConfig)
@@ -660,7 +660,7 @@
 
             
             // Check for brightness changes (force reload for immediate effect)
-            fetch('api/config?' + Date.now(), { cache: 'no-store' })
+            fetch('/api/config?' + Date.now(), { cache: 'no-store' })
               .then(r => r.ok ? r.json() : { data: {} })
               .then(response => response.data || {})
               .then(cfg => {
@@ -676,7 +676,7 @@
               .catch(() => {}),
 
             // Check for config changes (font scale, header size, brightness)
-            fetch('api/config?' + Date.now(), { cache: 'no-store' })
+            fetch('/api/config?' + Date.now(), { cache: 'no-store' })
               .then(r => r.ok ? r.json() : { data: {} })
               .then(response => response.data || {})
               .then(cfg => {
@@ -851,7 +851,7 @@
     function pollSpecials() {
       // Load menu content from database API instead of file
       const menuName = currentMenu.replace('menus/', '').replace('.txt', '');
-      fetch('api/menu/' + menuName + '?' + Date.now(), {
+      fetch('/api/menu/' + menuName + '?' + Date.now(), {
         cache: 'no-store',
         headers: { 'Cache-Control': 'no-cache' }
       })
@@ -963,7 +963,7 @@
         slideshowName = slideshowName.split('/').pop().replace('.json', '');
       }
 
-      fetch('api/slideshows/' + slideshowName)
+      fetch('/api/slideshows/' + slideshowName)
         .then(r => r.ok ? r.json() : null)
         .then(response => response ? response.data : null)
         .then(data => {
@@ -1243,7 +1243,7 @@
         return;
       }
 
-      fetch('api/rules?' + Date.now())
+      fetch('/api/rules?' + Date.now())
         .then(r => r.ok ? r.json() : { data: [] })
         .then(response => response.data || [])
         .then(rules => {

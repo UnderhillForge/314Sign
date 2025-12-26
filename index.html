@@ -356,7 +356,7 @@
             showClock: false,
             clock24Hour: true
           };
-          fetch('scripts/merge-config.php', {
+          fetch('/scripts/merge-config.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(defaultConfig)
@@ -604,8 +604,9 @@
               .catch(() => {}),
             
             // Check for version changes (force reload on updates)
-            fetch('version.txt?' + Date.now(), { cache: 'no-store' })
-              .then(r => r.ok ? r.text() : '')
+            fetch('/api/version', { cache: 'no-store' })
+              .then(r => r.ok ? r.json() : { data: { version: '1.0.0' } })
+              .then(data => data.data ? data.data.version : '1.0.0')
               .then(version => {
                 version = version.trim();
                 if (!version) return;
@@ -627,7 +628,7 @@
               .catch(() => {}),
             
             // Check for rules changes (force reload to pick up new scheduling)
-            fetch('rules.json?' + Date.now(), { cache: 'no-store' })
+            fetch('/rules.json?' + Date.now(), { cache: 'no-store' })
               .then(r => r.ok ? r.json() : null)
               .then(rules => {
                 if (!rules) return;
@@ -646,7 +647,7 @@
               .catch(() => {}),
             
             // Check for menus-config changes (force reload to pick up new menu settings)
-            fetch('menus-config.json?' + Date.now(), { cache: 'no-store' })
+            fetch('/menus-config.json?' + Date.now(), { cache: 'no-store' })
               .then(r => r.ok ? r.json() : {})
               .then(menusConfig => {
                 const menusConfigHash = JSON.stringify(menusConfig);
@@ -664,7 +665,7 @@
               .catch(() => {}),
             
             // Check for brightness changes (force reload for immediate effect)
-            fetch('page.json?' + Date.now(), { cache: 'no-store' })
+            fetch('/page.json?' + Date.now(), { cache: 'no-store' })
               .then(r => r.ok ? r.json() : {})
               .then(cfg => {
                 if (Number.isFinite(cfg.bgBrightness) && cfg.bgBrightness !== lastBgBrightness) {
@@ -679,14 +680,14 @@
               .catch(() => {}),
             
             // Check for config changes (font scale, header size, brightness)
-            fetch('page.json?' + Date.now(), { cache: 'no-store' })
+            fetch('/page.json?' + Date.now(), { cache: 'no-store' })
               .then(r => r.ok ? r.json() : {})
               .then(cfg => {
                 // NOTE: Don't check fontScalePercent here!
                 // Per-menu font scales (from menus-page.json) override global config
                 // and are only applied during boot/menu switching.
                 // Checking here would cause global config to overwrite per-menu scales.
-                
+
                 // Check if header font changed
                 if (cfg.headerFont && cfg.headerFont !== lastHeaderFont) {
                   const header = document.querySelector('header');
@@ -696,7 +697,7 @@
                     console.log('[Config] Header font updated:', cfg.headerFont);
                   }
                 }
-                
+
                 // Check if header size changed
                 if (Number.isFinite(cfg.headerSizePercent) && cfg.headerSizePercent !== lastHeaderSizePercent) {
                   const header = document.querySelector('header');
@@ -705,7 +706,7 @@
                     lastHeaderSizePercent = cfg.headerSizePercent;
                   }
                 }
-                
+
                 // Check if background image changed
                 const currentBg = cfg.bg || 'backgd.jpg';
                 if (currentBg !== lastBgImage) {
@@ -718,10 +719,10 @@
                   lastBgImage = currentBg;
                   console.log('[Config] Background updated:', currentBg);
                 }
-                
+
                   // Check for page.json to allow external control of which top-level page is served
                   // Example `page.json` contents: { "page": "index" } or { "page": "start" } or { "page": "slideshows" }
-                  fetch('page.json?' + Date.now(), { cache: 'no-store' })
+                  fetch('/page.json?' + Date.now(), { cache: 'no-store' })
                     .then(r => r.ok ? r.json() : null)
                     .then(pj => {
                       if (!pj || !pj.page) return;
@@ -854,7 +855,7 @@
     }
 
     function pollSpecials() {
-      fetch(currentMenu + '?' + Date.now(), {
+      fetch('/' + currentMenu + '?' + Date.now(), {
         cache: 'no-store',
         headers: { 'Cache-Control': 'no-cache' }
       })
@@ -1241,7 +1242,7 @@
         return;
       }
       
-      fetch('rules.json?' + Date.now())
+          fetch('/rules.json?' + Date.now())
         .then(r => r.ok ? r.json() : null)
         .then(data => {
           if (!data || !data.enabled || !data.rules) return;
