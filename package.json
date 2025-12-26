@@ -1,7 +1,7 @@
 {
   "name": "314sign",
-  "version": "1.0.2.2",
-  "description": "**Version 1.0.2.2** | [License: CC BY-NC 4.0](LICENSE)",
+  "version": "1.0.2.4",
+  "description": "**Version 1.0.2.4** | [License: CC BY-NC 4.0](LICENSE)",
   "main": "dist/server.js",
   "directories": {
     "doc": "docs"

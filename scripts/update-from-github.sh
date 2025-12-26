@@ -123,18 +123,19 @@ declare -a UPDATE_FILES=(
   "index.html"
   "version.txt"
   "favicon.svg"
-  "edit/index.html"
-  "design/index.html"
-  "rules/index.html"
-  "start/index.html"
-  "maintenance/index.html"
-  "login/index.html"
+  "public/edit/index.html"
+  "public/design/index.html"
+  "public/rules/index.html"
+  "public/start/index.html"
+  "public/maintenance/index.html"
+  "public/login/index.html"
+  "public/remotes/index.html"
+  "public/debug/index.html"
 
   # Node.js/TypeScript backend files
   "package.json"
   "package-lock.json"
   "tsconfig.json"
-  "ecosystem.config.js"
 
   # TypeScript source files
   "src/server.ts"

@@ -494,7 +494,7 @@ echo "Core files found: $FINAL_COUNT"
 
 # Check critical files
 MISSING_FILES=()
-for file in "index.html" "config.json" "rules.json" "edit/index.html" "design/index.html" "rules/index.html" "maintenance/index.html" "start/index.html" "status.php"; do
+for file in "index.html" "config.json" "rules.json" "public/edit/index.html" "public/design/index.html" "public/rules/index.html" "public/maintenance/index.html" "public/start/index.html"; do
   if [ ! -f "/var/www/html/$file" ]; then
     MISSING_FILES+=("$file")
   fi

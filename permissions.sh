@@ -41,6 +41,7 @@ sudo chmod 664 "$WEB_ROOT/index.html" 2>/dev/null || true
 sudo chmod 664 "$WEB_ROOT/config.json" 2>/dev/null || true
 sudo chmod 664 "$WEB_ROOT/rules.json" 2>/dev/null || true
 sudo chmod 664 "$WEB_ROOT/menus-config.json" 2>/dev/null || true
+sudo chmod 664 "$WEB_ROOT/page.json" 2>/dev/null || true
 # Database handles reload triggers and demo commands - no files needed
 
 # Menu files
@@ -49,35 +50,16 @@ sudo chmod 664 "$WEB_ROOT/menus/lunch.txt" 2>/dev/null || true
 sudo chmod 664 "$WEB_ROOT/menus/dinner.txt" 2>/dev/null || true
 sudo chmod 664 "$WEB_ROOT/menus/closed.txt" 2>/dev/null || true
 
-# Editor pages
-sudo chmod 664 "$WEB_ROOT/edit/index.html" 2>/dev/null || true
-sudo chmod 664 "$WEB_ROOT/design/index.html" 2>/dev/null || true
-sudo chmod 664 "$WEB_ROOT/rules/index.html" 2>/dev/null || true
-sudo chmod 664 "$WEB_ROOT/slideshows/index.html" 2>/dev/null || true
-sudo chmod 664 "$WEB_ROOT/maintenance/index.html" 2>/dev/null || true
-sudo chmod 664 "$WEB_ROOT/start/index.html" 2>/dev/null || true
-sudo chmod 664 "$WEB_ROOT/demo/index.html" 2>/dev/null || true
-
-# PHP scripts should be executable
-sudo chmod 755 "$WEB_ROOT/bg/index.php" 2>/dev/null || true
-sudo chmod 755 "$WEB_ROOT/design/upload-bg.php" 2>/dev/null || true
-sudo chmod 755 "$WEB_ROOT/design/upload-logo.php" 2>/dev/null || true
-sudo chmod 755 "$WEB_ROOT/design/upload.php" 2>/dev/null || true
-sudo chmod 755 "$WEB_ROOT/design/purge-history.php" 2>/dev/null || true
-sudo chmod 755 "$WEB_ROOT/status.php" 2>/dev/null || true
-sudo chmod 755 "$WEB_ROOT/check-updates.php" 2>/dev/null || true
-sudo chmod 755 "$WEB_ROOT/apply-updates.php" 2>/dev/null || true
-sudo chmod 755 "$WEB_ROOT/restart-server.php" 2>/dev/null || true
-sudo chmod 755 "$WEB_ROOT/create-backup.php" 2>/dev/null || true
-sudo chmod 755 "$WEB_ROOT/trigger-reload.php" 2>/dev/null || true
-sudo chmod 755 "$WEB_ROOT/save-menu-history.php" 2>/dev/null || true
-sudo chmod 755 "$WEB_ROOT/get-menu-history.php" 2>/dev/null || true
-sudo chmod 755 "$WEB_ROOT/set-current-menu.php" 2>/dev/null || true
-sudo chmod 755 "$WEB_ROOT/fonts/index.php" 2>/dev/null || true
-sudo chmod 755 "$WEB_ROOT/slideshows/upload-media.php" 2>/dev/null || true
-sudo chmod 755 "$WEB_ROOT/slideshows/save-set.php" 2>/dev/null || true
-sudo chmod 755 "$WEB_ROOT/slideshows/sets/index.php" 2>/dev/null || true
-sudo chmod 755 "$WEB_ROOT/menus/index.php" 2>/dev/null || true
+# Editor pages (in public/ directory)
+sudo chmod 664 "$WEB_ROOT/public/edit/index.html" 2>/dev/null || true
+sudo chmod 664 "$WEB_ROOT/public/design/index.html" 2>/dev/null || true
+sudo chmod 664 "$WEB_ROOT/public/rules/index.html" 2>/dev/null || true
+sudo chmod 664 "$WEB_ROOT/public/slideshows/index.html" 2>/dev/null || true
+sudo chmod 664 "$WEB_ROOT/public/maintenance/index.html" 2>/dev/null || true
+sudo chmod 664 "$WEB_ROOT/public/start/index.html" 2>/dev/null || true
+sudo chmod 664 "$WEB_ROOT/public/login/index.html" 2>/dev/null || true
+sudo chmod 664 "$WEB_ROOT/public/remotes/index.html" 2>/dev/null || true
+sudo chmod 664 "$WEB_ROOT/public/debug/index.html" 2>/dev/null || true
 
 # Set permissions for fonts directory (needs to be writable for uploads)
 if [ -d "$WEB_ROOT/fonts" ]; then
