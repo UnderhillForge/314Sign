@@ -1,11 +1,11 @@
 # 314Sign — The Dead-Simple Digital Menu Board
 
-**Version 0.9.2.1** | [License: CC BY-NC 4.0](LICENSE)
+**Version 1.0.2.1** | [License: CC BY-NC 4.0](LICENSE)
 
 > **No apps. No subscriptions. No learning curve.**  
 > Point your phone at http://your-pi.local/start → edit → see changes **instantly** on screen.
 
-A modern, self-hosted digital signage solution built with Node.js/TypeScript. Perfect for restaurants, cafés, churches, and community spaces that need simple, reliable menu boards without complexity.
+A modern, self-hosted digital signage solution built with Node.js/TypeScript and SQLite database. Perfect for restaurants, cafés, churches, and community spaces that need simple, reliable menu boards without complexity.
 
 ## ✨ Key Features
 
@@ -51,11 +51,11 @@ A modern, self-hosted digital signage solution built with Node.js/TypeScript. Pe
 curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/setup-kiosk.sh | sudo bash
 
 # 5. Open on any device (replace YOUR-HOSTNAME with your Pi's hostname):
-http://YOUR-HOSTNAME.local:3000/start/     # Quick access landing page
-http://YOUR-HOSTNAME.local:3000/edit/      # Edit daily specials
-http://YOUR-HOSTNAME.local:3000/design/    # Customize appearance
-http://YOUR-HOSTNAME.local:3000/rules/     # Schedule auto-switching
-http://YOUR-HOSTNAME.local:3000/slideshows/ # Create multimedia slideshows
+http://YOUR-HOSTNAME.local/start/          # Quick access landing page
+http://YOUR-HOSTNAME.local/edit/           # Edit daily specials
+http://YOUR-HOSTNAME.local/design/         # Customize appearance
+http://YOUR-HOSTNAME.local/rules/          # Schedule auto-switching
+http://YOUR-HOSTNAME.local/slideshows/     # Create multimedia slideshows
 ```
 
 ### Development Setup
@@ -93,6 +93,24 @@ sudo reboot
 
 **Note**: FullpageOS users skip this step — kiosk mode is built-in.
 
+### Remote Kiosks (Multiple Displays)
+For multi-display setups, set up additional Raspberry Pis as remote kiosks that sync with your main kiosk:
+
+```bash
+# On each remote Pi (Pi Zero 2 W recommended):
+curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/remote-setup.sh | sudo bash
+
+# Features:
+# - Hardware-based unique device identification
+# - Automatic network discovery of main kiosk
+# - Real-time sync of menus, slideshows, and configurations
+# - Emergency admin panel for troubleshooting
+# - Screen rotation support (portrait/landscape)
+# - Auto-boot kiosk mode
+```
+
+After setup, register each remote device with your main kiosk using the displayed 6-character code.
+
 ---
 
 ## What You Can Do
@@ -121,17 +139,42 @@ sudo reboot
 
 The RESTful API provides programmatic access to all features:
 
+### Core System
 - `GET /api/status` - Server health and configuration status
+- `GET /api/system/info` - System information and diagnostics
+
+### Configuration
 - `GET /api/config` - Get current kiosk configuration
 - `POST /api/config` - Update configuration (merge)
 - `PUT /api/config` - Replace entire configuration
+
+### Menu Management
 - `GET /api/menu` - List all menus
 - `GET /api/menu/:name` - Get specific menu content
 - `PUT /api/menu/:name` - Update menu content
 - `DELETE /api/menu/:name` - Delete menu
-- `POST /api/upload/*` - File upload endpoints (backgrounds, media, logos)
+- `GET /api/menu/:name/history` - Get menu version history
+
+### Rules & Scheduling
+- `GET /api/rules` - List all scheduling rules
+- `POST /api/rules` - Create new rule
+- `PUT /api/rules/:id` - Update rule
+- `DELETE /api/rules/:id` - Delete rule
+
+### File Management
 - `GET /api/backgrounds` - List background images
+- `GET /api/fonts` - List available fonts
+- `POST /api/upload/bg` - Upload background image
+- `POST /api/upload/media` - Upload media file
+- `DELETE /api/upload/bg/:filename` - Delete background image
+
+### System Control
 - `POST /api/system/reload` - Trigger kiosk reload
+- `GET /api/auth/me` - Get current user info (authenticated)
+
+### Authentication
+- `POST /api/auth/login` - User login
+- `POST /api/auth/logout` - User logout
 
 ## Maintenance & Management
 
@@ -156,7 +199,7 @@ pm2 monit
 ### Health Check
 ```bash
 # Check system status
-curl http://YOUR-HOSTNAME.local:3000/api/status
+curl http://YOUR-HOSTNAME.local/api/status
 
 # Returns JSON: version, uptime, menu stats, config status
 ```
@@ -196,7 +239,7 @@ npm run build
 
 ## License & Credits
 
-**314Sign v0.9.2.1**  
+**314Sign v1.0.2.1**
 Licensed under [Creative Commons Attribution-NonCommercial 4.0 International](LICENSE)
 
 - ✅ Free for personal, educational, and non-profit use
