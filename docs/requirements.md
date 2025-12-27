@@ -4,13 +4,20 @@ Hardware and software requirements for running 314Sign.
 
 ## Hardware Requirements
 
-### Minimum Requirements
-- **Raspberry Pi 3B+** or newer (Pi Zero 2 W recommended)
+### Minimum Requirements (Main Kiosk)
+- **Raspberry Pi 3B+** or newer (Pi 4/5 recommended)
 - **2GB RAM** minimum (4GB recommended)
 - **16GB microSD card** minimum (32GB recommended)
 - **Network connection** (Ethernet or Wi-Fi)
 
-### Recommended Hardware
+### Remote Display Requirements
+- **Raspberry Pi Zero 2 W** (optimized for remotes)
+- **512MB RAM** minimum (Pi Zero 2 W has 512MB)
+- **8GB microSD card** minimum (16GB recommended)
+- **HDMI display** (required for kiosk mode)
+- **Network connection** (Ethernet or Wi-Fi)
+
+### Recommended Hardware (Main Kiosk)
 - **Raspberry Pi 4** or **Raspberry Pi 5**
 - **4GB RAM** or more
 - **32GB microSD card** or larger
@@ -95,6 +102,24 @@ Main kiosk: http://your-pi-hostname.local
 Edit menus: http://your-pi-hostname.local/edit/
 Design page: http://your-pi-hostname.local/design/
 ```
+
+### 6. Set Up Remote Displays (Optional)
+For multi-display setups with additional Raspberry Pis:
+
+```bash
+# On each remote Pi (Pi Zero 2 W recommended)
+curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/remclient/remote-setup.sh | sudo bash
+
+# Register remote with main kiosk at /remotes/
+# Use the 6-character code displayed on remote screen
+```
+
+**Remote Features:**
+- Hardware-based unique device IDs
+- Optimized for Pi Zero 2 W (88% RAM reduction)
+- Per-remote display modes (mirror, menu, slideshow)
+- Admin remote management and configuration push
+- Offline fallback with cached content
 
 ## Development Setup
 
