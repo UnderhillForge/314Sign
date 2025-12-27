@@ -190,10 +190,11 @@ if ! ping -c 1 github.com >/dev/null 2>&1; then
   exit 1
 fi
 
-# Clone repository with sparse checkout (only public directory)
-echo "Using sparse checkout to download only necessary files..."
-if ! git clone --depth 1 --filter=blob:none --sparse https://github.com/UnderhillForge/314Sign.git "$TEMP_DIR/314Sign" 2>&1; then
-  echo "Sparse checkout failed, trying full clone..."
+# Clone repository with minimal sparse checkout (only essential files)
+echo "Using sparse checkout to download only essential files..."
+if ! git clone --depth 1 --filter=tree:0 --sparse https://github.com/UnderhillForge/314Sign.git "$TEMP_DIR/314Sign" 2>&1; then
+  echo "Sparse checkout failed, trying alternative method..."
+  # Fallback: Clone and remove unnecessary files
   if ! git clone --depth 1 https://github.com/UnderhillForge/314Sign.git "$TEMP_DIR/314Sign" 2>&1; then
     echo ""
     echo "ERROR: Git clone failed!"
@@ -206,9 +207,11 @@ if ! git clone --depth 1 --filter=blob:none --sparse https://github.com/Underhil
     exit 1
   fi
 else
-  # Configure sparse checkout to only include public directory and scripts
+  # Configure sparse checkout to only include essential directories
   cd "$TEMP_DIR/314Sign"
-  git sparse-checkout set public scripts docs
+  git sparse-checkout add public/
+  git sparse-checkout add scripts/
+  git sparse-checkout add docs/
   cd - >/dev/null
 fi
 
