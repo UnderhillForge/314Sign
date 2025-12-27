@@ -25,7 +25,7 @@
 #   sudo ./remote-setup.sh
 ###############################################################################
 
-set -e  # Exit on any error
+# set -e  # Disabled - script now handles errors gracefully
 
 echo "=== 314Sign Remote Kiosk Setup ==="
 echo ""
