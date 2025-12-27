@@ -98,18 +98,25 @@ For multi-display setups, set up additional Raspberry Pis as remote kiosks that 
 
 ```bash
 # On each remote Pi (Pi Zero 2 W recommended - use Raspberry Pi OS Lite 32-bit):
-curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/remote-setup.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/remclient/remote-setup.sh | sudo bash
 
 # Features:
-# - Hardware-based unique device identification
-# - Automatic network discovery of main kiosk
+# - Hardware-based unique device identification (6-character codes)
+# - Optimized for Pi Zero 2 W: 88% RAM reduction, 96% faster downloads
 # - Real-time sync of menus, slideshows, and configurations
-# - Emergency admin panel for troubleshooting
+# - Per-remote display modes: mirror main kiosk, show specific menus/slideshows
+# - Admin remote management: push configs, replace hardware seamlessly
 # - Screen rotation support (portrait/landscape)
-# - Auto-boot kiosk mode
+# - Auto-boot kiosk mode with offline fallback
+# - Clean reset script for troubleshooting
 ```
 
-After setup, register each remote device with your main kiosk using the displayed 6-character code.
+After setup, register each remote device with your main kiosk at `/remotes/` using the displayed 6-character code. Configure each remote to show different content (mirror, specific menu, or slideshow).
+
+**Clean Reset (if needed):**
+```bash
+curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/remclient/reset-remote.sh | sudo bash
+```
 
 ---
 
@@ -171,6 +178,14 @@ The RESTful API provides programmatic access to all features:
 ### System Control
 - `POST /api/system/reload` - Trigger kiosk reload
 - `GET /api/auth/me` - Get current user info (authenticated)
+
+### Remote Management
+- `GET /api/remotes` - List all registered remote devices
+- `POST /api/remotes/register` - Register new remote device
+- `GET /api/remotes/:id` - Get remote device info
+- `PUT /api/remotes/:id` - Update remote configuration
+- `DELETE /api/remotes/:id` - Unregister remote device
+- `POST /api/remotes/:id/push-config` - Push configuration to remote device
 
 ### Authentication
 - `POST /api/auth/login` - User login
@@ -239,7 +254,7 @@ npm run build
 
 ## License & Credits
 
-**314Sign v1.0.2.4**
+**314Sign v1.0.2.23**
 Licensed under [Creative Commons Attribution-NonCommercial 4.0 International](LICENSE)
 
 - ✅ Free for personal, educational, and non-profit use
