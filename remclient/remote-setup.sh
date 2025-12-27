@@ -488,18 +488,31 @@ Section "OutputClass"
 EndSection
 EOF
 
-# Set display rotation in boot config
+# Set GPU memory and HDMI configuration for Pi Zero 2 W
 BOOT_CONFIG="/boot/firmware/config.txt"
 [ ! -f "$BOOT_CONFIG" ] && BOOT_CONFIG="/boot/config.txt"
 
 if [ -f "$BOOT_CONFIG" ]; then
-  # Remove any existing display_rotate or display_hdmi_rotate settings
+  # Remove any existing display settings
   sudo sed -i '/^display_rotate=/d' "$BOOT_CONFIG"
-  sudo sed -i '/^display_hdmi_rotate=/d' "$BOOT_CONFIG"
-  # Add new rotation settings for each HDMI port
-  echo "display_hdmi_rotate:0=$ROTATION_HDMI1" | sudo tee -a "$BOOT_CONFIG" > /dev/null
-  echo "display_hdmi_rotate:1=$ROTATION_HDMI2" | sudo tee -a "$BOOT_CONFIG" > /dev/null
-  echo "Display rotation set in $BOOT_CONFIG"
+  sudo sed -i '/^display_hdmi_rotate/d' "$BOOT_CONFIG"
+  sudo sed -i '/^gpu_mem=/d' "$BOOT_CONFIG"
+  sudo sed -i '/^hdmi_force_hotplug=/d' "$BOOT_CONFIG"
+  sudo sed -i '/^hdmi_group=/d' "$BOOT_CONFIG"
+  sudo sed -i '/^hdmi_mode=/d' "$BOOT_CONFIG"
+
+  # Add GPU memory for X server (critical for Pi Zero)
+  echo "gpu_mem=128" | sudo tee -a "$BOOT_CONFIG" > /dev/null
+
+  # Force HDMI hotplug detection (single HDMI port on Pi Zero 2 W)
+  echo "hdmi_force_hotplug=1" | sudo tee -a "$BOOT_CONFIG" > /dev/null
+  echo "hdmi_group=1" | sudo tee -a "$BOOT_CONFIG" > /dev/null
+  echo "hdmi_mode=16" | sudo tee -a "$BOOT_CONFIG" > /dev/null
+
+  # Set display rotation for single HDMI port
+  echo "display_hdmi_rotate=$ROTATION_HDMI1" | sudo tee -a "$BOOT_CONFIG" > /dev/null
+
+  echo "GPU memory and HDMI configuration set in $BOOT_CONFIG"
 fi
 
 # Configure auto-login to console
@@ -514,9 +527,8 @@ xset s off
 xset s noblank
 xset -dpms
 
-# Set screen rotation
+# Set screen rotation (single HDMI port on Pi Zero 2 W)
 xrandr --output HDMI-1 --rotate $(case $ROTATION_HDMI1 in 0) echo "normal";; 1) echo "right";; 2) echo "inverted";; 3) echo "left";; esac) 2>/dev/null || true
-xrandr --output HDMI-2 --rotate $(case $ROTATION_HDMI2 in 0) echo "normal";; 1) echo "right";; 2) echo "inverted";; 3) echo "left";; esac) 2>/dev/null || true
 
 # Hide mouse cursor after 1 second
 unclutter -idle 1 -root &
