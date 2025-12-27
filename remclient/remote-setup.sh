@@ -128,31 +128,21 @@ echo ""
 # Check if running interactively
 if [ -t 0 ]; then
   # Interactive mode - prompt for input (default to landscape)
-  read -p "Enter rotation for HDMI-1 (0-3) [default: 0]: " ROTATION_HDMI1
+  read -p "Enter rotation for HDMI (0-3) [default: 0]: " ROTATION_HDMI1
   ROTATION_HDMI1=${ROTATION_HDMI1:-0}
-
-  read -p "Enter rotation for HDMI-2 (0-3) [default: 0]: " ROTATION_HDMI2
-  ROTATION_HDMI2=${ROTATION_HDMI2:-0}
 else
   # Non-interactive mode - use portrait default for automated setup
   echo "Non-interactive mode detected, using portrait orientation for remotes..."
   ROTATION_HDMI1=3
-  ROTATION_HDMI2=3
 fi
 
 # Validate input
 if ! [[ "$ROTATION_HDMI1" =~ ^[0-3]$ ]]; then
-  echo "Invalid HDMI-1 rotation. Using 0 (normal)."
+  echo "Invalid HDMI rotation. Using 0 (normal)."
   ROTATION_HDMI1=0
 fi
 
-if ! [[ "$ROTATION_HDMI2" =~ ^[0-3]$ ]]; then
-  echo "Invalid HDMI-2 rotation. Using 0 (normal)."
-  ROTATION_HDMI2=0
-fi
-
-echo "HDMI-1 rotation: $ROTATION_HDMI1"
-echo "HDMI-2 rotation: $ROTATION_HDMI2"
+echo "HDMI rotation: $ROTATION_HDMI1"
 echo ""
 
 # === 3. Install required packages ===
@@ -278,8 +268,7 @@ cat > /var/www/html/device.json <<EOF
   "code": "$DEVICE_CODE",
   "type": "remote",
   "orientation": {
-    "hdmi1": $ROTATION_HDMI1,
-    "hdmi2": $ROTATION_HDMI2
+    "hdmi1": $ROTATION_HDMI1
   },
   "setupDate": "$(date -Iseconds)",
   "version": "remote-1.0.0"
