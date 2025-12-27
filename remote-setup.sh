@@ -336,22 +336,28 @@ server.username             = "www-data"
 server.groupname            = "www-data"
 server.port                 = 80
 
-index-file.names            = ( "index.php", "index.html", "index.lighttpd.html" )
+index-file.names            = ( "index.php", "index.html" )
 url.access-deny             = ( "~", ".inc" )
 static-file.exclude-extensions = ( ".php", ".pl", ".fcgi" )
 
-compress.cache-dir          = "/var/cache/lighttpd/compress/"
-compress.filetype           = ( "application/javascript", "text/css", "text/html", "text/plain" )
+# Basic MIME types
+mimetype.assign = (
+  ".html" => "text/html",
+  ".txt" => "text/plain",
+  ".jpg" => "image/jpeg",
+  ".png" => "image/png",
+  ".gif" => "image/gif",
+  ".css" => "text/css",
+  ".js" => "application/javascript",
+  ".json" => "application/json"
+)
 
 # FastCGI for PHP
 fastcgi.server = ( ".php" => ((
 	"bin-path" => "/usr/bin/php-cgi",
-	"socket" => "/tmp/php.socket"
+	"socket" => "/tmp/php.socket",
+	"max-procs" => 1
 )))
-
-include_shell "/usr/share/lighttpd/use-ipv6.pl " + server.port
-include_shell "/usr/share/lighttpd/create-mime.assign.pl"
-include_shell "/usr/share/lighttpd/include-conf-enabled.pl"
 EOF
 
 # Restart lighttpd
