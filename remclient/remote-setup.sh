@@ -17,10 +17,10 @@
 #   - Automatic connection to main kiosk
 #
 # Usage:
-#   curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/remote-setup.sh | sudo bash
+#   curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/remclient/remote-setup.sh | sudo bash
 #
 # Or download and run:
-#   wget https://raw.githubusercontent.com/UnderhillForge/314Sign/main/remote-setup.sh
+#   wget https://raw.githubusercontent.com/UnderhillForge/314Sign/main/remclient/remote-setup.sh
 #   chmod +x remote-setup.sh
 #   sudo ./remote-setup.sh
 ###############################################################################
