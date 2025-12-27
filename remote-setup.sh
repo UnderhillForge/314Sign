@@ -7,7 +7,7 @@
 # Includes emergency admin panel for troubleshooting
 #
 # Compatible with:
-#   - Raspberry Pi OS Lite 64-bit with Node.js
+#   - Raspberry Pi OS Lite 32-bit with Node.js
 #
 # Features:
 #   - Hardware-based unique device identification
