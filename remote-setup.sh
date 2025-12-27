@@ -88,41 +88,57 @@ fi
 echo "Device will be discoverable as: $NEW_HOSTNAME.local"
 echo ""
 
-# === 1. Ask for Main Kiosk Identifier ===
-echo "Main Kiosk Configuration:"
-echo "Enter a simple identifier for your main 314Sign kiosk (e.g., 'kitchen', 'main', 'dining')"
-echo "This will be used to automatically discover the kiosk on your network."
-read -p "Main kiosk identifier: " MAIN_KIOSK_IDENTIFIER
+# === 1. Main Kiosk Configuration ===
+# NOTE: Main kiosk identifier is not needed during initial setup.
+# Remote devices will be registered and configured through the main kiosk's web interface.
+# The remote will discover the main kiosk via mDNS/avahi or get configured during registration.
 
-if [ -z "$MAIN_KIOSK_IDENTIFIER" ]; then
-  echo "ERROR: Main kiosk identifier is required"
-  exit 1
-fi
-
-# Validate identifier (alphanumeric, dashes, underscores only)
-if ! echo "$MAIN_KIOSK_IDENTIFIER" | grep -q "^[a-zA-Z0-9_-]\+$"; then
-  echo "ERROR: Identifier must contain only letters, numbers, dashes, and underscores"
-  exit 1
-fi
-
-# Construct main kiosk URL using mDNS discovery
-MAIN_KIOSK_URL="http://$MAIN_KIOSK_IDENTIFIER.local"
-echo "Main kiosk identifier: $MAIN_KIOSK_IDENTIFIER"
-echo "Will connect to: $MAIN_KIOSK_URL"
-echo ""
+# Commented out for future mDNS auto-discovery implementation:
+# echo "Main Kiosk Configuration:"
+# echo "Enter a simple identifier for your main 314Sign kiosk (e.g., 'kitchen', 'main', 'dining')"
+# echo "This will be used to automatically discover the kiosk on your network."
+# read -p "Main kiosk identifier: " MAIN_KIOSK_IDENTIFIER
+#
+# if [ -z "$MAIN_KIOSK_IDENTIFIER" ]; then
+#   echo "ERROR: Main kiosk identifier is required"
+#   exit 1
+# fi
+#
+# # Validate identifier (alphanumeric, dashes, underscores only)
+# if ! echo "$MAIN_KIOSK_IDENTIFIER" | grep -q "^[a-zA-Z0-9_-]\+$"; then
+#   echo "ERROR: Identifier must contain only letters, numbers, dashes, and underscores"
+#   exit 1
+# fi
+#
+# # Construct main kiosk URL using mDNS discovery
+# MAIN_KIOSK_URL="http://$MAIN_KIOSK_IDENTIFIER.local"
+# echo "Main kiosk identifier: $MAIN_KIOSK_IDENTIFIER"
+# echo "Will connect to: $MAIN_KIOSK_URL"
+# echo ""
 
 # === 2. Orientation Selection ===
+# For non-interactive setup, use defaults. Orientation can be configured later via main kiosk.
 echo "Screen Orientation:"
 echo "  0 = Normal (landscape)"
 echo "  1 = 90° clockwise (portrait)"
 echo "  2 = 180° (upside down)"
 echo "  3 = 270° clockwise (portrait, other direction)"
 echo ""
-read -p "Enter rotation for HDMI-1 (0-3) [default: 0]: " ROTATION_HDMI1
-ROTATION_HDMI1=${ROTATION_HDMI1:-0}
 
-read -p "Enter rotation for HDMI-2 (0-3) [default: 0]: " ROTATION_HDMI2
-ROTATION_HDMI2=${ROTATION_HDMI2:-0}
+# Check if running interactively
+if [ -t 0 ]; then
+  # Interactive mode - prompt for input
+  read -p "Enter rotation for HDMI-1 (0-3) [default: 0]: " ROTATION_HDMI1
+  ROTATION_HDMI1=${ROTATION_HDMI1:-0}
+
+  read -p "Enter rotation for HDMI-2 (0-3) [default: 0]: " ROTATION_HDMI2
+  ROTATION_HDMI2=${ROTATION_HDMI2:-0}
+else
+  # Non-interactive mode - use defaults
+  echo "Non-interactive mode detected, using default orientations..."
+  ROTATION_HDMI1=0
+  ROTATION_HDMI2=0
+fi
 
 # Validate input
 if ! [[ "$ROTATION_HDMI1" =~ ^[0-3]$ ]]; then
@@ -275,7 +291,6 @@ cat > /var/www/html/device.json <<EOF
   "serial": "$DEVICE_SERIAL",
   "code": "$DEVICE_CODE",
   "type": "remote",
-  "mainKioskUrl": "$MAIN_KIOSK_URL",
   "orientation": {
     "hdmi1": $ROTATION_HDMI1,
     "hdmi2": $ROTATION_HDMI2
@@ -459,52 +474,43 @@ else
   fi
 fi
 
-# === 13. Optional: Set up Kiosk Display Mode ===
+# === 13. Set up Kiosk Display Mode ===
 echo ""
 echo "=== Kiosk Display Setup ==="
 echo ""
-echo "To set up auto-boot kiosk mode with Chromium browser:"
+echo "Setting up auto-boot kiosk mode with Chromium browser."
+echo "The Pi will boot directly to fullscreen remote kiosk display showing the device code."
 echo ""
-echo "This will install minimal X11 + Chromium and configure auto-start."
-echo "The Pi will boot directly to fullscreen remote kiosk display."
-echo ""
-read -p "Set up kiosk display mode now? (y/N): " -n 1 -r
-echo ""
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-  echo "Setting up kiosk display mode..."
-  
-  # Check if kiosk script exists in temp directory or installed location
-  KIOSK_SCRIPT=""
-  if [ -f "$TEMP_DIR/314Sign/scripts/os-lite-kiosk.sh" ]; then
-    KIOSK_SCRIPT="$TEMP_DIR/314Sign/scripts/os-lite-kiosk.sh"
-  elif [ -f "/var/www/html/scripts/os-lite-kiosk.sh" ]; then
-    KIOSK_SCRIPT="/var/www/html/scripts/os-lite-kiosk.sh"
-  fi
-  
-  if [ -n "$KIOSK_SCRIPT" ]; then
-    echo "Running kiosk setup script..."
-    chmod +x "$KIOSK_SCRIPT"
-    # Pass rotation parameters to kiosk script
-    ROTATION="$ROTATION_HDMI1" "$KIOSK_SCRIPT"
-  else
-    echo "Kiosk script not found locally, downloading from GitHub..."
-    if ! curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/scripts/os-lite-kiosk.sh | ROTATION="$ROTATION_HDMI1" bash; then
-      echo "❌ Failed to download or run kiosk setup script"
-      echo "You can try manually:"
-      echo "  curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/scripts/os-lite-kiosk.sh | sudo bash"
-      exit 1
-    fi
-  fi
-  
-  echo ""
-  echo "✅ Kiosk display mode configured!"
-  echo "⚠️  Reboot required for changes to take effect"
-  echo "   sudo reboot"
-  else
-    echo "Kiosk display setup skipped."
-    echo "To set up kiosk mode later, run:"
-    echo "  curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/scripts/os-lite-kiosk.sh | sudo bash"
+
+echo "Setting up kiosk display mode..."
+
+# Check if kiosk script exists in temp directory or installed location
+KIOSK_SCRIPT=""
+if [ -f "$TEMP_DIR/314Sign/scripts/os-lite-kiosk.sh" ]; then
+  KIOSK_SCRIPT="$TEMP_DIR/314Sign/scripts/os-lite-kiosk.sh"
+elif [ -f "/var/www/html/scripts/os-lite-kiosk.sh" ]; then
+  KIOSK_SCRIPT="/var/www/html/scripts/os-lite-kiosk.sh"
 fi
+
+if [ -n "$KIOSK_SCRIPT" ]; then
+  echo "Running kiosk setup script..."
+  chmod +x "$KIOSK_SCRIPT"
+  # Pass rotation parameters to kiosk script
+  ROTATION="$ROTATION_HDMI1" "$KIOSK_SCRIPT"
+else
+  echo "Kiosk script not found locally, downloading from GitHub..."
+  if ! curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/scripts/os-lite-kiosk.sh | ROTATION="$ROTATION_HDMI1" bash; then
+    echo "❌ Failed to download or run kiosk setup script"
+    echo "You can try manually:"
+    echo "  curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/scripts/os-lite-kiosk.sh | sudo bash"
+    exit 1
+  fi
+fi
+
+echo ""
+echo "✅ Kiosk display mode configured!"
+echo "⚠️  Reboot required for changes to take effect"
+echo "   sudo reboot"
 
 # === 14. Cleanup ===
 rm -rf "$TEMP_DIR"

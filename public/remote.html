@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>314Sign Remote - Device Registration</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { height:100%; overflow:hidden; background:#000; color:#fff; font-family:monospace; }
+    body { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+
+    .container { max-width:90%; padding:2rem; }
+
+    .title {
+      font-size: clamp(2rem, 8vw, 6rem);
+      margin-bottom: 2rem;
+      color: #00ff00;
+      text-shadow: 0 0 20px rgba(0,255,0,0.5);
+    }
+
+    .device-code {
+      font-size: clamp(5rem, 25vw, 20rem);
+      font-weight: bold;
+      letter-spacing: 0.2em;
+      color: #ffff00;
+      text-shadow: 0 0 30px rgba(255,255,0,0.8);
+      margin: 2rem 0;
+      border: 4px solid #ffff00;
+      padding: 1rem;
+      border-radius: 1rem;
+      background: rgba(255,255,0,0.1);
+    }
+
+    .instructions {
+      font-size: clamp(1.5rem, 4vw, 3rem);
+      margin: 2rem 0;
+      line-height: 1.4;
+    }
+
+    .status {
+      font-size: clamp(1rem, 2.5vw, 2rem);
+      margin-top: 2rem;
+      color: #888;
+    }
+
+    .qr-code {
+      margin-top: 2rem;
+      max-width: 200px;
+      opacity: 0.7;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+
+    .device-code {
+      animation: pulse 2s infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="title">314Sign Remote Device</div>
+
+    <div class="device-code" id="deviceCode">Loading...</div>
+
+    <div class="instructions">
+      Register this device with your main 314Sign kiosk<br>
+      using the code shown above.
+    </div>
+
+    <div class="status" id="status">Checking registration status...</div>
+
+    <img id="qrCode" class="qr-code" src="qr-emergency-admin.png" alt="Emergency Admin QR" style="display:none;" />
+  </div>
+
+  <script>
+    let deviceCode = 'UNKNOWN';
+    let pollInterval;
+
+    // Load device information
+    async function loadDeviceInfo() {
+      try {
+        const response = await fetch('/device.json');
+        if (response.ok) {
+          const device = await response.json();
+          deviceCode = device.code || 'UNKNOWN';
+          document.getElementById('deviceCode').textContent = deviceCode;
+        }
+      } catch (error) {
+        console.error('Failed to load device info:', error);
+      }
+    }
+
+    // Check registration status
+    async function checkRegistrationStatus() {
+      try {
+        const response = await fetch('/remote-config.json');
+        if (response.ok) {
+          const config = await response.json();
+          const statusEl = document.getElementById('status');
+
+          if (config.registered) {
+            statusEl.textContent = `✅ Registered as "${config.displayName}"`;
+            statusEl.style.color = '#00ff00';
+
+            // Stop polling once registered
+            if (pollInterval) {
+              clearInterval(pollInterval);
+            }
+
+            // Show QR code for emergency admin
+            document.getElementById('qrCode').style.display = 'block';
+
+            // Reload the page to show the actual remote display
+            setTimeout(() => {
+              // Check if we should navigate to the actual remote page
+              fetch('/page.json')
+                .then(r => r.json())
+                .then(pj => {
+                  if (pj.page && pj.page !== 'remote') {
+                    window.location.href = '/' + pj.page + '/';
+                  }
+                })
+                .catch(() => {
+                  // Stay on this page if page.json fails
+                });
+            }, 3000);
+
+          } else {
+            statusEl.textContent = '⏳ Waiting for registration...';
+            statusEl.style.color = '#ffff00';
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check registration:', error);
+      }
+    }
+
+    // Initialize
+    loadDeviceInfo();
+    checkRegistrationStatus();
+
+    // Poll for registration status every 5 seconds
+    pollInterval = setInterval(checkRegistrationStatus, 5000);
+
+    // Also check when page becomes visible (in case user switches tabs)
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        checkRegistrationStatus();
+      }
+    });
+  </script>
+</body>
+</html>
