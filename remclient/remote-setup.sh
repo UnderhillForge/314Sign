@@ -350,12 +350,37 @@ fastcgi.server = ( ".php" => ((
 )))
 EOF
 
-# Restart lighttpd
-sudo systemctl restart lighttpd
-sudo systemctl enable lighttpd
+# Restart lighttpd with fallbacks (critical for script to continue)
+echo "Starting lighttpd service..."
 
-echo "✓ lighttpd configured and started"
-echo "✓ Static file serving ready with PHP support"
+# Enable lighttpd to start on boot
+sudo systemctl enable lighttpd 2>/dev/null || echo "Note: systemctl enable failed, continuing..."
+
+# Try systemctl restart first
+if sudo systemctl restart lighttpd 2>/dev/null; then
+  echo "✓ lighttpd started via systemctl"
+elif sudo service lighttpd restart 2>/dev/null; then
+  echo "✓ lighttpd started via service command"
+else
+  # Fallback: Try to start lighttpd manually
+  echo "systemctl failed, trying manual start..."
+  if sudo lighttpd -f /etc/lighttpd/lighttpd.conf; then
+    echo "✓ lighttpd started manually"
+  else
+    echo "⚠️  lighttpd failed to start - web interface may not be available"
+    echo "   You can try: sudo systemctl restart lighttpd"
+    echo "   Or: sudo lighttpd -f /etc/lighttpd/lighttpd.conf"
+  fi
+fi
+
+# Verify lighttpd is responding (don't fail script if not)
+if curl -s -f http://localhost/ >/dev/null 2>&1; then
+  echo "✓ lighttpd responding on localhost"
+else
+  echo "⚠️  lighttpd not responding - web interface unavailable"
+fi
+
+echo "✓ Static file serving configured with PHP support"
 
 # === 8. Create required directories ===
 sudo mkdir -p /var/www/html/logs
@@ -408,24 +433,18 @@ fi
 
 # Note: QR codes not needed for remotes - only for main kiosk emergency admin access
 
-# === 12. Ensure avahi-daemon is running ===
+# === 12. Ensure avahi-daemon is running (optional service) ===
 echo ""
 echo "Ensuring avahi-daemon is running..."
-if sudo systemctl is-active --quiet avahi-daemon; then
+if sudo systemctl is-active --quiet avahi-daemon 2>/dev/null; then
   echo "✓ Avahi-daemon is already running"
 else
   echo "Starting avahi-daemon..."
-  if sudo systemctl enable avahi-daemon && sudo systemctl start avahi-daemon; then
+  if sudo systemctl enable avahi-daemon 2>/dev/null && sudo systemctl start avahi-daemon 2>/dev/null; then
     echo "✓ Avahi-daemon started and enabled successfully"
   else
-    echo ""
-    echo "⚠️  Avahi-daemon failed to start"
-    echo "This may affect .local hostname resolution"
-    echo "Manual commands:"
-    echo "  sudo systemctl enable avahi-daemon"
-    echo "  sudo systemctl start avahi-daemon"
-    echo "  sudo systemctl status avahi-daemon"
-    echo ""
+    echo "⚠️  Avahi-daemon failed to start - .local hostnames may not work"
+    echo "   This is optional - remote will still work via IP address"
   fi
 fi
 
