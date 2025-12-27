@@ -127,15 +127,15 @@ echo ""
 
 # Check if running interactively
 if [ -t 0 ]; then
-  # Interactive mode - prompt for input
-  read -p "Enter rotation for HDMI-1 (0-3) [default: 3]: " ROTATION_HDMI1
-  ROTATION_HDMI1=${ROTATION_HDMI1:-3}
+  # Interactive mode - prompt for input (default to landscape)
+  read -p "Enter rotation for HDMI-1 (0-3) [default: 0]: " ROTATION_HDMI1
+  ROTATION_HDMI1=${ROTATION_HDMI1:-0}
 
-  read -p "Enter rotation for HDMI-2 (0-3) [default: 3]: " ROTATION_HDMI2
-  ROTATION_HDMI2=${ROTATION_HDMI2:-3}
+  read -p "Enter rotation for HDMI-2 (0-3) [default: 0]: " ROTATION_HDMI2
+  ROTATION_HDMI2=${ROTATION_HDMI2:-0}
 else
-  # Non-interactive mode - use defaults
-  echo "Non-interactive mode detected, using default orientations..."
+  # Non-interactive mode - use portrait default for automated setup
+  echo "Non-interactive mode detected, using portrait orientation for remotes..."
   ROTATION_HDMI1=3
   ROTATION_HDMI2=3
 fi
