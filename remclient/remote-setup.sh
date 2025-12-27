@@ -535,8 +535,11 @@ xset s off
 xset s noblank
 xset -dpms
 
-# Set screen rotation (single HDMI port on Pi Zero 2 W)
-xrandr --output HDMI-1 --rotate $(case $ROTATION_HDMI1 in 0) echo "normal";; 1) echo "right";; 2) echo "inverted";; 3) echo "left";; esac) 2>/dev/null || true
+# Set screen rotation (try both HDMI-0 and HDMI-1 for compatibility)
+HDMI_ROTATE=$(case $ROTATION_HDMI1 in 0) echo "normal";; 1) echo "right";; 2) echo "inverted";; 3) echo "left";; esac)
+xrandr --output HDMI-1 --rotate $HDMI_ROTATE 2>/dev/null || \
+xrandr --output HDMI-0 --rotate $HDMI_ROTATE 2>/dev/null || \
+echo "⚠️  Could not configure HDMI rotation - display may not rotate properly"
 
 # Hide mouse cursor after 1 second
 unclutter -idle 1 -root &
