@@ -7,7 +7,7 @@
 # Includes emergency admin panel for troubleshooting
 #
 # Compatible with:
-#   - Raspberry Pi OS Lite 32-bit with Node.js
+#   - Raspberry Pi OS Lite 32-bit
 #
 # Features:
 #   - Hardware-based unique device identification
@@ -159,33 +159,20 @@ echo ""
 echo "Installing packages..."
 sudo apt update
 
-# Install Node.js (NodeSource repository for latest LTS)
-echo "Installing Node.js..."
-if ! curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -; then
-  echo "Failed to add NodeSource repository, trying alternative..."
-  # Fallback: try installing from default repos
-  sudo apt install -y nodejs npm || {
-    echo "ERROR: Failed to install Node.js"
-    echo "Please install Node.js manually: https://nodejs.org/"
-    exit 1
-  }
-else
-  sudo apt install -y nodejs
-fi
+# Install Apache2 for static file serving
+echo "Installing Apache2..."
+sudo apt install -y apache2
 
-# Verify Node.js installation
-if ! command -v node >/dev/null 2>&1; then
-  echo "ERROR: Node.js installation failed"
+# Verify Apache2 installation
+if ! command -v apache2ctl >/dev/null 2>&1; then
+  echo "ERROR: Apache2 installation failed"
   exit 1
 fi
 
-NODE_VERSION=$(node --version)
-NPM_VERSION=$(npm --version)
-echo "✓ Node.js $NODE_VERSION installed"
-echo "✓ npm $NPM_VERSION installed"
+echo "✓ Apache2 installed"
 
 # Install additional packages
-sudo apt install -y git qrencode avahi-daemon sqlite3 wget curl jq
+sudo apt install -y git qrencode avahi-daemon wget curl jq
 
 # Optional packages (needed for kiosk automation features, skip on headless systems)
 echo "Installing optional packages..."
@@ -314,37 +301,36 @@ EOF
 
 echo "✓ Remote configuration initialized"
 
-# === 7. Install Node.js dependencies and build ===
+# === 7. Configure Apache2 for static file serving ===
 echo ""
-echo "Installing Node.js dependencies..."
-cd /var/www/html
+echo "Configuring Apache2..."
 
-# Check if package.json exists
-if [ ! -f "package.json" ]; then
-  echo "ERROR: package.json not found in /var/www/html"
-  echo "Installation incomplete - missing package.json"
-  exit 1
-fi
+# Enable required Apache modules
+sudo a2enmod rewrite
+sudo a2enmod headers
 
-# Install dependencies
-if ! npm install; then
-  echo "ERROR: npm install failed"
-  echo "Check your internet connection and npm configuration"
-  exit 1
-fi
+# Configure Apache to serve from /var/www/html
+sudo tee /etc/apache2/sites-available/314sign.conf > /dev/null <<EOF
+<VirtualHost *:80>
+    DocumentRoot /var/www/html
+    <Directory /var/www/html>
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
+EOF
 
-echo "✓ Dependencies installed"
+# Enable the site
+sudo a2ensite 314sign
+sudo a2dissite 000-default
 
-# Build TypeScript
-echo "Building TypeScript..."
-if ! npm run build; then
-  echo "ERROR: TypeScript build failed"
-  echo "Check the build output above for errors"
-  exit 1
-fi
+# Restart Apache2
+sudo systemctl restart apache2
+sudo systemctl enable apache2
 
-echo "✓ TypeScript compiled successfully"
-echo "✓ 314Sign remote client ready"
+echo "✓ Apache2 configured and started"
+echo "✓ Static file serving ready"
 
 # === 8. Create required directories ===
 sudo mkdir -p /var/www/html/logs
@@ -393,58 +379,7 @@ else
   echo "Basic permissions set"
 fi
 
-# === 10. Install and configure PM2 for remote client ===
-echo ""
-echo "Installing PM2 process manager..."
-
-# Install PM2 globally
-if ! sudo npm install -g pm2; then
-  echo "ERROR: Failed to install PM2"
-  echo "Please install PM2 manually: sudo npm install -g pm2"
-  exit 1
-fi
-
-echo "✓ PM2 installed successfully"
-
-# Configure PM2 startup (creates systemd service)
-echo "Configuring PM2 startup..."
-if ! pm2 startup; then
-  echo "⚠️  PM2 startup configuration failed"
-  echo "You may need to run: sudo env PATH=\$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $(whoami) --hp /home/$(whoami)"
-else
-  echo "✓ PM2 startup configured"
-fi
-
-# Create PM2 ecosystem file for remote client
-cat > /var/www/html/ecosystem-remote.config.js << 'EOF'
-module.exports = {
-  apps: [{
-    name: '314sign-remote',
-    script: 'dist/remote-client.js',
-    cwd: '/var/www/html',
-    instances: 1,
-    autorestart: true,
-    watch: false,
-    max_memory_restart: '1G',
-    env: {
-      NODE_ENV: 'production',
-      REMOTE_MODE: 'true'
-    },
-    error_log: '/var/www/html/logs/remote-error.log',
-    out_log: '/var/www/html/logs/remote-out.log',
-    log_log: '/var/www/html/logs/remote-combined.log',
-    time: true
-  }]
-};
-EOF
-
-echo "✓ PM2 remote ecosystem configuration created"
-
-# Create logs directory
-sudo mkdir -p /var/www/html/logs
-sudo chown www-data:www-data /var/www/html/logs
-
-# Note: We don't start the remote client yet - it will be started by kiosk setup
+# Note: Remote functionality is entirely client-side, no server process needed
 
 # === 11. Generate QR codes ===
 echo "Generating QR codes..."
@@ -577,9 +512,9 @@ echo "   http://${HOSTNAME}.local/emergency-admin/"
 echo "   (QR code: /var/www/html/qr-emergency-admin.png)"
 echo ""
 echo "🔧 Monitoring:"
-echo "   • PM2 Status: pm2 list"
-echo "   • Logs: pm2 logs 314sign-remote"
+echo "   • Apache Status: sudo systemctl status apache2"
 echo "   • Device Info: cat /var/www/html/device.json"
+echo "   • Remote Config: cat /var/www/html/remote-config.json"
 echo ""
 echo "📋 Next Steps:"
 echo "   1. Register device code '$DEVICE_CODE' with your main kiosk"

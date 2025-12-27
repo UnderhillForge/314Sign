@@ -73,6 +73,38 @@ router.post('/register', authenticateToken, async (req, res) => {
       JSON.stringify(orientation || { hdmi1: 0, hdmi2: 0 })
     ]);
 
+    // Try to update the remote device's configuration with main kiosk URL
+    // The remote should be accessible at remote-{code}.local
+    try {
+      const remoteHostname = `remote-${code}.local`;
+      const remoteConfigUrl = `http://${remoteHostname}/update-remote-config.php`;
+
+      // Get the main kiosk's hostname for the remote to connect to
+      const mainKioskHostname = req.headers.host?.split(':')[0] || 'localhost';
+
+      const remoteConfig = {
+        registered: true,
+        displayName: displayName || `Remote ${code}`,
+        mode: mode || 'mirror',
+        slideshowName: slideshowId || null,
+        mainKioskUrl: `http://${mainKioskHostname}`,
+        orientation: orientation || { hdmi1: 0, hdmi2: 0 },
+        lastUpdate: new Date().toISOString()
+      };
+
+      // Try to update the remote's config via the PHP endpoint
+      fetch(remoteConfigUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(remoteConfig)
+      }).catch(err => {
+        console.log(`Could not update remote ${code} config (normal for initial setup):`, err.message);
+      });
+
+    } catch (error) {
+      console.log(`Failed to configure remote ${code}:`, error instanceof Error ? error.message : String(error));
+    }
+
     res.json({
       success: true,
       data: {

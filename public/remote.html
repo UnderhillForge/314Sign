@@ -78,6 +78,7 @@
 
   <script>
     let deviceCode = 'UNKNOWN';
+    let mainKioskUrl = null;
     let pollInterval;
 
     // Load device information
@@ -94,45 +95,67 @@
       }
     }
 
-    // Check registration status
-    async function checkRegistrationStatus() {
+    // Load remote configuration to get main kiosk URL
+    async function loadRemoteConfig() {
       try {
         const response = await fetch('/remote-config.json');
         if (response.ok) {
           const config = await response.json();
-          const statusEl = document.getElementById('status');
+          mainKioskUrl = config.mainKioskUrl || null;
+          return config;
+        }
+      } catch (error) {
+        console.error('Failed to load remote config:', error);
+      }
+      return null;
+    }
 
-          if (config.registered) {
-            statusEl.textContent = `✅ Registered as "${config.displayName}"`;
-            statusEl.style.color = '#00ff00';
+    // Check registration status
+    async function checkRegistrationStatus() {
+      try {
+        // First load the remote config to get the main kiosk URL
+        const config = await loadRemoteConfig();
 
-            // Stop polling once registered
-            if (pollInterval) {
-              clearInterval(pollInterval);
-            }
+        if (!config) {
+          document.getElementById('status').textContent = '⏳ Loading configuration...';
+          return;
+        }
 
-            // Show QR code for emergency admin
-            document.getElementById('qrCode').style.display = 'block';
+        const statusEl = document.getElementById('status');
 
-            // Reload the page to show the actual remote display
-            setTimeout(() => {
-              // Check if we should navigate to the actual remote page
-              fetch('/page.json')
-                .then(r => r.json())
-                .then(pj => {
-                  if (pj.page && pj.page !== 'remote') {
-                    window.location.href = '/' + pj.page + '/';
-                  }
-                })
-                .catch(() => {
-                  // Stay on this page if page.json fails
-                });
-            }, 3000);
+        if (config.registered && mainKioskUrl) {
+          statusEl.textContent = `✅ Registered as "${config.displayName}"`;
+          statusEl.style.color = '#00ff00';
 
-          } else {
-            statusEl.textContent = '⏳ Waiting for registration...';
-            statusEl.style.color = '#ffff00';
+          // Stop polling once registered
+          if (pollInterval) {
+            clearInterval(pollInterval);
           }
+
+          // Show QR code for emergency admin
+          document.getElementById('qrCode').style.display = 'block';
+
+          // Reload the page to show the actual remote display
+          setTimeout(() => {
+            // Check if we should navigate to the actual remote page
+            fetch('/page.json')
+              .then(r => r.json())
+              .then(pj => {
+                if (pj.page && pj.page !== 'remote') {
+                  window.location.href = '/' + pj.page + '/';
+                }
+              })
+              .catch(() => {
+                // Stay on this page if page.json fails
+              });
+          }, 3000);
+
+        } else if (mainKioskUrl) {
+          statusEl.textContent = '⏳ Waiting for registration...';
+          statusEl.style.color = '#ffff00';
+        } else {
+          statusEl.textContent = '⏳ Waiting for main kiosk configuration...';
+          statusEl.style.color = '#ffaa00';
         }
       } catch (error) {
         console.error('Failed to check registration:', error);
