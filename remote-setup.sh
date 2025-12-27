@@ -416,12 +416,7 @@ fi
 
 # Note: Remote functionality is entirely client-side, no server process needed
 
-# === 11. Generate QR codes ===
-echo "Generating QR codes..."
-HOSTNAME=$(hostname)
-cd /var/www/html
-[ ! -f qr-emergency-admin.png ] && qrencode -o qr-emergency-admin.png -s 10 "http://${HOSTNAME}.local/emergency-admin/"
-echo "✓ Emergency admin QR code generated"
+# Note: QR codes not needed for remotes - only for main kiosk emergency admin access
 
 # === 12. Ensure avahi-daemon is running ===
 echo ""
@@ -542,10 +537,7 @@ echo ""
 echo "🌐 Remote Display:"
 echo "   http://${HOSTNAME}.local/remote/"
 echo ""
-echo "🛠️  Emergency Admin:"
-echo "   http://${HOSTNAME}.local/emergency-admin/"
-echo "   (QR code: /var/www/html/qr-emergency-admin.png)"
-echo ""
+# Note: Emergency admin not available on remotes - only on main kiosk
 echo "🔧 Monitoring:"
 echo "   • lighttpd Status: sudo systemctl status lighttpd"
 echo "   • Device Info: cat /var/www/html/device.json"
