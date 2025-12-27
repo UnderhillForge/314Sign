@@ -4,14 +4,14 @@
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: PUT, OPTIONS');
+header('Access-Control-Allow-Methods: PUT, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'PUT') {
+if ($_SERVER['REQUEST_METHOD'] !== 'PUT' && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['error' => 'Method not allowed']);
     exit;
@@ -27,9 +27,26 @@ if ($data === null) {
     exit;
 }
 
-// Write to remote-config.json
+// Read existing configuration
 $configFile = __DIR__ . '/remote-config.json';
-$result = file_put_contents($configFile, json_encode($data, JSON_PRETTY_PRINT));
+$existingConfig = [];
+if (file_exists($configFile)) {
+    $existingData = file_get_contents($configFile);
+    if ($existingData !== false) {
+        $existingConfig = json_decode($existingData, true) ?: [];
+    }
+}
+
+// For PUT: replace entire config
+// For POST: merge with existing config
+if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
+    $finalConfig = $data;
+} else { // POST
+    $finalConfig = array_merge($existingConfig, $data);
+}
+
+// Write updated configuration
+$result = file_put_contents($configFile, json_encode($finalConfig, JSON_PRETTY_PRINT));
 
 if ($result === false) {
     http_response_code(500);
@@ -37,5 +54,5 @@ if ($result === false) {
     exit;
 }
 
-echo json_encode(['success' => true]);
+echo json_encode(['success' => true, 'method' => $_SERVER['REQUEST_METHOD']]);
 ?>

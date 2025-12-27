@@ -872,6 +872,7 @@
 
             <div class="device-actions">
               <button class="btn primary" onclick="configureDevice('${device.id}')">Configure</button>
+              <button class="btn secondary" onclick="pushConfig('${device.id}', '${device.code}')">Push Config</button>
               <button class="btn secondary" onclick="pingDevice('${device.code}')">Test Connection</button>
               <button class="btn danger" onclick="unregisterDevice('${device.id}', '${device.code}')">Unregister</button>
             </div>
@@ -1046,6 +1047,39 @@
         }
       } catch (error) {
         showToast('Network error during save', 'error');
+      }
+    }
+
+    // Push configuration to remote device
+    async function pushConfig(deviceId, deviceCode) {
+      const device = devices.find(d => d.id == deviceId);
+      if (!device) return;
+
+      showToast('Pushing configuration to remote...', 'info');
+
+      try {
+        const response = await fetch(`/api/remotes/${deviceId}/push-config`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            mainKioskUrl: window.location.origin,
+            mode: device.mode,
+            slideshowName: device.slideshowName,
+            orientation: device.orientation
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          showToast(`✅ ${data.message}`, 'success');
+        } else {
+          showToast(data.error || 'Failed to push configuration', 'error');
+        }
+      } catch (error) {
+        showToast('Network error during config push', 'error');
       }
     }
 

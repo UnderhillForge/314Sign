@@ -319,4 +319,97 @@ router.get('/ping/:code', async (req, res) => {
   }
 });
 
+// Push configuration update to a registered remote
+router.post('/:id/push-config', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { mainKioskUrl, mode, slideshowName, orientation } = req.body;
+
+    const db = req.app.locals.db;
+
+    // Get remote details
+    const remote = await db.get('SELECT id, code FROM remotes WHERE id = ? AND status = \'active\'', [id]);
+    if (!remote) {
+      return res.status(404).json({
+        success: false,
+        error: 'Remote not found or not active'
+      });
+    }
+
+    // Prepare config update
+    const configUpdate: any = {
+      lastUpdate: new Date().toISOString()
+    };
+
+    if (mainKioskUrl !== undefined) configUpdate.mainKioskUrl = mainKioskUrl;
+    if (mode !== undefined) configUpdate.mode = mode;
+    if (slideshowName !== undefined) configUpdate.slideshowName = slideshowName;
+    if (orientation !== undefined) configUpdate.orientation = orientation;
+
+    // Try to push config to remote
+    try {
+      const remoteHostname = `remote-${remote.code}.local`;
+      const remoteConfigUrl = `http://${remoteHostname}/update-remote-config.php`;
+
+      const response = await fetch(remoteConfigUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(configUpdate)
+      });
+
+      if (response.ok) {
+        // Update database with new configuration
+        const updates = [];
+        const params = [];
+
+        if (mode !== undefined) {
+          updates.push('mode = ?');
+          params.push(mode);
+        }
+
+        if (slideshowName !== undefined) {
+          updates.push('slideshow_name = ?');
+          params.push(slideshowName);
+        }
+
+        if (orientation !== undefined) {
+          updates.push('orientation = ?');
+          params.push(JSON.stringify(orientation));
+        }
+
+        if (updates.length > 0) {
+          updates.push('last_seen = datetime(\'now\')');
+          params.push(id);
+
+          const query = `UPDATE remotes SET ${updates.join(', ')} WHERE id = ?`;
+          await db.run(query, params);
+        }
+
+        res.json({
+          success: true,
+          message: `Configuration pushed to remote ${remote.code}`,
+          config: configUpdate
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          error: `Failed to push config to remote ${remote.code}: ${response.status}`
+        });
+      }
+    } catch (fetchError) {
+      console.error(`Failed to push config to remote ${remote.code}:`, fetchError);
+      res.status(500).json({
+        success: false,
+        error: `Could not reach remote ${remote.code}: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`
+      });
+    }
+  } catch (error) {
+    console.error('Push config failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to push configuration'
+    });
+  }
+});
+
 export default router;
