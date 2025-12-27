@@ -128,16 +128,16 @@ echo ""
 # Check if running interactively
 if [ -t 0 ]; then
   # Interactive mode - prompt for input
-  read -p "Enter rotation for HDMI-1 (0-3) [default: 0]: " ROTATION_HDMI1
-  ROTATION_HDMI1=${ROTATION_HDMI1:-0}
+  read -p "Enter rotation for HDMI-1 (0-3) [default: 3]: " ROTATION_HDMI1
+  ROTATION_HDMI1=${ROTATION_HDMI1:-3}
 
-  read -p "Enter rotation for HDMI-2 (0-3) [default: 0]: " ROTATION_HDMI2
-  ROTATION_HDMI2=${ROTATION_HDMI2:-0}
+  read -p "Enter rotation for HDMI-2 (0-3) [default: 3]: " ROTATION_HDMI2
+  ROTATION_HDMI2=${ROTATION_HDMI2:-3}
 else
   # Non-interactive mode - use defaults
   echo "Non-interactive mode detected, using default orientations..."
-  ROTATION_HDMI1=0
-  ROTATION_HDMI2=0
+  ROTATION_HDMI1=3
+  ROTATION_HDMI2=3
 fi
 
 # Validate input
