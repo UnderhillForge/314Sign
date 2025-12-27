@@ -26,7 +26,7 @@ Hardware and software requirements for running 314Sign.
 ## Software Requirements
 
 ### Operating System
-- **Raspberry Pi OS Lite** (64-bit) - **Required**
+- **Raspberry Pi OS Lite** (64-bit) - **Required** (32-bit for Pi Zero 2 W)
 - **Debian 11/12** or **Ubuntu 20.04+** (alternative)
 - **macOS 12+** or **Windows 10+** (development only)
 
@@ -54,7 +54,7 @@ Hardware and software requirements for running 314Sign.
 
 ### 1. Prepare Raspberry Pi
 ```bash
-# Download Raspberry Pi OS Lite (64-bit)
+# Download Raspberry Pi OS Lite (64-bit for most Pis, 32-bit for Pi Zero 2 W)
 # Flash to microSD card using Raspberry Pi Imager
 # Enable SSH and Wi-Fi during imaging
 # Boot Pi and connect via SSH

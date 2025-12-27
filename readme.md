@@ -97,7 +97,7 @@ sudo reboot
 For multi-display setups, set up additional Raspberry Pis as remote kiosks that sync with your main kiosk:
 
 ```bash
-# On each remote Pi (Pi Zero 2 W recommended):
+# On each remote Pi (Pi Zero 2 W recommended - use Raspberry Pi OS Lite 32-bit):
 curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/remote-setup.sh | sudo bash
 
 # Features:
