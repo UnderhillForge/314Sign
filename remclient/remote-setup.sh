@@ -342,34 +342,46 @@ EOF
 # Restart lighttpd with fallbacks (critical for script to continue)
 echo "Starting lighttpd service..."
 
-# Enable lighttpd to start on boot
+# Enable lighttpd to start on boot (don't fail script)
 sudo systemctl enable lighttpd 2>/dev/null || echo "Note: systemctl enable failed, continuing..."
 
-# Try systemctl restart first
-if sudo systemctl restart lighttpd 2>/dev/null; then
+# Try multiple methods to start lighttpd (any success prevents script exit)
+LIGHTTPD_STARTED=false
+
+# Method 1: systemctl restart
+if ! $LIGHTTPD_STARTED && sudo systemctl restart lighttpd 2>/dev/null; then
   echo "✓ lighttpd started via systemctl"
-elif sudo service lighttpd restart 2>/dev/null; then
+  LIGHTTPD_STARTED=true
+fi
+
+# Method 2: service command
+if ! $LIGHTTPD_STARTED && sudo service lighttpd restart 2>/dev/null; then
   echo "✓ lighttpd started via service command"
-else
-  # Fallback: Try to start lighttpd manually
+  LIGHTTPD_STARTED=true
+fi
+
+# Method 3: Manual start (background process)
+if ! $LIGHTTPD_STARTED; then
   echo "systemctl failed, trying manual start..."
-  if sudo lighttpd -f /etc/lighttpd/lighttpd.conf; then
+  if sudo lighttpd -f /etc/lighttpd/lighttpd.conf 2>/dev/null; then
     echo "✓ lighttpd started manually"
-  else
-    echo "⚠️  lighttpd failed to start - web interface may not be available"
-    echo "   You can try: sudo systemctl restart lighttpd"
-    echo "   Or: sudo lighttpd -f /etc/lighttpd/lighttpd.conf"
+    LIGHTTPD_STARTED=true
   fi
 fi
 
 # Verify lighttpd is responding (don't fail script if not)
 if curl -s -f http://localhost/ >/dev/null 2>&1; then
   echo "✓ lighttpd responding on localhost"
-else
-  echo "⚠️  lighttpd not responding - web interface unavailable"
+  LIGHTTPD_STARTED=true
 fi
 
-echo "✓ Static file serving configured with PHP support"
+if $LIGHTTPD_STARTED; then
+  echo "✓ Static file serving configured with PHP support"
+else
+  echo "⚠️  lighttpd failed to start - web interface may not be available"
+  echo "   You can try manually: sudo systemctl restart lighttpd"
+  echo "   Or: sudo lighttpd -f /etc/lighttpd/lighttpd.conf"
+fi
 
 # === 8. Create required directories ===
 sudo mkdir -p /var/www/html/logs
