@@ -16,6 +16,17 @@ Installation script for setting up remote kiosk devices. Downloads and configure
 curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/remclient/remote-setup.sh | sudo bash
 ```
 
+### `reset-remote.sh`
+Reset script to restore Raspberry Pi to clean state after remote installation:
+- Removes all kiosk-related packages and configurations
+- Cleans up web files, hostname changes, and boot settings
+- Returns Pi to pre-installation state
+
+**Usage:**
+```bash
+curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/remclient/reset-remote.sh | sudo bash
+```
+
 ### `remote.html`
 Main remote display interface that:
 - Shows device registration code when unregistered
