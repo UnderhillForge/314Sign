@@ -172,7 +172,7 @@ fi
 echo "✓ lighttpd installed"
 
 # Install additional packages
-sudo apt install -y git qrencode avahi-daemon wget curl jq tvservice
+sudo apt install -y git qrencode avahi-daemon wget curl jq
 
 # Optional packages (needed for kiosk automation features, skip on headless systems)
 echo "Installing optional packages..."
