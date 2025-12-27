@@ -172,7 +172,7 @@ fi
 echo "✓ lighttpd installed"
 
 # Install additional packages
-sudo apt install -y git qrencode avahi-daemon wget curl jq
+sudo apt install -y git qrencode avahi-daemon wget curl jq tvservice
 
 # Optional packages (needed for kiosk automation features, skip on headless systems)
 echo "Installing optional packages..."
@@ -439,41 +439,134 @@ else
   fi
 fi
 
-# === 13. Set up Kiosk Display Mode ===
+# === 13. Set up Remote Kiosk Display Mode ===
 echo ""
-echo "=== Kiosk Display Setup ==="
+echo "=== Remote Kiosk Display Setup ==="
 echo ""
 echo "Setting up auto-boot kiosk mode with Chromium browser."
-echo "The Pi will boot directly to fullscreen remote kiosk display showing the device code."
+echo "The remote will display the remote interface showing device code until registered,"
+echo "then mirror the main kiosk content."
 echo ""
 
-echo "Setting up kiosk display mode..."
+echo "Setting up remote kiosk display mode..."
 
-# Check if kiosk script exists in temp directory or installed location
-KIOSK_SCRIPT=""
-if [ -f "$TEMP_DIR/314Sign/scripts/os-lite-kiosk.sh" ]; then
-  KIOSK_SCRIPT="$TEMP_DIR/314Sign/scripts/os-lite-kiosk.sh"
-elif [ -f "/var/www/html/scripts/os-lite-kiosk.sh" ]; then
-  KIOSK_SCRIPT="/var/www/html/scripts/os-lite-kiosk.sh"
-fi
+# Install X server components for remote kiosk
+echo "Installing X server components..."
+sudo apt install -y xserver-xorg xinit openbox unclutter chromium
 
-if [ -n "$KIOSK_SCRIPT" ]; then
-  echo "Running kiosk setup script..."
-  chmod +x "$KIOSK_SCRIPT"
-  # Pass rotation parameters to kiosk script
-  ROTATION="$ROTATION_HDMI1" "$KIOSK_SCRIPT"
+# Detect or install browser (prefer chromium)
+CHROMIUM_CMD=""
+if command -v chromium >/dev/null 2>&1; then
+  CHROMIUM_CMD="chromium"
+  echo "✓ Using chromium"
+elif command -v chromium-browser >/dev/null 2>&1; then
+  CHROMIUM_CMD="chromium-browser"
+  echo "✓ Using chromium-browser"
+elif apt-cache show chromium >/dev/null 2>&1; then
+  echo "Installing chromium..."
+  sudo apt install -y chromium
+  CHROMIUM_CMD="chromium"
+elif apt-cache show chromium-browser >/dev/null 2>&1; then
+  echo "Installing chromium-browser..."
+  sudo apt install -y chromium-browser
+  CHROMIUM_CMD="chromium-browser"
 else
-  echo "Kiosk script not found locally, downloading from GitHub..."
-  if ! curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/scripts/os-lite-kiosk.sh | ROTATION="$ROTATION_HDMI1" bash; then
-    echo "❌ Failed to download or run kiosk setup script"
-    echo "You can try manually:"
-    echo "  curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/scripts/os-lite-kiosk.sh | sudo bash"
-    exit 1
-  fi
+  echo "ERROR: No suitable browser found for kiosk mode"
+  echo "Install chromium manually: sudo apt install chromium"
+  exit 1
 fi
 
+# Get the target user (usually pi)
+TARGET_USER="pi"
+if [ -d "/home/pi" ]; then
+  TARGET_USER="pi"
+elif [ -d "/home/raspberry" ]; then
+  TARGET_USER="raspberry"
+fi
+
+TARGET_HOME="/home/$TARGET_USER"
+echo "Setting up kiosk for user: $TARGET_USER (home: $TARGET_HOME)"
+
+# Create X11 configuration for remote kiosk
+sudo mkdir -p /etc/X11/xorg.conf.d
+sudo tee /etc/X11/xorg.conf.d/99-v3d.conf > /dev/null <<EOF
+Section "OutputClass"
+    Identifier "vc4"
+    MatchDriver "vc4"
+    Driver "modesetting"
+    Option "kmsdev" "/dev/dri/card1"
+EndSection
+EOF
+
+# Set display rotation in boot config
+BOOT_CONFIG="/boot/firmware/config.txt"
+[ ! -f "$BOOT_CONFIG" ] && BOOT_CONFIG="/boot/config.txt"
+
+if [ -f "$BOOT_CONFIG" ]; then
+  # Remove any existing display_rotate or display_hdmi_rotate settings
+  sudo sed -i '/^display_rotate=/d' "$BOOT_CONFIG"
+  sudo sed -i '/^display_hdmi_rotate=/d' "$BOOT_CONFIG"
+  # Add new rotation settings for each HDMI port
+  echo "display_hdmi_rotate:0=$ROTATION_HDMI1" | sudo tee -a "$BOOT_CONFIG" > /dev/null
+  echo "display_hdmi_rotate:1=$ROTATION_HDMI2" | sudo tee -a "$BOOT_CONFIG" > /dev/null
+  echo "Display rotation set in $BOOT_CONFIG"
+fi
+
+# Configure auto-login to console
+echo "Configuring auto-login..."
+sudo raspi-config nonint do_boot_behaviour B2
+
+# Create kiosk startup script for remote display
+mkdir -p "$TARGET_HOME/.config/openbox"
+cat > "$TARGET_HOME/.config/openbox/autostart" <<EOF
+# Disable screen blanking
+xset s off
+xset s noblank
+xset -dpms
+
+# Set screen rotation
+xrandr --output HDMI-1 --rotate $(case $ROTATION_HDMI1 in 0) echo "normal";; 1) echo "right";; 2) echo "inverted";; 3) echo "left";; esac) 2>/dev/null || true
+xrandr --output HDMI-2 --rotate $(case $ROTATION_HDMI2 in 0) echo "normal";; 1) echo "right";; 2) echo "inverted";; 3) echo "left";; esac) 2>/dev/null || true
+
+# Hide mouse cursor after 1 second
+unclutter -idle 1 -root &
+
+# Start Chromium in kiosk mode pointing to remote page
+$CHROMIUM_CMD \\
+  --kiosk \\
+  --remote-debugging-port=9222 \\
+  --remote-debugging-address=0.0.0.0 \\
+  --no-sandbox \\
+  --disable-dev-shm-usage \\
+  --noerrdialogs \\
+  --disable-infobars \\
+  --check-for-update-interval=31536000 \\
+  http://localhost/remote/
+EOF
+
+# Create X11 auto-start
+cat > "$TARGET_HOME/.xinitrc" <<'EOF'
+#!/bin/sh
+# Start openbox window manager for remote kiosk
+exec openbox-session
+EOF
+
+# Configure bash to start X on login
+cat > "$TARGET_HOME/.bash_profile" <<'EOF'
+# Auto-start X11 on login (console only)
+if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
+  startx -- -nocursor
+fi
+EOF
+
+# Set proper ownership and permissions
+chown -R "$TARGET_USER:$TARGET_USER" "$TARGET_HOME/.config"
+chown "$TARGET_USER:$TARGET_USER" "$TARGET_HOME/.xinitrc"
+chown "$TARGET_USER:$TARGET_USER" "$TARGET_HOME/.bash_profile"
+chmod +x "$TARGET_HOME/.xinitrc"
+
 echo ""
-echo "✅ Kiosk display mode configured!"
+echo "✅ Remote kiosk display mode configured!"
 echo "⚠️  Reboot required for changes to take effect"
 echo "   sudo reboot"
 
