@@ -159,17 +159,17 @@ echo ""
 echo "Installing packages..."
 sudo apt update
 
-# Install Apache2 for static file serving
-echo "Installing Apache2..."
-sudo apt install -y apache2
+# Install lighttpd for lightweight static file serving
+echo "Installing lighttpd..."
+sudo apt install -y lighttpd php-cgi
 
-# Verify Apache2 installation
-if ! command -v apache2ctl >/dev/null 2>&1; then
-  echo "ERROR: Apache2 installation failed"
+# Verify lighttpd installation
+if ! command -v lighttpd >/dev/null 2>&1; then
+  echo "ERROR: lighttpd installation failed"
   exit 1
 fi
 
-echo "✓ Apache2 installed"
+echo "✓ lighttpd installed"
 
 # Install additional packages
 sudo apt install -y git qrencode avahi-daemon wget curl jq
@@ -190,17 +190,26 @@ if ! ping -c 1 github.com >/dev/null 2>&1; then
   exit 1
 fi
 
-# Clone repository
-if ! git clone --depth 1 https://github.com/UnderhillForge/314Sign.git "$TEMP_DIR/314Sign" 2>&1; then
-  echo ""
-  echo "ERROR: Git clone failed!"
-  echo "Troubleshooting:"
-  echo "  1. Check internet connection: ping github.com"
-  echo "  2. Verify git is installed: git --version"
-  echo "  3. Try manual clone: git clone https://github.com/UnderhillForge/314Sign.git"
-  echo "  4. Check disk space: df -h"
-  rm -rf "$TEMP_DIR"
-  exit 1
+# Clone repository with sparse checkout (only public directory)
+echo "Using sparse checkout to download only necessary files..."
+if ! git clone --depth 1 --filter=blob:none --sparse https://github.com/UnderhillForge/314Sign.git "$TEMP_DIR/314Sign" 2>&1; then
+  echo "Sparse checkout failed, trying full clone..."
+  if ! git clone --depth 1 https://github.com/UnderhillForge/314Sign.git "$TEMP_DIR/314Sign" 2>&1; then
+    echo ""
+    echo "ERROR: Git clone failed!"
+    echo "Troubleshooting:"
+    echo "  1. Check internet connection: ping github.com"
+    echo "  2. Verify git is installed: git --version"
+    echo "  3. Try manual clone: git clone https://github.com/UnderhillForge/314Sign.git"
+    echo "  4. Check disk space: df -h"
+    rm -rf "$TEMP_DIR"
+    exit 1
+  fi
+else
+  # Configure sparse checkout to only include public directory and scripts
+  cd "$TEMP_DIR/314Sign"
+  git sparse-checkout set public scripts docs
+  cd - >/dev/null
 fi
 
 echo ""
@@ -301,36 +310,56 @@ EOF
 
 echo "✓ Remote configuration initialized"
 
-# === 7. Configure Apache2 for static file serving ===
+# === 7. Configure lighttpd for static file serving ===
 echo ""
-echo "Configuring Apache2..."
+echo "Configuring lighttpd..."
 
-# Enable required Apache modules
-sudo a2enmod rewrite
-sudo a2enmod headers
+# Enable PHP support
+sudo lighttpd-enable-mod fastcgi
+sudo lighttpd-enable-mod fastcgi-php
 
-# Configure Apache to serve from /var/www/html
-sudo tee /etc/apache2/sites-available/314sign.conf > /dev/null <<EOF
-<VirtualHost *:80>
-    DocumentRoot /var/www/html
-    <Directory /var/www/html>
-        Options Indexes FollowSymLinks
-        AllowOverride All
-        Require all granted
-    </Directory>
-</VirtualHost>
+# Configure lighttpd to serve from /var/www/html
+sudo tee /etc/lighttpd/lighttpd.conf > /dev/null <<EOF
+server.modules = (
+	"mod_indexfile",
+	"mod_access",
+	"mod_alias",
+	"mod_redirect",
+	"mod_fastcgi"
+)
+
+server.document-root        = "/var/www/html"
+server.upload-dirs          = ( "/var/cache/lighttpd/uploads" )
+server.errorlog             = "/var/log/lighttpd/error.log"
+server.pid-file             = "/var/run/lighttpd.pid"
+server.username             = "www-data"
+server.groupname            = "www-data"
+server.port                 = 80
+
+index-file.names            = ( "index.php", "index.html", "index.lighttpd.html" )
+url.access-deny             = ( "~", ".inc" )
+static-file.exclude-extensions = ( ".php", ".pl", ".fcgi" )
+
+compress.cache-dir          = "/var/cache/lighttpd/compress/"
+compress.filetype           = ( "application/javascript", "text/css", "text/html", "text/plain" )
+
+# FastCGI for PHP
+fastcgi.server = ( ".php" => ((
+	"bin-path" => "/usr/bin/php-cgi",
+	"socket" => "/tmp/php.socket"
+)))
+
+include_shell "/usr/share/lighttpd/use-ipv6.pl " + server.port
+include_shell "/usr/share/lighttpd/create-mime.assign.pl"
+include_shell "/usr/share/lighttpd/include-conf-enabled.pl"
 EOF
 
-# Enable the site
-sudo a2ensite 314sign
-sudo a2dissite 000-default
+# Restart lighttpd
+sudo systemctl restart lighttpd
+sudo systemctl enable lighttpd
 
-# Restart Apache2
-sudo systemctl restart apache2
-sudo systemctl enable apache2
-
-echo "✓ Apache2 configured and started"
-echo "✓ Static file serving ready"
+echo "✓ lighttpd configured and started"
+echo "✓ Static file serving ready with PHP support"
 
 # === 8. Create required directories ===
 sudo mkdir -p /var/www/html/logs
@@ -512,7 +541,7 @@ echo "   http://${HOSTNAME}.local/emergency-admin/"
 echo "   (QR code: /var/www/html/qr-emergency-admin.png)"
 echo ""
 echo "🔧 Monitoring:"
-echo "   • Apache Status: sudo systemctl status apache2"
+echo "   • lighttpd Status: sudo systemctl status lighttpd"
 echo "   • Device Info: cat /var/www/html/device.json"
 echo "   • Remote Config: cat /var/www/html/remote-config.json"
 echo ""
