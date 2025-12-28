@@ -6,7 +6,7 @@
 echo "=== 314Sign Remote Setup ==="
 
 # Detect FullPageOS
-if [ ! -f "/boot/fullpageos.txt" ]; then
+if [ ! -f "/boot/firmware/fullpageos.txt" ]; then
   echo "ERROR: FullPageOS not detected!"
   exit 1
 fi
@@ -21,9 +21,9 @@ echo "Device Code: $DEVICE_CODE"
 # Set hostname
 sudo hostnamectl set-hostname "remote-$DEVICE_CODE" 2>/dev/null || sudo hostname "remote-$DEVICE_CODE"
 
-# Install web server
-echo "Installing web server..."
-sudo apt update && sudo apt install -y lighttpd php-cgi git
+# Install git only (skip web server for now)
+echo "Installing git..."
+sudo apt update && sudo apt install -y git
 
 # Clone and copy files
 TEMP_DIR=$(mktemp -d)
@@ -55,13 +55,12 @@ EOF
 # Set permissions
 sudo chown -R www-data:www-data /var/www/html
 
-# Configure browser URL
+# Copy remote.html to boot partition and configure browser URL
 echo "Configuring FullPageOS browser..."
-echo "http://localhost/remote.html" | sudo tee /boot/fullpageos.txt > /dev/null
+sudo cp /var/www/html/remote.html /boot/firmware/ 2>/dev/null || echo "Could not copy remote.html to boot partition"
+echo "file:///boot/firmware/remote.html" | sudo tee /boot/firmware/fullpageos.txt > /dev/null
 
-# Start web server
-sudo systemctl enable lighttpd 2>/dev/null
-sudo systemctl start lighttpd 2>/dev/null
+# Skip web server start for now
 
 # Cleanup
 rm -rf "$TEMP_DIR"
