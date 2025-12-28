@@ -58,7 +58,8 @@ router.post('/register', authenticateToken, async (req, res) => {
     const db = req.app.locals.db;
 
     // Check if remote is already registered
-    const existing = db.get('SELECT id FROM remotes WHERE code = ?', [code]);
+    const existingStmt = db.prepare('SELECT id FROM remotes WHERE code = ?');
+    const existing = existingStmt.get(code);
     if (existing) {
       return res.status(409).json({
         success: false,
@@ -67,16 +68,17 @@ router.post('/register', authenticateToken, async (req, res) => {
     }
 
     // Insert new remote
-    const result = db.run(`
+    const insertStmt = db.prepare(`
       INSERT INTO remotes (code, display_name, mode, slideshow_name, orientation, status, created_at, last_seen)
       VALUES (?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))
-    `, [
+    `);
+    const result = insertStmt.run(
       code,
       displayName || `Remote ${code}`,
       mode || 'mirror',
       slideshowId || null,
       JSON.stringify(orientation || { hdmi1: 0, hdmi2: 0 })
-    ]);
+    );
 
     // Try to update the remote device's configuration with main kiosk URL
     // The remote should be accessible at remote-{code}.local
@@ -139,7 +141,8 @@ router.put('/:id', authenticateToken, async (req, res) => {
     const db = req.app.locals.db;
 
     // Check if remote exists
-    const existing = db.get('SELECT id FROM remotes WHERE id = ?', [id]);
+    const existingStmt = db.prepare('SELECT id FROM remotes WHERE id = ?');
+    const existing = existingStmt.get(id);
     if (!existing) {
       return res.status(404).json({
         success: false,
@@ -227,7 +230,8 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     const db = req.app.locals.db;
 
     // Check if remote exists
-    const existing = db.get('SELECT id, code FROM remotes WHERE id = ?', [id]);
+    const existingStmt = db.prepare('SELECT id, code FROM remotes WHERE id = ?');
+    const existing = existingStmt.get(id);
     if (!existing) {
       return res.status(404).json({
         success: false,
@@ -236,7 +240,8 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     }
 
     // Delete remote
-    db.run('DELETE FROM remotes WHERE id = ?', [id]);
+    const deleteStmt = db.prepare('DELETE FROM remotes WHERE id = ?');
+    deleteStmt.run(id);
 
     res.json({
       success: true,
@@ -257,10 +262,11 @@ router.get('/config/:code', async (req, res) => {
     const { code } = req.params;
     const db = req.app.locals.db;
 
-    const remote = db.get(`
+    const remoteStmt = db.prepare(`
       SELECT id, serial, display_name, mode, slideshow_name, orientation, status
       FROM remotes WHERE code = ? AND status = 'active'
-    `, [code]);
+    `);
+    const remote = remoteStmt.get(code);
 
     if (!remote) {
       return res.json({
@@ -271,7 +277,8 @@ router.get('/config/:code', async (req, res) => {
     }
 
     // Update last seen
-    db.run('UPDATE remotes SET last_seen = datetime(\'now\') WHERE id = ?', [remote.id]);
+    const updateStmt = db.prepare('UPDATE remotes SET last_seen = datetime(\'now\') WHERE id = ?');
+    updateStmt.run(remote.id);
 
     res.json({
       registered: true,
@@ -298,11 +305,13 @@ router.get('/ping/:code', async (req, res) => {
     const { code } = req.params;
     const db = req.app.locals.db;
 
-    const remote = db.get('SELECT id FROM remotes WHERE code = ? AND status = \'active\'', [code]);
+    const remoteStmt = db.prepare('SELECT id FROM remotes WHERE code = ? AND status = \'active\'');
+    const remote = remoteStmt.get(code);
 
     if (remote) {
       // Update last seen
-      db.run('UPDATE remotes SET last_seen = datetime(\'now\') WHERE id = ?', [remote.id]);
+      const updateStmt = db.prepare('UPDATE remotes SET last_seen = datetime(\'now\') WHERE id = ?');
+      updateStmt.run(remote.id);
 
       res.json({
         success: true,
@@ -333,7 +342,8 @@ router.post('/:id/push-config', authenticateToken, async (req, res) => {
     const db = req.app.locals.db;
 
     // Get remote details
-    const remote = db.get('SELECT id, code FROM remotes WHERE id = ? AND status = \'active\'', [id]);
+    const remoteStmt = db.prepare('SELECT id, code FROM remotes WHERE id = ? AND status = \'active\'');
+    const remote = remoteStmt.get(id);
     if (!remote) {
       return res.status(404).json({
         success: false,
