@@ -55,10 +55,10 @@ EOF
 # Set permissions
 sudo chown -R www-data:www-data /var/www/html
 
-# Copy remote.html to boot partition and configure browser URL
-echo "Configuring FullPageOS browser..."
+# Copy remote.html to boot partition (commented out browser URL config for testing)
+echo "Copying remote files..."
 sudo cp /var/www/html/remote.html /boot/firmware/ 2>/dev/null || echo "Could not copy remote.html to boot partition"
-echo "file:///boot/firmware/remote.html" | sudo tee /boot/firmware/fullpageos.txt > /dev/null
+# echo "file:///boot/firmware/remote.html" | sudo tee /boot/firmware/fullpageos.txt > /dev/null  # Commented out for testing
 
 # Skip web server start for now
 
