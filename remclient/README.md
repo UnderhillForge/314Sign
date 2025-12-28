@@ -5,11 +5,12 @@ This directory contains files that belong on remote kiosk devices, not the main 
 ## Files
 
 ### `remote-setup.sh`
-Installation script for setting up remote kiosk devices. Downloads and configures:
-- Raspberry Pi OS Lite with kiosk mode
-- lighttpd web server for minimal hosting
-- Chromium browser in fullscreen kiosk mode
-- Automatic device registration with main kiosk
+Simplified setup script for FullPageOS systems. Configures the existing browser to display the remote interface:
+- Detects FullPageOS installation
+- Installs lighttpd web server for local content hosting
+- Copies remote interface files to web root
+- Generates unique device identifier
+- Configures FullPageOS browser to load remote registration interface
 
 **Usage:**
 ```bash
@@ -17,10 +18,11 @@ curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/remclien
 ```
 
 ### `reset-remote.sh`
-Reset script to restore Raspberry Pi to clean state after remote installation:
-- Removes all kiosk-related packages and configurations
-- Cleans up web files, hostname changes, and boot settings
-- Returns Pi to pre-installation state
+Reset script to restore FullPageOS to clean state after 314Sign remote installation:
+- Removes 314Sign-specific files and configurations
+- Resets hostname and browser configuration
+- Optionally removes web server packages
+- Preserves FullPageOS installation intact
 
 **Usage:**
 ```bash
@@ -42,7 +44,8 @@ PHP endpoint for receiving configuration updates from the main kiosk:
 
 ## Architecture
 
-Remote devices are **hybrid thin clients** that:
+Remote devices are **lightweight web clients** that:
+- Use FullPageOS as the display platform
 - Get most content from the main kiosk server
 - Maintain minimal local storage for offline/cached content
 - Receive configuration updates via HTTP
@@ -50,22 +53,40 @@ Remote devices are **hybrid thin clients** that:
 
 ## Installation Flow
 
-1. Run `remote-setup.sh` on fresh Raspberry Pi
-2. Device generates unique ID and displays registration code
-3. Admin registers device code in main kiosk interface
-4. Remote receives configuration and begins displaying content
-5. Remote polls for updates and maintains offline fallback
+1. Install FullPageOS on Raspberry Pi (3B+ or newer recommended)
+2. Run `remote-setup.sh` on the FullPageOS system
+3. Device generates unique ID and displays registration code on screen
+4. Admin registers device code in main kiosk web interface
+5. Remote receives configuration and begins displaying assigned content
+6. Remote polls for updates and maintains offline fallback
 
 ## Requirements
 
-- Raspberry Pi Zero 2 W or similar
-- Raspberry Pi OS Lite 32-bit
-- Internet connection for initial setup
-- HDMI display for kiosk output
+- **FullPageOS** (recommended) - provides browser and display management
+- Raspberry Pi 3B+ or newer (Pi 5 recommended for best performance)
+- Internet connection for initial setup and content updates
+- HDMI display connected to Raspberry Pi
+
+## Compatibility
+
+-  **FullPageOS** (primary support)
+-   **Raspberry Pi OS Lite** (fallback, requires manual kiosk setup)
+
+The script automatically detects FullPageOS and uses the appropriate configuration method.
 
 ## Maintenance
 
 - Remote devices are largely self-maintaining
-- Configuration updates happen automatically
-- Content updates pull from main kiosk
+- Configuration updates happen automatically via HTTP polling
+- Content updates pull from main kiosk server
+- FullPageOS handles browser and display management
 - No manual intervention required after initial setup
+
+## Troubleshooting
+
+If setup fails or you need to start over:
+1. Run `reset-remote.sh` to clean up 314Sign configurations
+2. Reboot the system
+3. Run `remote-setup.sh` again
+
+The reset script preserves FullPageOS while removing only 314Sign additions.
