@@ -18,8 +18,8 @@ CPU_SERIAL=$(grep "Serial" /proc/cpuinfo | awk '{print $3}' | tr '[:lower:]' '[:
 DEVICE_CODE=$(echo "$CPU_SERIAL" | md5sum | cut -c1-6 | tr '[:lower:]' '[:upper:]')
 echo "Device Code: $DEVICE_CODE"
 
-# Set hostname
-sudo hostnamectl set-hostname "remote-$DEVICE_CODE" 2>/dev/null || sudo hostname "remote-$DEVICE_CODE"
+# Set hostname (commented out for testing - might break FullPageOS)
+# sudo hostnamectl set-hostname "remote-$DEVICE_CODE" 2>/dev/null || sudo hostname "remote-$DEVICE_CODE"
 
 # Install git only (skip web server for now)
 echo "Installing git..."
