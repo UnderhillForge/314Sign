@@ -18,8 +18,8 @@ CPU_SERIAL=$(grep "Serial" /proc/cpuinfo | awk '{print $3}' | tr '[:lower:]' '[:
 DEVICE_CODE=$(echo "$CPU_SERIAL" | md5sum | cut -c1-6 | tr '[:lower:]' '[:upper:]')
 echo "Device Code: $DEVICE_CODE"
 
-# Set hostname (commented out for testing - might break FullPageOS)
-# sudo hostnamectl set-hostname "remote-$DEVICE_CODE" 2>/dev/null || sudo hostname "remote-$DEVICE_CODE"
+# Set hostname
+sudo hostnamectl set-hostname "remote-$DEVICE_CODE" 2>/dev/null || sudo hostname "remote-$DEVICE_CODE"
 
 # Install git only (skip web server for now)
 echo "Installing git..."
@@ -55,10 +55,10 @@ EOF
 # Set permissions
 sudo chown -R www-data:www-data /var/www/html
 
-# Copy remote.html to boot partition (commented out browser URL config for testing)
-echo "Copying remote files..."
+# Copy remote.html to boot partition and configure browser URL
+echo "Configuring FullPageOS browser..."
 sudo cp /var/www/html/remote.html /boot/firmware/ 2>/dev/null || echo "Could not copy remote.html to boot partition"
-# echo "file:///boot/firmware/remote.html" | sudo tee /boot/firmware/fullpageos.txt > /dev/null  # Commented out for testing
+echo "file:///boot/firmware/remote.html" | sudo tee /boot/firmware/fullpageos.txt > /dev/null
 
 # Skip web server start for now
 
