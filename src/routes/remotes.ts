@@ -1,18 +1,23 @@
 import express from 'express';
 import { authenticateToken } from './auth.js';
+import { dbHelpers } from '../database.js';
 
 const router = express.Router();
 
 // Get all registered remotes
 router.get('/', authenticateToken, async (req, res) => {
   try {
+    // Use direct SQL with the raw database object
     const db = req.app.locals.db;
-    const remotes = await db.all(`
+
+    // Use prepared statement for the query
+    const stmt = db.prepare(`
       SELECT id, serial, code, display_name, mode, slideshow_name,
              orientation, last_seen, created_at, status
       FROM remotes
       ORDER BY last_seen DESC, created_at DESC
     `);
+    const remotes = stmt.all();
 
     res.json({
       success: true,
@@ -53,7 +58,7 @@ router.post('/register', authenticateToken, async (req, res) => {
     const db = req.app.locals.db;
 
     // Check if remote is already registered
-    const existing = await db.get('SELECT id FROM remotes WHERE code = ?', [code]);
+    const existing = db.get('SELECT id FROM remotes WHERE code = ?', [code]);
     if (existing) {
       return res.status(409).json({
         success: false,
@@ -62,7 +67,7 @@ router.post('/register', authenticateToken, async (req, res) => {
     }
 
     // Insert new remote
-    const result = await db.run(`
+    const result = db.run(`
       INSERT INTO remotes (code, display_name, mode, slideshow_name, orientation, status, created_at, last_seen)
       VALUES (?, ?, ?, ?, ?, 'active', datetime('now'), datetime('now'))
     `, [
@@ -134,7 +139,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     const db = req.app.locals.db;
 
     // Check if remote exists
-    const existing = await db.get('SELECT id FROM remotes WHERE id = ?', [id]);
+    const existing = db.get('SELECT id FROM remotes WHERE id = ?', [id]);
     if (!existing) {
       return res.status(404).json({
         success: false,
@@ -184,10 +189,10 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     const query = `UPDATE remotes SET ${updates.join(', ')} WHERE id = ?`;
 
-    await db.run(query, params);
+    db.run(query, params);
 
     // Get updated remote
-    const updated = await db.get(`
+    const updated = db.get(`
       SELECT id, serial, code, display_name, mode, slideshow_name, orientation, last_seen, status
       FROM remotes WHERE id = ?
     `, [id]);
@@ -222,7 +227,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     const db = req.app.locals.db;
 
     // Check if remote exists
-    const existing = await db.get('SELECT id, code FROM remotes WHERE id = ?', [id]);
+    const existing = db.get('SELECT id, code FROM remotes WHERE id = ?', [id]);
     if (!existing) {
       return res.status(404).json({
         success: false,
@@ -231,7 +236,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     }
 
     // Delete remote
-    await db.run('DELETE FROM remotes WHERE id = ?', [id]);
+    db.run('DELETE FROM remotes WHERE id = ?', [id]);
 
     res.json({
       success: true,
@@ -252,7 +257,7 @@ router.get('/config/:code', async (req, res) => {
     const { code } = req.params;
     const db = req.app.locals.db;
 
-    const remote = await db.get(`
+    const remote = db.get(`
       SELECT id, serial, display_name, mode, slideshow_name, orientation, status
       FROM remotes WHERE code = ? AND status = 'active'
     `, [code]);
@@ -266,7 +271,7 @@ router.get('/config/:code', async (req, res) => {
     }
 
     // Update last seen
-    await db.run('UPDATE remotes SET last_seen = datetime(\'now\') WHERE id = ?', [remote.id]);
+    db.run('UPDATE remotes SET last_seen = datetime(\'now\') WHERE id = ?', [remote.id]);
 
     res.json({
       registered: true,
@@ -293,11 +298,11 @@ router.get('/ping/:code', async (req, res) => {
     const { code } = req.params;
     const db = req.app.locals.db;
 
-    const remote = await db.get('SELECT id FROM remotes WHERE code = ? AND status = \'active\'', [code]);
+    const remote = db.get('SELECT id FROM remotes WHERE code = ? AND status = \'active\'', [code]);
 
     if (remote) {
       // Update last seen
-      await db.run('UPDATE remotes SET last_seen = datetime(\'now\') WHERE id = ?', [remote.id]);
+      db.run('UPDATE remotes SET last_seen = datetime(\'now\') WHERE id = ?', [remote.id]);
 
       res.json({
         success: true,
@@ -328,7 +333,7 @@ router.post('/:id/push-config', authenticateToken, async (req, res) => {
     const db = req.app.locals.db;
 
     // Get remote details
-    const remote = await db.get('SELECT id, code FROM remotes WHERE id = ? AND status = \'active\'', [id]);
+    const remote = db.get('SELECT id, code FROM remotes WHERE id = ? AND status = \'active\'', [id]);
     if (!remote) {
       return res.status(404).json({
         success: false,
@@ -382,7 +387,7 @@ router.post('/:id/push-config', authenticateToken, async (req, res) => {
           params.push(id);
 
           const query = `UPDATE remotes SET ${updates.join(', ')} WHERE id = ?`;
-          await db.run(query, params);
+          db.run(query, params);
         }
 
         res.json({
