@@ -504,7 +504,7 @@ Section "OutputClass"
     Identifier "vc4"
     MatchDriver "vc4"
     Driver "modesetting"
-    Option "kmsdev" "/dev/dri/card1"
+    Option "PrimaryGPU" "true"
 EndSection
 EOF
 
@@ -520,6 +520,17 @@ if [ -f "$BOOT_CONFIG" ]; then
   sudo sed -i '/^hdmi_force_hotplug=/d' "$BOOT_CONFIG"
   sudo sed -i '/^hdmi_group=/d' "$BOOT_CONFIG"
   sudo sed -i '/^hdmi_mode=/d' "$BOOT_CONFIG"
+  sudo sed -i '/^dtoverlay=vc4-kms-v3d/d' "$BOOT_CONFIG"
+  sudo sed -i '/^max_framebuffers=/d' "$BOOT_CONFIG"
+  sudo sed -i '/^disable_fw_kms_setup=/d' "$BOOT_CONFIG"
+
+  # Enable DRM VC4 V3D driver
+  echo "dtoverlay=vc4-kms-v3d" | sudo tee -a "$BOOT_CONFIG" > /dev/null
+  echo "max_framebuffers=2" | sudo tee -a "$BOOT_CONFIG" > /dev/null
+
+  # Don't have the firmware create an initial video= setting in cmdline.txt.
+  # Use the kernel's default instead.
+  echo "disable_fw_kms_setup=1" | sudo tee -a "$BOOT_CONFIG" > /dev/null
 
   # Add GPU memory for X server (critical for Pi Zero)
   echo "gpu_mem=128" | sudo tee -a "$BOOT_CONFIG" > /dev/null
@@ -532,7 +543,7 @@ if [ -f "$BOOT_CONFIG" ]; then
   # Set display rotation for single HDMI port
   echo "display_hdmi_rotate=$ROTATION_HDMI1" | sudo tee -a "$BOOT_CONFIG" > /dev/null
 
-  echo "GPU memory and HDMI configuration set in $BOOT_CONFIG"
+  echo "GPU memory, VC4 driver, and HDMI configuration set in $BOOT_CONFIG"
 fi
 
 # Configure auto-login to console
