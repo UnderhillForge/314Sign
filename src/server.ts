@@ -71,7 +71,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:"],
       fontSrc: ["'self'", "data:"],
-      connectSrc: ["'self'", "*.local", "http://*.local", "https://*.local", "http://192.168.*", "http://10.*", "https://192.168.*", "https://10.*"],
+      connectSrc: ["'self'", "*.local", "http://*.local", "https://*.local", "http://192.168.0.0/16", "http://10.0.0.0/8", "https://192.168.0.0/16", "https://10.0.0.0/8"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: [],
     },
