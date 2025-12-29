@@ -1,0 +1,97 @@
+{
+  "name": "Office Directory",
+  "description": "Professional office directory with employee information",
+  "preview": "office-preview.png",
+  "display_size": [1080, 1920],
+  "orientation": "portrait",
+  "background": {
+    "image": "office-bg.jpg",
+    "brightness": 1.0
+  },
+  "overlays": [
+    {
+      "type": "text",
+      "content": "Company Directory",
+      "font": "Arial",
+      "size": 42,
+      "color": "#2D3748",
+      "position": [50, 80],
+      "size": [980, 70]
+    },
+    {
+      "type": "rectangle",
+      "fillColor": "#4299E1",
+      "position": [50, 180],
+      "size": [980, 8]
+    },
+    {
+      "type": "text",
+      "content": "Welcome to Our Office",
+      "font": "Arial",
+      "size": 28,
+      "color": "#4A5568",
+      "position": [50, 220],
+      "size": [980, 50]
+    },
+    {
+      "type": "text",
+      "content": "John Smith\\nCEO & Founder\\njohn@company.com\\n(555) 123-4567",
+      "font": "Arial",
+      "size": 22,
+      "color": "#2D3748",
+      "position": [80, 320],
+      "size": [400, 120]
+    },
+    {
+      "type": "text",
+      "content": "Sarah Johnson\\nMarketing Director\\nsarah@company.com\\n(555) 123-4568",
+      "font": "Arial",
+      "size": 22,
+      "color": "#2D3748",
+      "position": [520, 320],
+      "size": [430, 120]
+    },
+    {
+      "type": "rectangle",
+      "fillColor": "#EDF2F7",
+      "position": [50, 480],
+      "size": [980, 2]
+    },
+    {
+      "type": "text",
+      "content": "Today's Date",
+      "font": "Arial",
+      "size": 18,
+      "color": "#718096",
+      "position": [50, 520],
+      "size": [200, 30]
+    },
+    {
+      "type": "date",
+      "format": "Day, Month DD, YYYY",
+      "font": "Arial",
+      "size": 24,
+      "color": "#2D3748",
+      "position": [50, 560],
+      "size": [300, 40]
+    },
+    {
+      "type": "text",
+      "content": "Office Hours\\nMonday - Friday: 8:00 AM - 6:00 PM\\nSaturday: 9:00 AM - 2:00 PM\\nSunday: Closed",
+      "font": "Arial",
+      "size": 20,
+      "color": "#4A5568",
+      "position": [50, 650],
+      "size": [450, 150]
+    },
+    {
+      "type": "text",
+      "content": "Emergency Contact\\nSecurity: Ext. 911\\nIT Support: Ext. 100\\nFacilities: Ext. 200",
+      "font": "Arial",
+      "size": 20,
+      "color": "#4A5568",
+      "position": [550, 650],
+      "size": [450, 150]
+    }
+  ]
+}

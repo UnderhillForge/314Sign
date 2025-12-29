@@ -1,0 +1,11 @@
+{
+  "name": "Blank Canvas",
+  "description": "Start with a clean slate for custom designs",
+  "preview": "blank-preview.png",
+  "display_size": [1080, 1920],
+  "orientation": "portrait",
+  "background": {
+    "color": "#FFFFFF"
+  },
+  "overlays": []
+}
