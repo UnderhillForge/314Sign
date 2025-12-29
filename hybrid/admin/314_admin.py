@@ -1349,33 +1349,113 @@ class KioskAdminConsole:
         """Draw blockchain explorer interface with P2P network support"""
         win.addstr(0, 0, "=== 314Sign P2P Blockchain Explorer ===", curses.A_BOLD)
 
-        # P2P Network Status
+        # Device Role & Mining Eligibility
         row = 2
-        win.addstr(row, 0, "P2P Network Status:", curses.A_BOLD)
+        win.addstr(row, 0, "Device Mining Status:", curses.A_BOLD)
 
-        # Check if P2P network is running
+        # Check hardware and mining eligibility
         try:
-            result = subprocess.run(['pgrep', '-f', 'p2p_blockchain'],
-                                  capture_output=True, text=True, timeout=2)
-            p2p_processes = len(result.stdout.strip().split('\n')) if result.stdout.strip() else 0
+            # Import hardware verifier
+            import sys
+            sys.path.append('/opt/314sign')
+            from blockchain_security import HardwareVerifier
+
+            verifier = HardwareVerifier()
+            device_role = verifier.get_device_role()
 
             row += 1
-            if p2p_processes > 0:
-                win.addstr(row, 2, f"P2P Network: Active ({p2p_processes} processes)", curses.color_pair(4))
+            if device_role['role'] == 'miner':
+                win.addstr(row, 2, f"✅ Mining Eligible - {device_role['hardware'].replace('_', ' ').title()}", curses.color_pair(4))
+                row += 1
+                win.addstr(row, 4, f"Capabilities: {', '.join(device_role['capabilities'])}")
+                row += 1
+                win.addstr(row, 4, f"Reward Multiplier: {device_role['rewards_multiplier']}x")
             else:
-                win.addstr(row, 2, "P2P Network: Not running", curses.color_pair(5))
+                win.addstr(row, 2, f"❌ Mining Restricted - {device_role['hardware'].replace('_', ' ').title()}", curses.color_pair(5))
+                row += 1
+                win.addstr(row, 4, f"Capabilities: {', '.join(device_role['capabilities'])}")
+                row += 1
+                win.addstr(row, 4, "Staking Available: Yes")
+
+        except Exception as e:
+            row += 1
+            win.addstr(row, 2, f"Hardware Check Failed: {str(e)[:30]}", curses.color_pair(3))
+
+        # Mining Status
+        row += 2
+        win.addstr(row, 0, "Mining Activity:", curses.A_BOLD)
+
+        try:
+            result = subprocess.run(['pgrep', '-f', 'blockchain_security'],
+                                  capture_output=True, text=True, timeout=2)
+            mining_processes = len(result.stdout.strip().split('\n')) if result.stdout.strip() else 0
+
+            row += 1
+            if mining_processes > 0:
+                win.addstr(row, 2, f"⛏️ Active Mining ({mining_processes} processes)", curses.color_pair(4))
+            else:
+                win.addstr(row, 2, "Mining: Idle", curses.color_pair(6))
         except:
             row += 1
-            win.addstr(row, 2, "P2P Network: Status unknown")
+            win.addstr(row, 2, "Mining: Status unknown")
 
-        # Connected Peers
+        # Staking Information
         row += 2
-        win.addstr(row, 0, "Connected Peers:", curses.A_BOLD)
+        win.addstr(row, 0, "Staking Status:", curses.A_BOLD)
 
-        # In a real implementation, this would query the P2P network
-        # For now, show placeholder
-        row += 1
-        win.addstr(row, 2, "No peers connected (P2P network not running)")
+        staking_file = Path('/var/lib/314sign/staking.json')
+        if staking_file.exists():
+            try:
+                with open(staking_file, 'r') as f:
+                    staking_data = json.load(f)
+
+                total_staked = sum(stake['amount'] for stake in staking_data.values())
+                active_stakers = len(staking_data)
+
+                row += 1
+                win.addstr(row, 2, f"Active Stakers: {active_stakers}")
+                row += 1
+                win.addstr(row, 2, f"Total Staked: {total_staked} 314ST tokens")
+
+                # Show staking tiers
+                row += 2
+                win.addstr(row, 0, "Staking Tiers:", curses.A_BOLD)
+                tiers = [
+                    "Validator: 100+ tokens (3% monthly)",
+                    "Verifier: 50+ tokens (2% monthly)",
+                    "Supporter: 25+ tokens (1% monthly)"
+                ]
+
+                for i, tier in enumerate(tiers):
+                    row += 1
+                    win.addstr(row, 2, f"• {tier}")
+
+            except Exception as e:
+                row += 1
+                win.addstr(row, 2, f"Staking data error: {str(e)[:25]}")
+        else:
+            row += 1
+            win.addstr(row, 2, "No active staking")
+
+        # P2P Network Status
+        if row < self.height - 8:
+            row += 2
+            win.addstr(row, 0, "P2P Network:", curses.A_BOLD)
+
+            # Check if P2P network is running
+            try:
+                result = subprocess.run(['pgrep', '-f', 'p2p_blockchain'],
+                                      capture_output=True, text=True, timeout=2)
+                p2p_processes = len(result.stdout.strip().split('\n')) if result.stdout.strip() else 0
+
+                row += 1
+                if p2p_processes > 0:
+                    win.addstr(row, 2, f"Active ({p2p_processes} processes)", curses.color_pair(4))
+                else:
+                    win.addstr(row, 2, "Not running", curses.color_pair(5))
+            except:
+                row += 1
+                win.addstr(row, 2, "Status unknown")
 
         # Blockchain status
         row += 3

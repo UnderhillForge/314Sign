@@ -442,8 +442,256 @@ class SignChain:
         # Cap reward to prevent inflation
         return min(int(total_reward), 30)
 
+class HardwareVerifier:
+    """Hardware verification for mining eligibility"""
+
+    def __init__(self):
+        self.allowed_hardware = ['raspberry_pi_4', 'raspberry_pi_5', 'raspberry_pi_zero_2']
+
+    def verify_mining_eligibility(self) -> bool:
+        """Verify device can mine blocks (only Pi hardware)"""
+        hardware_id = self._detect_hardware()
+        return hardware_id in self.allowed_hardware
+
+    def _detect_hardware(self) -> str:
+        """Detect specific Raspberry Pi model"""
+        try:
+            with open('/proc/cpuinfo', 'r') as f:
+                cpuinfo = f.read()
+
+            if 'Raspberry Pi 5' in cpuinfo:
+                return 'raspberry_pi_5'
+            elif 'Raspberry Pi 4' in cpuinfo:
+                return 'raspberry_pi_4'
+            elif 'Raspberry Pi Zero 2' in cpuinfo:
+                return 'raspberry_pi_zero_2'
+            else:
+                return 'unknown'
+        except:
+            return 'unknown'
+
+    def get_device_role(self) -> Dict[str, Any]:
+        """Determine device capabilities and role"""
+        hardware = self._detect_hardware()
+
+        if hardware in self.allowed_hardware:
+            return {
+                'role': 'miner',
+                'hardware': hardware,
+                'capabilities': ['mining', 'staking', 'verification'],
+                'rewards_multiplier': 1.2
+            }
+        else:
+            return {
+                'role': 'staker_only',
+                'hardware': hardware,
+                'capabilities': ['staking', 'verification', 'wallet_operations'],
+                'rewards_multiplier': 0.8
+            }
+
+
+class TokenStaking:
+    """Universal staking system for non-mining participants"""
+
+    def __init__(self, staking_file: str = "/var/lib/314sign/staking.json"):
+        self.staking_file = Path(staking_file)
+        self.staking_tiers = {
+            'validator': {'min_stake': 100, 'monthly_reward': 0.03},  # 3%
+            'verifier': {'min_stake': 50, 'monthly_reward': 0.02},   # 2%
+            'supporter': {'min_stake': 25, 'monthly_reward': 0.01}   # 1%
+        }
+        self.staked_tokens: Dict[str, Dict] = {}
+        self.load_staking_data()
+
+    def load_staking_data(self):
+        """Load staking data from file"""
+        if self.staking_file.exists():
+            try:
+                with open(self.staking_file, 'r') as f:
+                    self.staked_tokens = json.load(f)
+            except Exception as e:
+                logging.error(f"Failed to load staking data: {e}")
+                self.staked_tokens = {}
+
+    def save_staking_data(self):
+        """Save staking data to file"""
+        try:
+            self.staking_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.staking_file, 'w') as f:
+                json.dump(self.staked_tokens, f, indent=2)
+        except Exception as e:
+            logging.error(f"Failed to save staking data: {e}")
+
+    def stake_tokens(self, wallet_id: str, amount: int, tier: str) -> bool:
+        """Stake tokens for rewards"""
+        if tier not in self.staking_tiers:
+            return False
+
+        min_stake = self.staking_tiers[tier]['min_stake']
+        if amount < min_stake:
+            return False
+
+        self.staked_tokens[wallet_id] = {
+            'amount': amount,
+            'tier': tier,
+            'start_time': time.time(),
+            'last_reward_calculation': time.time(),
+            'total_rewards_earned': 0
+        }
+
+        self.save_staking_data()
+        logging.info(f"Wallet {wallet_id} staked {amount} tokens at {tier} tier")
+        return True
+
+    def unstake_tokens(self, wallet_id: str) -> float:
+        """Unstake tokens and return final rewards"""
+        if wallet_id not in self.staked_tokens:
+            return 0
+
+        stake_info = self.staked_tokens[wallet_id]
+
+        # Calculate final rewards
+        final_rewards = self.calculate_staking_rewards(wallet_id)
+
+        # Remove stake
+        total_return = stake_info['amount'] + final_rewards
+        del self.staked_tokens[wallet_id]
+        self.save_staking_data()
+
+        logging.info(f"Wallet {wallet_id} unstaked {stake_info['amount']} tokens, earned {final_rewards} rewards")
+        return total_return
+
+    def calculate_staking_rewards(self, wallet_id: str) -> float:
+        """Calculate staking rewards for wallet"""
+        if wallet_id not in self.staked_tokens:
+            return 0
+
+        stake_info = self.staked_tokens[wallet_id]
+        tier_info = self.staking_tiers[stake_info['tier']]
+
+        # Calculate time staked (in months)
+        time_staked = time.time() - stake_info['start_time']
+        months_staked = time_staked / (30 * 24 * 3600)
+
+        # Calculate rewards
+        monthly_rate = tier_info['monthly_reward']
+        rewards = stake_info['amount'] * monthly_rate * months_staked
+
+        return rewards
+
+    def process_monthly_rewards(self):
+        """Process monthly staking rewards for all stakers"""
+        rewards_distributed = 0
+
+        for wallet_id, stake_info in self.staked_tokens.items():
+            monthly_rewards = self.calculate_staking_rewards(wallet_id)
+
+            if monthly_rewards > 0:
+                stake_info['total_rewards_earned'] += monthly_rewards
+                stake_info['last_reward_calculation'] = time.time()
+                rewards_distributed += monthly_rewards
+
+                logging.info(f"Distributed {monthly_rewards} staking rewards to {wallet_id}")
+
+        if rewards_distributed > 0:
+            self.save_staking_data()
+            logging.info(f"Total monthly staking rewards distributed: {rewards_distributed}")
+
+        return rewards_distributed
+
+
+class VerificationRewards:
+    """Rewards system for transaction verification work"""
+
+    def __init__(self):
+        self.verification_tasks = {
+            'transaction_validation': {'reward': 0.1, 'description': 'Validate transaction authenticity'},
+            'block_verification': {'reward': 1.0, 'description': 'Verify block integrity'},
+            'security_alert_validation': {'reward': 2.0, 'description': 'Validate security alerts'},
+            'peer_health_check': {'reward': 0.05, 'description': 'Check peer connectivity'},
+            'bundle_signature_check': {'reward': 0.5, 'description': 'Verify bundle signatures'}
+        }
+
+        self.active_tasks: Dict[str, Dict] = {}
+
+    def create_verification_task(self, task_type: str, task_data: Dict) -> Optional[str]:
+        """Create a verification task for stakers"""
+        if task_type not in self.verification_tasks:
+            return None
+
+        task_id = secrets.token_hex(8)
+        task_info = self.verification_tasks[task_type].copy()
+        task_info.update({
+            'task_id': task_id,
+            'task_data': task_data,
+            'created_at': time.time(),
+            'deadline': time.time() + 3600,  # 1 hour
+            'status': 'pending',
+            'assigned_stakers': []
+        })
+
+        self.active_tasks[task_id] = task_info
+        return task_id
+
+    def assign_task_to_staker(self, task_id: str, staker_wallet: str) -> bool:
+        """Assign verification task to a staker"""
+        if task_id not in self.active_tasks:
+            return False
+
+        task = self.active_tasks[task_id]
+        if staker_wallet not in task['assigned_stakers']:
+            task['assigned_stakers'].append(staker_wallet)
+
+        return True
+
+    def submit_verification_result(self, task_id: str, staker_wallet: str,
+                                 result: bool, confidence: float = 1.0) -> float:
+        """Submit verification result and calculate reward"""
+        if task_id not in self.active_tasks:
+            return 0
+
+        task = self.active_tasks[task_id]
+
+        # Check if staker was assigned this task
+        if staker_wallet not in task['assigned_stakers']:
+            return 0
+
+        # Check deadline
+        if time.time() > task['deadline']:
+            return 0
+
+        # Calculate reward based on result and confidence
+        base_reward = task['reward']
+        result_multiplier = 1.0 if result else 0.5  # Partial reward for incorrect verification
+        confidence_multiplier = confidence  # 0.5-1.5 based on confidence
+
+        total_reward = base_reward * result_multiplier * confidence_multiplier
+
+        # Mark task as completed by this staker
+        task['status'] = 'completed'
+        task['completed_by'] = staker_wallet
+        task['completion_time'] = time.time()
+        task['reward_earned'] = total_reward
+
+        logging.info(f"Verification task {task_id} completed by {staker_wallet}, earned {total_reward} tokens")
+
+        return total_reward
+
+    def get_available_tasks(self, staker_wallet: str) -> List[Dict]:
+        """Get available verification tasks for a staker"""
+        available_tasks = []
+
+        for task_id, task in self.active_tasks.items():
+            if (task['status'] == 'pending' and
+                staker_wallet not in task['assigned_stakers'] and
+                time.time() < task['deadline']):
+                available_tasks.append(task.copy())
+
+        return available_tasks
+
+
 class SignTokenMiner:
-    """314Sign Token Mining System"""
+    """314Sign Token Mining System with Hardware Restrictions"""
 
     def __init__(self, blockchain: SignChain, tokens_file: str = "/var/lib/314sign/tokens.json"):
         self.blockchain = blockchain
@@ -451,6 +699,14 @@ class SignTokenMiner:
         self.tokens: Dict[str, SignToken] = {}
         self.mining_active = False
         self.mining_thread = None
+
+        # Hardware verification
+        self.hardware_verifier = HardwareVerifier()
+        self.device_role = self.hardware_verifier.get_device_role()
+
+        # Initialize staking and verification systems
+        self.staking_system = TokenStaking()
+        self.verification_system = VerificationRewards()
 
         self.load_tokens()
 
