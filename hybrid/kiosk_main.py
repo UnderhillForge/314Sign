@@ -33,9 +33,10 @@ class UnifiedKioskApp:
         self.logger = self._setup_logging()
 
         # Core components
-        self.display_size = tuple(self.config.get('display_size', [1920, 1080]))
+        self.display_size = self._get_display_size_with_orientation()
         self.is_main_kiosk = self.config.get('mode', 'remote') == 'main'
         self.device_id = self.config.get('device_id', 'unknown')
+        self.orientation = self.config.get('orientation', 'landscape')
 
         # Initialize subsystems
         self.renderer = LMSRenderer(self.display_size)
@@ -57,6 +58,7 @@ class UnifiedKioskApp:
             'mode': 'remote',  # 'main' or 'remote'
             'device_id': 'default-device',
             'display_size': [1920, 1080],
+            'orientation': 'portrait',  # 'landscape' or 'portrait'
             'kiosk_url': 'http://localhost:80',
             'lms_directory': '/home/pi/lms',
             'update_interval': 300,  # 5 minutes
@@ -84,6 +86,20 @@ class UnifiedKioskApp:
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         )
         return logging.getLogger(__name__)
+
+    def _get_display_size_with_orientation(self) -> Tuple[int, int]:
+        """Get display size considering orientation"""
+        base_size = self.config.get('display_size', [1920, 1080])
+        orientation = self.config.get('orientation', 'landscape')
+
+        width, height = base_size
+
+        if orientation == 'portrait':
+            # Swap dimensions for portrait mode
+            return (height, width)
+        else:
+            # Landscape mode (default)
+            return (width, height)
 
     def start_web_server(self) -> None:
         """Start the web server (main kiosk only)"""
@@ -330,6 +346,7 @@ def main():
             'mode': args.mode or 'remote',
             'device_id': args.device_id or f"kiosk-{int(time.time())}",
             'display_size': [1920, 1080],
+            'orientation': 'portrait',  # Default to vertical display
             'kiosk_url': 'http://localhost:80',
             'lms_directory': '/home/pi/lms',
             'update_interval': 300,
