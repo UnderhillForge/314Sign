@@ -192,6 +192,10 @@ copy_application_files() {
     cp hybrid/kiosk_main.py "$TEMP_DIR/opt/314sign/"
     cp hybrid/web_editor.py "$TEMP_DIR/opt/314sign/"
     cp hybrid/bundle_manager.py "$TEMP_DIR/opt/314sign/"
+    cp hybrid/security_keys.py "$TEMP_DIR/opt/314sign/"
+    cp hybrid/mdns_discovery.py "$TEMP_DIR/opt/314sign/"
+    cp hybrid/blockchain_security.py "$TEMP_DIR/opt/314sign/"
+    cp hybrid/314st_wallet.py "$TEMP_DIR/opt/314sign/"
     cp hybrid/splash_screen.py "$TEMP_DIR/opt/314sign/"
     cp hybrid/splash_config.json "$TEMP_DIR/opt/314sign/"
     cp hybrid/314sign2.png "$TEMP_DIR/opt/314sign/"
@@ -301,7 +305,7 @@ Version: ${BUILD_VERSION}
 Section: misc
 Priority: optional
 Architecture: all
-Depends: python3, python3-pip, python3-pygame, python3-requests, python3-pil, avahi-daemon, ufw, systemd
+Depends: python3, python3-pip, python3-pygame, python3-requests, python3-pil, python3-cryptography, avahi-daemon, ufw, systemd
 Maintainer: 314Sign Team <info@314sign.com>
 Description: Complete digital signage platform with LMS rendering
  314Sign Hybrid is a complete digital signage platform featuring:
