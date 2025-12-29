@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Curses-Based Kiosk Administration Console
+314Sign Kiosk Administration Console
 Secure, efficient system management interface via SSH
 """
 
