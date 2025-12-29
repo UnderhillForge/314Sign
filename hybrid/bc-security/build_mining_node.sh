@@ -24,7 +24,7 @@ rm -rf build dist *.spec~
 
 # Build the executable
 echo "⚙️  Building executable with PyInstaller..."
-pyinstaller --clean --onefile mining_node.spec
+pyinstaller --clean mining_node.spec
 
 # Check if build succeeded
 if [ ! -f "dist/314st-mining-node" ]; then
