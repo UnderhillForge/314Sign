@@ -9,17 +9,68 @@ set -e
 echo "🚀 Setting up Direct Framebuffer Display (No X11)"
 echo "=================================================="
 
-# Detect device type
+# Detect device type - support entire Raspberry Pi lineup
 if grep -q "Raspberry Pi 5" /proc/cpuinfo 2>/dev/null; then
     DEVICE_TYPE="pi5"
-    echo "📱 Detected: Raspberry Pi 5"
+    DEVICE_NAME="Raspberry Pi 5"
+    CPU_CORES=4
+    HAS_WIFI=true
+    HAS_BT=true
+elif grep -q "Raspberry Pi 4" /proc/cpuinfo 2>/dev/null; then
+    DEVICE_TYPE="pi4"
+    DEVICE_NAME="Raspberry Pi 4"
+    CPU_CORES=4
+    HAS_WIFI=true
+    HAS_BT=true
 elif grep -q "Raspberry Pi Zero 2" /proc/cpuinfo 2>/dev/null; then
     DEVICE_TYPE="pi02w"
-    echo "📱 Detected: Raspberry Pi Zero 2 W"
+    DEVICE_NAME="Raspberry Pi Zero 2 W"
+    CPU_CORES=4
+    HAS_WIFI=true
+    HAS_BT=true
+elif grep -q "Raspberry Pi Zero W" /proc/cpuinfo 2>/dev/null; then
+    DEVICE_TYPE="pi0w"
+    DEVICE_NAME="Raspberry Pi Zero W"
+    CPU_CORES=1
+    HAS_WIFI=true
+    HAS_BT=true
+elif grep -q "Raspberry Pi Zero" /proc/cpuinfo 2>/dev/null; then
+    DEVICE_TYPE="pi0"
+    DEVICE_NAME="Raspberry Pi Zero"
+    CPU_CORES=1
+    HAS_WIFI=false
+    HAS_BT=false
+elif grep -q "Raspberry Pi 3" /proc/cpuinfo 2>/dev/null; then
+    DEVICE_TYPE="pi3"
+    DEVICE_NAME="Raspberry Pi 3"
+    CPU_CORES=4
+    HAS_WIFI=true
+    HAS_BT=true
+elif grep -q "Raspberry Pi 2" /proc/cpuinfo 2>/dev/null; then
+    DEVICE_TYPE="pi2"
+    DEVICE_NAME="Raspberry Pi 2"
+    CPU_CORES=4
+    HAS_WIFI=false
+    HAS_BT=false
+elif grep -q "Raspberry Pi" /proc/cpuinfo 2>/dev/null; then
+    DEVICE_TYPE="pi1"
+    DEVICE_NAME="Raspberry Pi 1"
+    CPU_CORES=1
+    HAS_WIFI=false
+    HAS_BT=false
 else
     DEVICE_TYPE="unknown"
-    echo "📱 Detected: Unknown Raspberry Pi model"
+    DEVICE_NAME="Unknown Device"
+    CPU_CORES=1
+    HAS_WIFI=false
+    HAS_BT=false
+    echo "⚠️  Not a Raspberry Pi device - framebuffer setup may not work"
 fi
+
+echo "📱 Detected: $DEVICE_NAME"
+echo "   CPU Cores: $CPU_CORES"
+echo "   WiFi: $([ "$HAS_WIFI" = true ] && echo "Yes" || echo "No")"
+echo "   Bluetooth: $([ "$HAS_BT" = true ] && echo "Yes" || echo "No")"
 
 # Update system
 echo "📦 Updating system packages..."
@@ -123,16 +174,27 @@ sudo systemctl start avahi-daemon
 # Create device configuration
 echo "⚙️  Creating device configuration..."
 
-# Auto-detect mode based on device type
-if [ "$DEVICE_TYPE" = "pi5" ]; then
+# Auto-detect mode based on device capabilities
+# Higher-end Pis can run web server, lower-end focus on display
+if [ "$CPU_CORES" -ge 4 ] && [ "$HAS_WIFI" = true ]; then
+    # Pi 3, 4, 5, Zero 2W - can handle web server
     DEFAULT_MODE="main"
     WEB_SERVER=true
-    echo "Main kiosk mode (with web server)"
-else
+    echo "Main kiosk mode (with web server capability)"
+elif [ "$CPU_CORES" -ge 1 ]; then
+    # Pi 1, 2, Zero, Zero W - display only
     DEFAULT_MODE="remote"
     WEB_SERVER=false
-    echo "Remote display mode (display only)"
+    echo "Remote display mode (optimized for display)"
+else
+    # Fallback
+    DEFAULT_MODE="remote"
+    WEB_SERVER=false
+    echo "Remote display mode (limited capabilities)"
 fi
+
+echo "   Mode: $DEFAULT_MODE"
+echo "   Web Server: $([ "$WEB_SERVER" = true ] && echo "Enabled" || echo "Disabled")"
 
 cat > /home/pi/kiosk_config.json << EOF
 {
