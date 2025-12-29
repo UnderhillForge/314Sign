@@ -195,6 +195,7 @@ copy_application_files() {
     cp hybrid/security_keys.py "$TEMP_DIR/opt/314sign/"
     cp hybrid/mdns_discovery.py "$TEMP_DIR/opt/314sign/"
     cp hybrid/blockchain_security.py "$TEMP_DIR/opt/314sign/"
+    cp hybrid/p2p_blockchain.py "$TEMP_DIR/opt/314sign/"
     cp hybrid/314st_wallet.py "$TEMP_DIR/opt/314sign/"
     cp hybrid/splash_screen.py "$TEMP_DIR/opt/314sign/"
     cp hybrid/splash_config.json "$TEMP_DIR/opt/314sign/"

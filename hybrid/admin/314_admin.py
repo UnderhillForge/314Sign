@@ -1346,12 +1346,40 @@ class KioskAdminConsole:
 
     # Security Management Methods
     def draw_security_blockchain(self, win):
-        """Draw blockchain explorer interface"""
-        win.addstr(0, 0, "=== 314Sign Blockchain Explorer ===", curses.A_BOLD)
+        """Draw blockchain explorer interface with P2P network support"""
+        win.addstr(0, 0, "=== 314Sign P2P Blockchain Explorer ===", curses.A_BOLD)
+
+        # P2P Network Status
+        row = 2
+        win.addstr(row, 0, "P2P Network Status:", curses.A_BOLD)
+
+        # Check if P2P network is running
+        try:
+            result = subprocess.run(['pgrep', '-f', 'p2p_blockchain'],
+                                  capture_output=True, text=True, timeout=2)
+            p2p_processes = len(result.stdout.strip().split('\n')) if result.stdout.strip() else 0
+
+            row += 1
+            if p2p_processes > 0:
+                win.addstr(row, 2, f"P2P Network: Active ({p2p_processes} processes)", curses.color_pair(4))
+            else:
+                win.addstr(row, 2, "P2P Network: Not running", curses.color_pair(5))
+        except:
+            row += 1
+            win.addstr(row, 2, "P2P Network: Status unknown")
+
+        # Connected Peers
+        row += 2
+        win.addstr(row, 0, "Connected Peers:", curses.A_BOLD)
+
+        # In a real implementation, this would query the P2P network
+        # For now, show placeholder
+        row += 1
+        win.addstr(row, 2, "No peers connected (P2P network not running)")
 
         # Blockchain status
-        row = 2
-        win.addstr(row, 0, "Blockchain Status:", curses.A_BOLD)
+        row += 3
+        win.addstr(row, 0, "Local Blockchain Status:", curses.A_BOLD)
 
         # Try to load blockchain data
         blockchain_file = Path('/var/lib/314sign/blockchain.json')
@@ -1372,7 +1400,7 @@ class KioskAdminConsole:
                     hash_short = latest_block.get('hash', 'N/A')[:16] + "..."
                     win.addstr(row, 2, f"Hash: {hash_short}")
 
-                    # Show recent transactions
+                    # Show recent transactions (including shared ones)
                     row += 2
                     win.addstr(row, 0, "Recent Transactions:", curses.A_BOLD)
 
@@ -1387,8 +1415,11 @@ class KioskAdminConsole:
                     for i, (block_idx, tx) in enumerate(recent_txs):
                         row += 1
                         tx_type = tx.get('type', 'unknown')
+                        source = ""
+                        if tx_type == 'shared_security_event':
+                            source = f" from {tx.get('source_peer', 'peer')[:8]}"
                         timestamp = time.ctime(tx.get('timestamp', 0))[:16]
-                        win.addstr(row, 2, f"Block {block_idx}: {tx_type} - {timestamp}")
+                        win.addstr(row, 2, f"Block {block_idx}: {tx_type}{source} - {timestamp}")
                 else:
                     row += 1
                     win.addstr(row, 2, "No blocks found - blockchain not initialized")
@@ -1403,62 +1434,46 @@ class KioskAdminConsole:
             win.addstr(row, 2, "Install and run 314Sign to initialize")
 
         # Security tokens status
-        row = 10
-        win.addstr(row, 0, "Security Tokens:", curses.A_BOLD)
+        row = 20
+        if row < self.height - 10:  # Make sure we don't overflow
+            win.addstr(row, 0, "Security Tokens:", curses.A_BOLD)
 
-        tokens_file = Path('/var/lib/314sign/tokens.json')
-        if tokens_file.exists():
-            try:
-                with open(tokens_file, 'r') as f:
-                    tokens_data = json.load(f)
+            tokens_file = Path('/var/lib/314sign/tokens.json')
+            if tokens_file.exists():
+                try:
+                    with open(tokens_file, 'r') as f:
+                        tokens_data = json.load(f)
 
-                token_count = len(tokens_data)
-                row += 1
-                win.addstr(row, 2, f"Active Tokens: {token_count}")
+                    token_count = len(tokens_data)
+                    row += 1
+                    win.addstr(row, 2, f"Active Tokens: {token_count}")
 
-                if token_count > 0:
-                    # Show recent tokens
-                    recent_tokens = tokens_data[-3:]  # Last 3 tokens
-                    for i, token in enumerate(recent_tokens):
-                        row += 1
-                        token_id = token.get('token_id', 'unknown')[:20] + "..."
-                        issued = time.ctime(token.get('issued_at', 0))[:16]
-                        win.addstr(row, 2, f"{token_id} - {issued}")
-            except Exception as e:
-                row += 1
-                win.addstr(row, 2, f"Error reading tokens: {str(e)[:30]}")
-        else:
-            row += 1
-            win.addstr(row, 2, "No tokens found")
-
-        # Mining status
-        row = 16
-        win.addstr(row, 0, "Mining Status:", curses.A_BOLD)
-
-        # Check if mining processes are running
-        try:
-            result = subprocess.run(['pgrep', '-f', 'blockchain_security'],
-                                  capture_output=True, text=True, timeout=2)
-            mining_processes = len(result.stdout.strip().split('\n')) if result.stdout.strip() else 0
-
-            row += 1
-            if mining_processes > 0:
-                win.addstr(row, 2, f"Active Mining: {mining_processes} process(es)", curses.color_pair(4))
+                    if token_count > 0 and row + 2 < self.height - 5:
+                        # Show recent tokens
+                        recent_tokens = tokens_data[-2:]  # Last 2 tokens
+                        for i, token in enumerate(recent_tokens):
+                            row += 1
+                            token_id = token.get('token_id', 'unknown')[:18] + "..."
+                            issued = time.ctime(token.get('issued_at', 0))[:10]
+                            win.addstr(row, 2, f"{token_id} - {issued}")
+                except Exception as e:
+                    row += 1
+                    win.addstr(row, 2, f"Error reading tokens: {str(e)[:25]}")
             else:
-                win.addstr(row, 2, "Mining: Not active", curses.color_pair(5))
-        except:
-            row += 1
-            win.addstr(row, 2, "Mining: Unable to check")
+                row += 1
+                win.addstr(row, 2, "No tokens found")
 
         # Actions
-        row += 2
+        row = self.height - 8
         win.addstr(row, 0, "Actions:", curses.A_BOLD)
+        row += 1
+        win.addstr(row, 2, "n: Start P2P network")
         row += 1
         win.addstr(row, 2, "m: Mine pending transactions")
         row += 1
-        win.addstr(row, 2, "s: Start background mining")
+        win.addstr(row, 2, "s: Share security event")
         row += 1
-        win.addstr(row, 2, "v: View block details")
+        win.addstr(row, 2, "v: View detailed block info")
         row += 1
         win.addstr(row, 2, "t: Generate security token")
 
