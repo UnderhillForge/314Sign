@@ -123,9 +123,57 @@ if [ -d "hybrid" ]; then
     sudo cp -r hybrid/* /opt/314sign/
     sudo chown -R pi:pi /opt/314sign
     echo "✓ Copied hybrid system to /opt/314sign/"
+
+    # Set proper permissions for logo file
+    if [ -f "/opt/314sign/314sign2.png" ]; then
+        sudo chmod 644 /opt/314sign/314sign2.png
+        echo "✓ Logo file ready: /opt/314sign/314sign2.png"
+    fi
 else
     echo "! hybrid/ directory not found in current location"
     echo "  Make sure to run this from the project root"
+fi
+
+# Setup splash screen if requested
+read -p "🎨 Install professional boot splash screen? (y/N): " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo "🎨 Setting up boot splash screen..."
+
+    # Create splash screen service
+    SPLASH_SERVICE="/etc/systemd/system/314sign-splash.service"
+
+    sudo bash -c "cat > $SPLASH_SERVICE" << EOF
+[Unit]
+Description=314Sign Boot Splash Screen
+After=local-fs.target
+Before=kiosk.service
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi
+Environment=SDL_VIDEODRIVER=fbcon
+Environment=SDL_FBDEV=/dev/fb0
+Environment=SDL_NOMOUSE=1
+Environment=SDL_VIDEO_ALLOW_SCREENSAVER=0
+ExecStart=/usr/bin/python3 /opt/314sign/splash_screen.py --config /opt/314sign/splash_config.json
+Restart=no
+TimeoutStartSec=30
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    sudo systemctl daemon-reload
+    sudo systemctl enable 314sign-splash.service
+
+    # Copy default splash configuration
+    sudo cp /opt/314sign/splash_config.json /opt/314sign/splash_config.json.default
+
+    echo "✓ Boot splash screen installed"
+    echo "  Edit /opt/314sign/splash_config.json to customize branding"
+    echo "  Run: sudo systemctl start 314sign-splash.service (to test)"
 fi
 
 # Configure boot for direct framebuffer
