@@ -119,6 +119,7 @@ class LMSParser:
         processed.setdefault('brightness', 1.0)
         processed.setdefault('blur', 0.0)
         processed.setdefault('position', 'center')
+        processed.setdefault('hash', None)  # SHA256 hash for cache validation
 
         # Validate ranges
         if not (0.0 <= processed['brightness'] <= 2.0):
@@ -126,7 +127,21 @@ class LMSParser:
         if not (0.0 <= processed['blur'] <= 10.0):
             raise LMSParseError("Background blur must be between 0.0 and 10.0")
 
+        # Validate hash format if provided
+        if processed['hash'] and not self._is_valid_sha256(processed['hash']):
+            raise LMSParseError("Background hash must be a valid SHA256 hash")
+
         return processed
+
+    def _is_valid_sha256(self, hash_str: str) -> bool:
+        """Validate SHA256 hash format"""
+        if not hash_str or len(hash_str) != 64:
+            return False
+        try:
+            int(hash_str, 16)
+            return True
+        except ValueError:
+            return False
 
     def _process_overlays(self, overlays: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Process overlay configurations"""
