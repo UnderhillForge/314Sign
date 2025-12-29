@@ -377,6 +377,7 @@ class LMSEditorWebServer(BaseHTTPRequestHandler):
             to { transform: translateX(0); opacity: 1; }
         }
 
+        /* Mobile responsiveness */
         @media (max-width: 768px) {
             .container {
                 flex-direction: column;
@@ -384,6 +385,113 @@ class LMSEditorWebServer(BaseHTTPRequestHandler):
             .sidebar {
                 width: 100%;
                 height: 200px;
+                order: 2;
+            }
+            .main-content {
+                order: 1;
+            }
+            .toolbar {
+                padding: 0.25rem;
+                flex-wrap: wrap;
+                gap: 0.25rem;
+            }
+            .toolbar button {
+                padding: 0.5rem;
+                font-size: 0.8rem;
+            }
+            .canvas {
+                width: 100% !important;
+                height: 60vh !important;
+                max-width: none !important;
+            }
+            .header h1 {
+                font-size: 1.2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .toolbar {
+                justify-content: center;
+            }
+            .toolbar button {
+                flex: 1;
+                min-width: 80px;
+                padding: 0.75rem 0.5rem;
+                font-size: 0.75rem;
+            }
+            .sidebar {
+                height: 150px;
+            }
+            .element-palette {
+                display: flex;
+                overflow-x: auto;
+                padding-bottom: 0.5rem;
+            }
+            .element-item {
+                flex-shrink: 0;
+                width: 60px;
+                height: 60px;
+                margin-right: 0.5rem;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                font-size: 0.7rem;
+                text-align: center;
+            }
+            .properties-panel {
+                height: 120px;
+                overflow-y: auto;
+            }
+            .canvas {
+                height: 50vh !important;
+            }
+        }
+
+        /* Touch-friendly interactions */
+        @media (hover: none) and (pointer: coarse) {
+            .element-item {
+                min-height: 50px;
+                padding: 1rem;
+            }
+            .element-item:active {
+                background: #667eea;
+                color: white;
+            }
+            .btn:active {
+                transform: scale(0.95);
+            }
+            .element {
+                touch-action: none;
+            }
+        }
+
+        /* High DPI displays */
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+            .element-item {
+                font-size: 1.2em;
+            }
+            .btn {
+                font-size: 1.1em;
+            }
+        }
+
+        /* Tablet optimizations */
+        @media (min-width: 481px) and (max-width: 768px) {
+            .sidebar {
+                height: 180px;
+            }
+            .canvas {
+                height: 70vh !important;
+            }
+            .element-palette {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+                gap: 0.5rem;
+            }
+            .element-item {
+                height: 70px;
+                font-size: 0.8rem;
             }
         }
     </style>
@@ -476,15 +584,19 @@ class LMSEditorWebServer(BaseHTTPRequestHandler):
         });
 
         function setupEventListeners() {
-            // Element palette drag and drop
+            // Element palette drag and drop - mouse and touch
             document.querySelectorAll('.element-item').forEach(item => {
                 item.addEventListener('mousedown', startDrag);
+                item.addEventListener('touchstart', startDragTouch, { passive: false });
             });
 
-            // Canvas interactions
+            // Canvas interactions - mouse and touch
             canvas.addEventListener('mousedown', handleCanvasClick);
+            canvas.addEventListener('touchstart', handleCanvasTouch, { passive: false });
             document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('touchmove', handleTouchMove, { passive: false });
             document.addEventListener('mouseup', stopDrag);
+            document.addEventListener('touchend', stopDrag);
 
             // Toolbar buttons
             document.getElementById('load-template').addEventListener('click', showTemplatesModal);
@@ -534,6 +646,36 @@ class LMSEditorWebServer(BaseHTTPRequestHandler):
             }
             isDragging = false;
             isResizing = false;
+        }
+
+        // Touch event handlers for mobile support
+        function startDragTouch(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const elementType = e.target.dataset.type;
+            draggedElement = createElement(elementType, touch.clientX, touch.clientY);
+            isDragging = true;
+        }
+
+        function handleCanvasTouch(e) {
+            e.preventDefault();
+            // Deselect all elements
+            document.querySelectorAll('.element').forEach(el => el.classList.remove('selected'));
+            selectedElement = null;
+            updatePropertiesPanel();
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (!isDragging || !draggedElement) return;
+
+            const touch = e.touches[0];
+            const canvasRect = canvas.getBoundingClientRect();
+            const x = touch.clientX - canvasRect.left - dragOffset.x;
+            const y = touch.clientY - canvasRect.top - dragOffset.y;
+
+            draggedElement.style.left = Math.max(0, Math.min(x, canvasRect.width - draggedElement.offsetWidth)) + 'px';
+            draggedElement.style.top = Math.max(0, Math.min(y, canvasRect.height - draggedElement.offsetHeight)) + 'px';
         }
 
         function handleCanvasClick(e) {
