@@ -1,0 +1,212 @@
+{
+  "version": "1.0",
+  "background": {
+    "image": "classroom-bg.jpg",
+    "brightness": 1.0,
+    "blur": 0.0,
+    "position": "center"
+  },
+  "overlays": [
+    {
+      "type": "text",
+      "content": "Room 101",
+      "font": "Arial",
+      "size": 36,
+      "color": "#2E86AB",
+      "position": {"x": 50, "y": 30},
+      "shadow": {
+        "color": "#000000",
+        "blur": 1,
+        "offset": {"x": 1, "y": 1}
+      }
+    },
+    {
+      "type": "dynamic",
+      "content": "current_date",
+      "format": "Day, Month DD, YYYY",
+      "font": "Arial",
+      "size": 24,
+      "color": "#666666",
+      "position": {"x": 50, "y": 80}
+    },
+    {
+      "type": "dynamic",
+      "content": "current_time",
+      "format": "HH:MM",
+      "font": "Digital",
+      "size": 48,
+      "color": "#FF6B35",
+      "position": {"x": 1600, "y": 30}
+    },
+    {
+      "type": "text",
+      "content": "Today's Schedule",
+      "font": "Arial",
+      "size": 28,
+      "color": "#2E86AB",
+      "position": {"x": 50, "y": 150}
+    },
+    {
+      "type": "shape",
+      "shape": "rectangle",
+      "width": 700,
+      "height": 400,
+      "fill_color": "#F5F5F5",
+      "stroke_color": "#CCCCCC",
+      "stroke_width": 1,
+      "position": {"x": 50, "y": 190},
+      "opacity": 0.9
+    },
+    {
+      "type": "text",
+      "content": "8:00 - 9:00",
+      "font": "Arial",
+      "size": 20,
+      "color": "#333333",
+      "position": {"x": 80, "y": 220}
+    },
+    {
+      "type": "text",
+      "content": "Mathematics",
+      "font": "Arial",
+      "size": 22,
+      "color": "#2E86AB",
+      "position": {"x": 200, "y": 218}
+    },
+    {
+      "type": "text",
+      "content": "9:15 - 10:15",
+      "font": "Arial",
+      "size": 20,
+      "color": "#333333",
+      "position": {"x": 80, "y": 260}
+    },
+    {
+      "type": "text",
+      "content": "English Literature",
+      "font": "Arial",
+      "size": 22,
+      "color": "#A23B72",
+      "position": {"x": 200, "y": 258}
+    },
+    {
+      "type": "text",
+      "content": "10:30 - 11:30",
+      "font": "Arial",
+      "size": 20,
+      "color": "#333333",
+      "position": {"x": 80, "y": 300}
+    },
+    {
+      "type": "text",
+      "content": "Science Lab",
+      "font": "Arial",
+      "size": 22,
+      "color": "#F18F01",
+      "position": {"x": 200, "y": 298}
+    },
+    {
+      "type": "text",
+      "content": "11:45 - 12:45",
+      "font": "Arial",
+      "size": 20,
+      "color": "#333333",
+      "position": {"x": 80, "y": 340}
+    },
+    {
+      "type": "text",
+      "content": "Physical Education",
+      "font": "Arial",
+      "size": 22,
+      "color": "#C73E1D",
+      "position": {"x": 200, "y": 338}
+    },
+    {
+      "type": "text",
+      "content": "Next: Mathematics",
+      "font": "Arial",
+      "size": 32,
+      "color": "#FF6B35",
+      "position": {"x": 900, "y": 250}
+    },
+    {
+      "type": "text",
+      "content": "Mr. Johnson",
+      "font": "Arial",
+      "size": 24,
+      "color": "#666666",
+      "position": {"x": 900, "y": 290}
+    },
+    {
+      "type": "shape",
+      "shape": "rectangle",
+      "width": 300,
+      "height": 80,
+      "fill_color": "#FFF3CD",
+      "stroke_color": "#FF6B35",
+      "stroke_width": 3,
+      "position": {"x": 880, "y": 230},
+      "opacity": 1.0
+    },
+    {
+      "type": "text",
+      "content": "Weather: Sunny, 72°F",
+      "font": "Arial",
+      "size": 18,
+      "color": "#333333",
+      "position": {"x": 50, "y": 620}
+    },
+    {
+      "type": "text",
+      "content": "School Announcements",
+      "font": "Arial",
+      "size": 24,
+      "color": "#2E86AB",
+      "position": {"x": 900, "y": 400}
+    },
+    {
+      "type": "text",
+      "content": "• Parent-Teacher Conferences: Dec 15-16",
+      "font": "Arial",
+      "size": 16,
+      "color": "#666666",
+      "position": {"x": 900, "y": 440}
+    },
+    {
+      "type": "text",
+      "content": "• Winter Break: Dec 20 - Jan 3",
+      "font": "Arial",
+      "size": 16,
+      "color": "#666666",
+      "position": {"x": 900, "y": 460}
+    },
+    {
+      "type": "text",
+      "content": "• Report Cards Available: Jan 10",
+      "font": "Arial",
+      "size": 16,
+      "color": "#666666",
+      "position": {"x": 900, "y": 480}
+    }
+  ],
+  "animations": [
+    {
+      "element": "schedule",
+      "type": "slide_up",
+      "duration": 1.0,
+      "delay": 0.0
+    },
+    {
+      "element": "next_class",
+      "type": "pulse",
+      "duration": 2.0,
+      "delay": 1.0,
+      "loop": true
+    }
+  ],
+  "global_settings": {
+    "background_color": "#FFFFFF",
+    "default_font": "Arial",
+    "antialiasing": true
+  }
+}
