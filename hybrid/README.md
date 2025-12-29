@@ -268,10 +268,25 @@ sudo nano /opt/314sign/splash_config.json
 sudo nano /home/pi/kiosk_config.json
 
 # Options:
-# - display_size, device_id
-# - lms_directory, update_interval
+# - display_size: [width, height] (base resolution)
+# - orientation: 'portrait' or 'landscape' (default: portrait)
+# - device_id, lms_directory, update_interval
 # - web_server_enabled, fullscreen
 ```
+
+### **Display Orientation**
+```json
+{
+  "display_size": [1920, 1080],
+  "orientation": "portrait"
+}
+```
+
+**Result**: 1080x1920 portrait display (swapped dimensions)
+
+- **Portrait**: Vertical displays for menu boards, directories
+- **Landscape**: Horizontal displays for traditional signage
+- **Default**: Portrait (optimized for your use case)
 
 ---
 
