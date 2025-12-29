@@ -400,7 +400,8 @@ def main():
             print("Tokens in Wallet:")
             print("-" * 80)
             for token in tokens:
-                print("10"                print(f"  Issued: {time.ctime(token['issued_at'])}")
+                print(f"  Token ID: {token['token_id']}")
+                print(f"  Issued: {time.ctime(token['issued_at'])}")
                 print(f"  Expires: {time.ctime(token['expires_at'])}")
                 print(f"  Permissions: {token['permissions']}")
                 print("-" * 80)
@@ -432,7 +433,7 @@ def main():
         print("Generated Recovery Codes (save these securely!):")
         print("=" * 50)
         for i, code in enumerate(codes, 1):
-            print("2d")
+            print(f"{i:2d}: {code}")
         print("=" * 50)
         print("⚠️  WARNING: Save these codes in a secure location!")
         print("   They cannot be recovered if lost.")
