@@ -10,6 +10,7 @@ import time
 import threading
 import secrets
 import base64
+import subprocess
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
 from cryptography.hazmat.primitives import hashes
@@ -349,8 +350,97 @@ class SignChain:
             "pending_transactions": len(self.pending_transactions),
             "difficulty": self.difficulty,
             "latest_block": self.chain[-1].to_dict() if self.chain else None,
-            "is_valid": self.validate_chain()
+            "is_valid": self.validate_chain(),
+            "network_health": self._calculate_network_health()
         }
+
+    def _calculate_network_health(self) -> Dict[str, Any]:
+        """Calculate network health metrics for adaptive systems"""
+        if not self.chain:
+            return {"participation": 0, "avg_block_time": 0, "health_score": 0}
+
+        # Calculate average block time (last 10 blocks)
+        recent_blocks = self.chain[-10:] if len(self.chain) > 1 else self.chain
+        if len(recent_blocks) > 1:
+            block_times = []
+            for i in range(1, len(recent_blocks)):
+                time_diff = recent_blocks[i].timestamp - recent_blocks[i-1].timestamp
+                block_times.append(time_diff)
+            avg_block_time = sum(block_times) / len(block_times)
+        else:
+            avg_block_time = 600  # 10 minutes default
+
+        # Participation score based on transaction volume
+        total_txs = sum(len(block.transactions) for block in recent_blocks)
+        participation = min(1.0, total_txs / 50)  # Scale to 0-1
+
+        # Health score combines multiple factors
+        health_score = (participation * 0.6) + ((1 - min(1, avg_block_time / 1200)) * 0.4)
+
+        return {
+            "participation": participation,
+            "avg_block_time": avg_block_time,
+            "health_score": health_score
+        }
+
+    def adapt_difficulty(self) -> int:
+        """Adapt difficulty based on network health"""
+        health = self._calculate_network_health()
+        current_difficulty = self.difficulty
+
+        # Target: 10 minute average block time
+        target_block_time = 600
+        actual_block_time = health["avg_block_time"]
+
+        if actual_block_time < target_block_time * 0.8:
+            # Blocks too fast - increase difficulty slightly
+            new_difficulty = min(current_difficulty + 1, 8)  # Cap at 8
+        elif actual_block_time > target_block_time * 1.2:
+            # Blocks too slow - decrease difficulty
+            new_difficulty = max(current_difficulty - 1, 2)  # Floor at 2
+        else:
+            # Optimal range - maintain current difficulty
+            new_difficulty = current_difficulty
+
+        if new_difficulty != current_difficulty:
+            self.difficulty = new_difficulty
+            logging.info(f"Difficulty adapted: {current_difficulty} → {new_difficulty}")
+
+        return new_difficulty
+
+    def calculate_mining_reward(self, block: SignBlock, miner_stats: Dict = None) -> int:
+        """Calculate sustainable mining reward based on work performed"""
+        if miner_stats is None:
+            miner_stats = {}
+
+        base_reward = 10  # Stable base reward
+
+        # Transaction volume bonus (0.5 tokens per tx)
+        tx_bonus = len(block.transactions) * 0.5
+
+        # Security work bonus
+        security_bonus = 0
+        for tx in block.transactions:
+            tx_type = tx.get('type', '')
+            if tx_type in ['security_alert', 'threat_detected', 'system_compromise']:
+                security_bonus += 3  # High value security work
+            elif tx_type in ['device_auth', 'bundle_verify', 'token_validate']:
+                security_bonus += 1  # Standard security work
+
+        # Participation bonus based on network health
+        health = self._calculate_network_health()
+        participation_bonus = base_reward * (1 - health["participation"]) * 0.5
+
+        # Uptime/reliability bonus
+        uptime_bonus = miner_stats.get('uptime_percentage', 100) / 100 * 2
+
+        # P2P contribution bonus
+        p2p_bonus = miner_stats.get('p2p_contributions', 0) * 0.1
+
+        total_reward = base_reward + tx_bonus + security_bonus + participation_bonus + uptime_bonus + p2p_bonus
+
+        # Cap reward to prevent inflation
+        return min(int(total_reward), 30)
 
 class SignTokenMiner:
     """314Sign Token Mining System"""
@@ -481,21 +571,88 @@ class SignTokenMiner:
         logging.info("Stopped token mining")
 
     def _mining_loop(self):
-        """Background mining loop"""
+        """Background mining loop with adaptive difficulty and rewards"""
+        mining_stats = {
+            'blocks_mined': 0,
+            'total_rewards': 0,
+            'uptime_percentage': 100,
+            'p2p_contributions': 0,
+            'start_time': time.time()
+        }
+
         while self.mining_active:
             try:
+                # Adapt difficulty based on network health
+                self.blockchain.adapt_difficulty()
+
                 # Mine pending blockchain transactions
                 block = self.blockchain.mine_pending_transactions()
                 if block:
-                    logging.info(f"⛏️ Mined block {block.index} with {len(block.transactions)} transactions")
+                    mining_stats['blocks_mined'] += 1
 
-                # Generate tokens based on mining activity
-                # This is simplified - in practice, you'd have more complex logic
-                time.sleep(30)  # Mine every 30 seconds
+                    # Calculate sustainable mining reward
+                    reward_amount = self.blockchain.calculate_mining_reward(block, mining_stats)
+                    mining_stats['total_rewards'] += reward_amount
+
+                    # Issue mining reward tokens
+                    self._issue_mining_reward(reward_amount, block)
+
+                    logging.info(f"⛏️ Mined block {block.index} with {len(block.transactions)} transactions")
+                    logging.info(f"💰 Mining reward: {reward_amount} 314ST tokens")
+
+                # Update uptime statistics
+                uptime = (time.time() - mining_stats['start_time']) / 3600  # Hours
+                if uptime > 0:
+                    mining_stats['uptime_percentage'] = 95 + (mining_stats['blocks_mined'] / uptime)  # Base 95% + performance bonus
+
+                # Adaptive sleep based on mining activity
+                sleep_time = 30 if not block else 10  # Mine more frequently if recently successful
+                time.sleep(sleep_time)
 
             except Exception as e:
                 logging.error(f"Mining error: {e}")
                 time.sleep(10)
+
+    def _issue_mining_reward(self, reward_amount: int, block: SignBlock):
+        """Issue mining reward tokens to the local wallet"""
+        try:
+            # Generate mining reward token
+            reward_token = self.generate_token(
+                token_type="mining_reward",
+                device_id=f"miner-{self._get_device_id()}",
+                permissions=["mining", "validation"]
+            )
+
+            # Add reward metadata
+            reward_token.reward_amount = reward_amount
+            reward_token.block_index = block.index
+            reward_token.mining_timestamp = time.time()
+
+            # Save updated token
+            self.save_tokens()
+
+            # Add to local wallet if available
+            try:
+                from sign_wallet import SignWallet
+                wallet = SignWallet()
+                wallet.add_token(reward_token)
+                logging.info(f"💰 Mining reward added to wallet: {reward_amount} 314ST tokens")
+            except:
+                logging.debug("Local wallet not available for reward storage")
+
+        except Exception as e:
+            logging.error(f"Failed to issue mining reward: {e}")
+
+    def _get_device_id(self) -> str:
+        """Get unique device identifier for mining rewards"""
+        try:
+            # Use hostname or CPU serial for device identification
+            hostname = subprocess.run(['hostname'], capture_output=True, text=True, timeout=2)
+            if hostname.returncode == 0:
+                return hostname.stdout.strip()
+            return f"device-{secrets.token_hex(4)}"
+        except:
+            return f"unknown-{secrets.token_hex(4)}"
 
 class SignWallet:
     """314Sign Blockchain Wallet for Backup and Recovery"""

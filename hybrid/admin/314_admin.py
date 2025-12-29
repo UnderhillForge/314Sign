@@ -1399,6 +1399,8 @@ class KioskAdminConsole:
                     row += 1
                     hash_short = latest_block.get('hash', 'N/A')[:16] + "..."
                     win.addstr(row, 2, f"Hash: {hash_short}")
+                    row += 1
+                    win.addstr(row, 2, f"Difficulty: {latest_block.get('nonce', 'N/A')} (adaptive)")
 
                     # Show recent transactions (including shared ones)
                     row += 2
