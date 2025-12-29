@@ -332,6 +332,10 @@ class P2PBlockchainNetwork:
             self._handle_security_event(peer_id, message)
         elif msg_type == 'new_block':
             self._handle_new_block(peer_id, message)
+        elif msg_type == 'token_transfer_request':
+            self._handle_token_transfer_request(peer_id, message)
+        elif msg_type == 'token_transfer_response':
+            self._handle_token_transfer_response(peer_id, message)
         elif msg_type == 'ping':
             self._handle_ping(peer_id, message)
         else:
@@ -483,6 +487,199 @@ class P2PBlockchainNetwork:
         alert_details = event.get('details')
 
         self.logger.critical(f"Critical alert from {peer_id}: {alert_details}")
+
+    def _handle_token_transfer_request(self, peer_id: str, message: Dict):
+        """Handle token transfer request from peer"""
+        try:
+            transfer_data = message.get('transfer_data', {})
+            transfer_id = transfer_data.get('transfer_id')
+
+            # Validate transfer request
+            if not self._validate_transfer_request(transfer_data):
+                self._send_to_peer(peer_id, {
+                    'type': 'token_transfer_response',
+                    'transfer_id': transfer_id,
+                    'accepted': False,
+                    'reason': 'validation_failed'
+                })
+                return
+
+            # Check if we're the intended recipient
+            recipient_wallet = transfer_data.get('recipient_wallet')
+            if recipient_wallet != self._get_local_wallet_id():
+                self._send_to_peer(peer_id, {
+                    'type': 'token_transfer_response',
+                    'transfer_id': transfer_id,
+                    'accepted': False,
+                    'reason': 'wrong_recipient'
+                })
+                return
+
+            # Accept the transfer
+            if self._process_incoming_transfer(transfer_data):
+                self._send_to_peer(peer_id, {
+                    'type': 'token_transfer_response',
+                    'transfer_id': transfer_id,
+                    'accepted': True,
+                    'recipient_wallet': recipient_wallet
+                })
+                self.logger.info(f"Accepted token transfer {transfer_id} from {peer_id}")
+            else:
+                self._send_to_peer(peer_id, {
+                    'type': 'token_transfer_response',
+                    'transfer_id': transfer_id,
+                    'accepted': False,
+                    'reason': 'processing_failed'
+                })
+
+        except Exception as e:
+            self.logger.error(f"Error handling token transfer request from {peer_id}: {e}")
+
+    def _handle_token_transfer_response(self, peer_id: str, message: Dict):
+        """Handle token transfer response from peer"""
+        try:
+            transfer_id = message.get('transfer_id')
+            accepted = message.get('accepted', False)
+
+            if accepted:
+                self.logger.info(f"Token transfer {transfer_id} accepted by {peer_id}")
+                # Update local transfer status
+                self._update_transfer_status(transfer_id, 'completed')
+            else:
+                reason = message.get('reason', 'unknown')
+                self.logger.warning(f"Token transfer {transfer_id} rejected by {peer_id}: {reason}")
+                # Update local transfer status
+                self._update_transfer_status(transfer_id, 'failed', reason)
+
+        except Exception as e:
+            self.logger.error(f"Error handling token transfer response from {peer_id}: {e}")
+
+    def _validate_transfer_request(self, transfer_data: Dict) -> bool:
+        """Validate incoming token transfer request"""
+        try:
+            required_fields = ['transfer_id', 'sender_wallet', 'recipient_wallet',
+                             'tokens', 'timestamp', 'signature']
+            for field in required_fields:
+                if field not in transfer_data:
+                    return False
+
+            # Check timestamp (not too old)
+            if time.time() - transfer_data['timestamp'] > 3600:  # 1 hour
+                return False
+
+            # Validate signature
+            expected_signature = self._sign_transfer_data(transfer_data)
+            if transfer_data['signature'] != expected_signature:
+                return False
+
+            return True
+
+        except Exception as e:
+            self.logger.error(f"Transfer validation error: {e}")
+            return False
+
+    def _process_incoming_transfer(self, transfer_data: Dict) -> bool:
+        """Process and accept an incoming token transfer"""
+        try:
+            # Use local wallet to receive the transfer
+            from blockchain_security import SignWallet
+            local_blockchain = self.local_blockchain  # This should be passed in constructor
+            wallet = SignWallet(blockchain=local_blockchain)
+
+            return wallet.receive_transfer(transfer_data, local_blockchain)
+
+        except Exception as e:
+            self.logger.error(f"Failed to process incoming transfer: {e}")
+            return False
+
+    def _get_local_wallet_id(self) -> str:
+        """Get local wallet ID"""
+        try:
+            from blockchain_security import SignWallet
+            wallet = SignWallet()
+            return wallet.wallet_data['wallet_id']
+        except:
+            return 'unknown'
+
+    def _sign_transfer_data(self, transfer_data: Dict) -> str:
+        """Sign transfer data (simplified)"""
+        transfer_string = json.dumps({
+            'transfer_id': transfer_data['transfer_id'],
+            'sender_wallet': transfer_data['sender_wallet'],
+            'recipient_wallet': transfer_data['recipient_wallet'],
+            'token_ids': [t['token_id'] for t in transfer_data['tokens']],
+            'timestamp': transfer_data['timestamp']
+        }, sort_keys=True)
+
+        return hashlib.sha256(transfer_string.encode()).hexdigest()
+
+    def _update_transfer_status(self, transfer_id: str, status: str, reason: str = None):
+        """Update local transfer status"""
+        try:
+            from blockchain_security import SignWallet
+            wallet = SignWallet()
+
+            transfers = wallet.get_transfer_history()
+            for transfer in transfers:
+                if transfer.get('transfer_id') == transfer_id:
+                    transfer['status'] = status
+                    if reason:
+                        transfer['failure_reason'] = reason
+                    wallet.save_wallet()
+                    break
+
+        except Exception as e:
+            self.logger.error(f"Failed to update transfer status: {e}")
+
+    def request_token_transfer(self, recipient_wallet_id: str, token_ids: List[str]) -> Dict[str, Any]:
+        """Request token transfer to a peer"""
+        try:
+            # Get local wallet
+            from blockchain_security import SignWallet
+            local_blockchain = self.local_blockchain
+            wallet = SignWallet(blockchain=local_blockchain)
+
+            # Find peer that has the recipient wallet
+            recipient_peer = None
+            for peer_id, peer_info in self.peers.items():
+                if peer_info.get('wallet_id') == recipient_wallet_id:
+                    recipient_peer = peer_id
+                    break
+
+            if not recipient_peer:
+                return {
+                    'success': False,
+                    'error': 'Recipient peer not found in network'
+                }
+
+            # Initiate transfer through wallet
+            transfer_result = wallet.transfer_tokens(recipient_wallet_id, token_ids, local_blockchain)
+
+            if transfer_result['success']:
+                # Send transfer request to peer
+                transfer_request = {
+                    'type': 'token_transfer_request',
+                    'transfer_data': {
+                        'transfer_id': transfer_result['transfer_id'],
+                        'sender_wallet': wallet.wallet_data['wallet_id'],
+                        'recipient_wallet': recipient_wallet_id,
+                        'tokens': transfer_result.get('tokens_data', []),
+                        'timestamp': time.time(),
+                        'signature': transfer_result.get('signature', '')
+                    }
+                }
+
+                self._send_to_peer(recipient_peer, transfer_request)
+                self.logger.info(f"Token transfer request sent to {recipient_peer}")
+
+            return transfer_result
+
+        except Exception as e:
+            self.logger.error(f"Token transfer request failed: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
 
     def share_security_event(self, event: Dict[str, Any]):
         """Share security event with all connected peers"""

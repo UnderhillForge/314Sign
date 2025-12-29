@@ -1576,6 +1576,180 @@ class SignWallet:
             logging.error(f"Wallet import failed: {e}")
             return False
 
+    def transfer_tokens(self, recipient_wallet_id: str, token_ids: List[str],
+                       blockchain: SignChain) -> Dict[str, Any]:
+        """Transfer tokens to another wallet"""
+        # Validate token ownership
+        owned_tokens = {t["token_id"]: t for t in self.wallet_data["tokens"]}
+        tokens_to_transfer = []
+
+        for token_id in token_ids:
+            if token_id not in owned_tokens:
+                return {
+                    'success': False,
+                    'error': f'Token {token_id} not found in wallet'
+                }
+            tokens_to_transfer.append(owned_tokens[token_id])
+
+        if not tokens_to_transfer:
+            return {
+                'success': False,
+                'error': 'No valid tokens to transfer'
+            }
+
+        # Create transfer transaction
+        transfer_tx = {
+            'type': 'token_transfer',
+            'sender_wallet': self.wallet_data['wallet_id'],
+            'recipient_wallet': recipient_wallet_id,
+            'tokens': tokens_to_transfer,
+            'timestamp': time.time(),
+            'transfer_id': secrets.token_hex(16)
+        }
+
+        # Sign the transfer
+        transfer_signature = self._sign_transfer(transfer_tx)
+
+        # Add signature and create blockchain transaction
+        transfer_tx['signature'] = transfer_signature
+        tx_hash = blockchain.add_transaction(transfer_tx)
+
+        # Remove tokens from sender wallet (they're now in transit)
+        for token in tokens_to_transfer:
+            if token in self.wallet_data["tokens"]:
+                self.wallet_data["tokens"].remove(token)
+
+        # Add to transfer history
+        if "transfers" not in self.wallet_data:
+            self.wallet_data["transfers"] = []
+
+        self.wallet_data["transfers"].append({
+            'transfer_id': transfer_tx['transfer_id'],
+            'type': 'sent',
+            'recipient': recipient_wallet_id,
+            'tokens': token_ids,
+            'tx_hash': tx_hash,
+            'timestamp': transfer_tx['timestamp'],
+            'status': 'pending'
+        })
+
+        self.save_wallet()
+
+        logging.info(f"Transfer initiated: {len(token_ids)} tokens to {recipient_wallet_id}")
+
+        return {
+            'success': True,
+            'transfer_id': transfer_tx['transfer_id'],
+            'tx_hash': tx_hash,
+            'tokens_transferred': len(token_ids),
+            'recipient': recipient_wallet_id
+        }
+
+    def receive_transfer(self, transfer_data: Dict, blockchain: SignChain) -> bool:
+        """Receive tokens from a transfer"""
+        try:
+            # Validate transfer
+            if not self._validate_transfer(transfer_data):
+                logging.error("Transfer validation failed")
+                return False
+
+            # Check if we're the intended recipient
+            if transfer_data['recipient_wallet'] != self.wallet_data['wallet_id']:
+                logging.error("Transfer not intended for this wallet")
+                return False
+
+            # Add tokens to wallet
+            tokens_received = transfer_data['tokens']
+            for token in tokens_received:
+                # Check for duplicates
+                existing_ids = {t["token_id"] for t in self.wallet_data["tokens"]}
+                if token["token_id"] not in existing_ids:
+                    self.wallet_data["tokens"].append(token)
+
+            # Add to transfer history
+            if "transfers" not in self.wallet_data:
+                self.wallet_data["transfers"] = []
+
+            self.wallet_data["transfers"].append({
+                'transfer_id': transfer_data['transfer_id'],
+                'type': 'received',
+                'sender': transfer_data['sender_wallet'],
+                'tokens': [t['token_id'] for t in tokens_received],
+                'tx_hash': transfer_data.get('blockchain_tx'),
+                'timestamp': transfer_data['timestamp'],
+                'status': 'completed'
+            })
+
+            self.save_wallet()
+
+            logging.info(f"Transfer received: {len(tokens_received)} tokens from {transfer_data['sender_wallet']}")
+            return True
+
+        except Exception as e:
+            logging.error(f"Transfer reception failed: {e}")
+            return False
+
+    def _sign_transfer(self, transfer_data: Dict) -> str:
+        """Sign a token transfer"""
+        # Create a canonical representation for signing
+        transfer_string = json.dumps({
+            'transfer_id': transfer_data['transfer_id'],
+            'sender_wallet': transfer_data['sender_wallet'],
+            'recipient_wallet': transfer_data['recipient_wallet'],
+            'token_ids': [t['token_id'] for t in transfer_data['tokens']],
+            'timestamp': transfer_data['timestamp']
+        }, sort_keys=True)
+
+        # Use wallet's private key (simplified - in practice would use proper key management)
+        # For demo purposes, we'll use a hash-based signature
+        import hashlib
+        signature = hashlib.sha256((transfer_string + self.wallet_data['wallet_id']).encode()).hexdigest()
+
+        return signature
+
+    def _validate_transfer(self, transfer_data: Dict) -> bool:
+        """Validate an incoming token transfer"""
+        try:
+            # Check required fields
+            required_fields = ['transfer_id', 'sender_wallet', 'recipient_wallet',
+                             'tokens', 'timestamp', 'signature']
+            for field in required_fields:
+                if field not in transfer_data:
+                    return False
+
+            # Verify signature
+            expected_signature = self._sign_transfer(transfer_data)
+            if transfer_data['signature'] != expected_signature:
+                return False
+
+            # Check timestamp (not too old)
+            if time.time() - transfer_data['timestamp'] > 3600:  # 1 hour max age
+                return False
+
+            # Validate tokens exist and are properly formatted
+            tokens = transfer_data['tokens']
+            if not isinstance(tokens, list) or len(tokens) == 0:
+                return False
+
+            for token in tokens:
+                if not isinstance(token, dict) or 'token_id' not in token:
+                    return False
+
+            return True
+
+        except Exception as e:
+            logging.error(f"Transfer validation error: {e}")
+            return False
+
+    def get_transfer_history(self) -> List[Dict]:
+        """Get wallet transfer history"""
+        return self.wallet_data.get("transfers", [])
+
+    def get_pending_transfers(self) -> List[Dict]:
+        """Get transfers that are still pending confirmation"""
+        transfers = self.wallet_data.get("transfers", [])
+        return [t for t in transfers if t.get('status') == 'pending']
+
 def main():
     """CLI interface for blockchain operations"""
     import argparse
@@ -1591,6 +1765,8 @@ def main():
     parser.add_argument('--backup-chain', action='store_true', help='Backup blockchain to wallet')
     parser.add_argument('--export-wallet', metavar='PATH', help='Export wallet to file')
     parser.add_argument('--import-wallet', metavar='PATH', help='Import wallet from file')
+    parser.add_argument('--transfer-tokens', nargs='+', metavar=('RECIPIENT_WALLET', 'TOKEN_ID'), help='Transfer tokens to another wallet')
+    parser.add_argument('--transfer-history', action='store_true', help='Show token transfer history')
 
     args = parser.parse_args()
 
@@ -1661,6 +1837,56 @@ def main():
             print(f"✅ Wallet imported from {args.import_wallet}")
         else:
             print(f"❌ Wallet import failed")
+
+    elif args.transfer_tokens:
+        if len(args.transfer_tokens) < 2:
+            print("❌ Usage: --transfer-tokens RECIPIENT_WALLET TOKEN_ID [TOKEN_ID ...]")
+            exit(1)
+
+        recipient_wallet = args.transfer_tokens[0]
+        token_ids = args.transfer_tokens[1:]
+
+        result = wallet.transfer_tokens(recipient_wallet, token_ids, blockchain)
+
+        if result['success']:
+            print(f"✅ Transfer initiated!")
+            print(f"   Transfer ID: {result['transfer_id']}")
+            print(f"   Transaction Hash: {result['tx_hash']}")
+            print(f"   Tokens: {result['tokens_transferred']}")
+            print(f"   Recipient: {result['recipient']}")
+            print(f"   Status: Pending confirmation")
+        else:
+            print(f"❌ Transfer failed: {result['error']}")
+
+    elif args.transfer_history:
+        transfers = wallet.get_transfer_history()
+
+        if not transfers:
+            print("No transfer history found")
+        else:
+            print("314Sign Token Transfer History:")
+            print("=" * 60)
+
+            for transfer in sorted(transfers, key=lambda x: x['timestamp'], reverse=True):
+                transfer_time = time.ctime(transfer['timestamp'])
+                status_icon = "✅" if transfer['status'] == 'completed' else "⏳" if transfer['status'] == 'pending' else "❌"
+
+                print(f"{status_icon} {transfer['type'].title()}: {len(transfer.get('tokens', []))} tokens")
+                print(f"   Time: {transfer_time}")
+                print(f"   Status: {transfer['status']}")
+
+                if transfer['type'] == 'sent':
+                    print(f"   To: {transfer['recipient']}")
+                else:
+                    print(f"   From: {transfer['sender']}")
+
+                if transfer.get('tx_hash'):
+                    print(f"   TX Hash: {transfer['tx_hash'][:16]}...")
+
+                if transfer['status'] == 'failed' and 'failure_reason' in transfer:
+                    print(f"   Reason: {transfer['failure_reason']}")
+
+                print()
 
     else:
         parser.print_help()
