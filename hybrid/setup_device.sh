@@ -97,13 +97,23 @@ sudo apt install -y \
     fbi \
     imagemagick
 
-# Install Python packages
+# Install Python packages with proper error handling for PEP 668
 echo "🐍 Installing Python packages..."
-pip3 install --user \
+if pip3 install --user \
     pygame \
     requests \
     pillow \
-    numpy
+    numpy 2>/dev/null; then
+    echo "✓ Python packages installed successfully (user mode)"
+else
+    echo "⚠️  User installation failed, trying system-wide installation..."
+    pip3 install --break-system-packages \
+        pygame \
+        requests \
+        pillow \
+        numpy
+    echo "✓ Python packages installed (system mode)"
+fi
 
 # Create application directories
 echo "📁 Creating application directories..."
