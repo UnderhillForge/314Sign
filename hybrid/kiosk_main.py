@@ -29,14 +29,19 @@ class UnifiedKioskApp:
     """
 
     def __init__(self, config_path: Optional[str] = None):
+        # Initialize with hardware detection and smart defaults
+        self._detect_hardware()
         self.config = self._load_config(config_path)
         self.logger = self._setup_logging()
 
-        # Core components
+        # Core components with responsive sizing
         self.display_size = self._get_display_size_with_orientation()
         self.is_main_kiosk = self.config.get('mode', 'remote') == 'main'
         self.device_id = self.config.get('device_id', 'unknown')
-        self.orientation = self.config.get('orientation', 'landscape')
+        self.orientation = self.config.get('orientation', 'portrait')  # Default to vertical for menus
+
+        # Initialize hardware-accelerated rendering
+        self._setup_hardware_rendering()
 
         # Initialize subsystems
         self.renderer = LMSRenderer(self.display_size)
@@ -87,18 +92,74 @@ class UnifiedKioskApp:
         )
         return logging.getLogger(__name__)
 
+    def _detect_hardware(self) -> None:
+        """Detect hardware capabilities and set smart defaults"""
+        # Detect Raspberry Pi model and capabilities
+        self.hardware_info = {
+            'model': 'unknown',
+            'cpu_cores': 1,
+            'has_wifi': False,
+            'has_bluetooth': False,
+            'memory_mb': 512
+        }
+
+        try:
+            # Read CPU info to detect Pi model
+            with open('/proc/cpuinfo', 'r') as f:
+                cpuinfo = f.read()
+
+            if 'Raspberry Pi 5' in cpuinfo:
+                self.hardware_info.update({
+                    'model': 'pi5', 'cpu_cores': 4, 'has_wifi': True, 'has_bluetooth': True, 'memory_mb': 4096
+                })
+            elif 'Raspberry Pi 4' in cpuinfo:
+                self.hardware_info.update({
+                    'model': 'pi4', 'cpu_cores': 4, 'has_wifi': True, 'has_bluetooth': True, 'memory_mb': 2048
+                })
+            elif 'Raspberry Pi Zero 2' in cpuinfo:
+                self.hardware_info.update({
+                    'model': 'pi02w', 'cpu_cores': 4, 'has_wifi': True, 'has_bluetooth': True, 'memory_mb': 512
+                })
+            elif 'Raspberry Pi Zero W' in cpuinfo:
+                self.hardware_info.update({
+                    'model': 'pi0w', 'cpu_cores': 1, 'has_wifi': True, 'has_bluetooth': True, 'memory_mb': 512
+                })
+            elif 'Raspberry Pi 3' in cpuinfo:
+                self.hardware_info.update({
+                    'model': 'pi3', 'cpu_cores': 4, 'has_wifi': True, 'has_bluetooth': True, 'memory_mb': 1024
+                })
+
+        except Exception as e:
+            self.logger.warning(f"Hardware detection failed: {e}")
+
+    def _setup_hardware_rendering(self) -> None:
+        """Setup hardware-accelerated rendering environment"""
+        # Configure environment variables for direct hardware access
+        os.environ['SDL_VIDEODRIVER'] = 'fbcon'
+        os.environ['SDL_FBDEV'] = '/dev/fb0'
+        os.environ['SDL_NOMOUSE'] = '1'
+        os.environ['SDL_VIDEO_ALLOW_SCREENSAVER'] = '0'
+
+        # Set rendering quality based on hardware
+        if self.hardware_info['cpu_cores'] >= 4:
+            # High-end devices can handle better quality
+            self.render_quality = 'high'
+        else:
+            # Low-end devices need optimization
+            self.render_quality = 'low'
+
     def _get_display_size_with_orientation(self) -> Tuple[int, int]:
-        """Get display size considering orientation"""
+        """Get display size considering orientation and hardware capabilities"""
         base_size = self.config.get('display_size', [1920, 1080])
-        orientation = self.config.get('orientation', 'landscape')
+        orientation = self.config.get('orientation', 'portrait')  # Default to vertical for menus
 
         width, height = base_size
 
         if orientation == 'portrait':
-            # Swap dimensions for portrait mode
+            # Swap dimensions for portrait mode (better for menu boards)
             return (height, width)
         else:
-            # Landscape mode (default)
+            # Landscape mode
             return (width, height)
 
     def start_web_server(self) -> None:

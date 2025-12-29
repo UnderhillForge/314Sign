@@ -6,8 +6,10 @@
 
 set -e
 
-echo "🚀 Setting up Direct Framebuffer Display (No X11)"
-echo "=================================================="
+echo "🚀 314Sign Hybrid System Setup"
+echo "==============================="
+echo "Setting up professional digital signage on your device"
+echo ""
 
 # Detect device type - support entire Raspberry Pi lineup
 if grep -q "Raspberry Pi 5" /proc/cpuinfo 2>/dev/null; then
