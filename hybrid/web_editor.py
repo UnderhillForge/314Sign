@@ -52,6 +52,8 @@ class LMSEditorWebServer(BaseHTTPRequestHandler):
 
         if path == "/api/save":
             self.save_lms_content()
+        elif path == "/api/save-template":
+            self.save_template()
         elif path == "/api/preview":
             self.generate_preview()
         else:
@@ -524,6 +526,7 @@ class LMSEditorWebServer(BaseHTTPRequestHandler):
         <div class="main-content">
             <div class="toolbar">
                 <button class="btn btn-secondary" id="load-template">📋 Load Template</button>
+                <button class="btn btn-secondary" id="save-template">📝 Save as Template</button>
                 <button class="btn btn-secondary" id="save-lms">💾 Save LMS</button>
                 <button class="btn btn-primary" id="preview">👁️ Preview</button>
                 <button class="btn btn-secondary" id="clear-canvas">🗑️ Clear</button>
@@ -570,6 +573,25 @@ class LMSEditorWebServer(BaseHTTPRequestHandler):
         </div>
     </div>
 
+    <!-- Save Template Modal -->
+    <div id="save-template-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>Save as Template</h2>
+            <div class="property-group">
+                <label>Template Name:</label>
+                <input type="text" id="template-name" placeholder="e.g., My Custom Layout" required>
+            </div>
+            <div class="property-group">
+                <label>Description:</label>
+                <textarea id="template-description" placeholder="Describe your template..." rows="3"></textarea>
+            </div>
+            <div style="margin-top: 1rem;">
+                <button class="btn btn-primary" onclick="saveTemplate()">Save Template</button>
+                <button class="btn btn-secondary" onclick="closeSaveTemplateModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Global state
         let selectedElement = null;
@@ -600,6 +622,7 @@ class LMSEditorWebServer(BaseHTTPRequestHandler):
 
             // Toolbar buttons
             document.getElementById('load-template').addEventListener('click', showTemplatesModal);
+            document.getElementById('save-template').addEventListener('click', showSaveTemplateModal);
             document.getElementById('save-lms').addEventListener('click', saveLMS);
             document.getElementById('preview').addEventListener('click', previewLMS);
             document.getElementById('clear-canvas').addEventListener('click', clearCanvas);
@@ -997,31 +1020,117 @@ class LMSEditorWebServer(BaseHTTPRequestHandler):
             // Clear current canvas
             clearCanvas();
 
-            // Load template elements (simplified - would load from server)
-            switch (template) {
-                case 'restaurant':
-                    createElement('text', 100, 100);
-                    createElement('text', 100, 200);
-                    createElement('time', 800, 50);
-                    break;
-                case 'office':
-                    createElement('text', 100, 100);
-                    createElement('text', 100, 150);
-                    createElement('date', 800, 50);
-                    break;
-                case 'school':
-                    createElement('text', 100, 100);
-                    createElement('text', 100, 160);
-                    createElement('time', 800, 50);
-                    break;
-                case 'retail':
-                    createElement('text', 100, 100);
-                    createElement('image', 100, 200);
-                    createElement('rectangle', 400, 100);
-                    break;
+            // Check if it's a built-in template
+            const builtInTemplates = {
+                'restaurant': {
+                    overlays: [
+                        { type: 'text', content: 'Welcome to Our Restaurant', font: 'Arial', size: 48, color: '#FFD700', position: [50, 100], size: [980, 80] },
+                        { type: 'text', content: 'Daily Specials', font: 'Arial', size: 36, color: '#FFFFFF', position: [50, 250], size: [980, 60] },
+                        { type: 'text', content: 'Grilled Salmon with seasonal vegetables', font: 'Arial', size: 28, color: '#FFFFFF', position: [80, 350], size: [920, 50] },
+                        { type: 'text', content: '$24.99', font: 'Arial', size: 32, color: '#FFD700', position: [80, 420], size: [200, 50] },
+                        { type: 'time', format: 'HH:MM', font: 'Arial', size: 36, color: '#FFD700', position: [800, 50], size: [200, 50] }
+                    ]
+                },
+                'office': {
+                    overlays: [
+                        { type: 'text', content: 'Company Directory', font: 'Arial', size: 42, color: '#2D3748', position: [50, 80], size: [980, 70] },
+                        { type: 'text', content: 'Welcome to Our Office', font: 'Arial', size: 28, color: '#4A5568', position: [50, 220], size: [980, 50] },
+                        { type: 'text', content: 'John Smith\\nCEO & Founder\\njohn@company.com', font: 'Arial', size: 22, color: '#2D3748', position: [80, 320], size: [400, 120] },
+                        { type: 'date', format: 'Day, Month DD, YYYY', font: 'Arial', size: 24, color: '#2D3748', position: [50, 560], size: [300, 40] }
+                    ]
+                },
+                'school': {
+                    overlays: [
+                        { type: 'text', content: 'School Schedule', font: 'Arial', size: 42, color: '#2D3748', position: [50, 80], size: [980, 70] },
+                        { type: 'text', content: 'Today\'s Classes', font: 'Arial', size: 32, color: '#4A5568', position: [50, 200], size: [980, 60] },
+                        { type: 'text', content: 'Math - Room 101\\nScience - Room 203\\nEnglish - Room 305', font: 'Arial', size: 26, color: '#2D3748', position: [80, 300], size: [600, 150] },
+                        { type: 'time', format: 'HH:MM', font: 'Arial', size: 36, color: '#2D3748', position: [800, 50], size: [200, 50] }
+                    ]
+                },
+                'retail': {
+                    overlays: [
+                        { type: 'text', content: 'Special Offer', font: 'Arial', size: 48, color: '#FFD700', position: [50, 100], size: [980, 80] },
+                        { type: 'text', content: '50% Off All Items', font: 'Arial', size: 36, color: '#FFFFFF', position: [50, 250], size: [980, 60] },
+                        { type: 'rectangle', fillColor: '#FFD700', position: [100, 350], size: [200, 100] },
+                        { type: 'text', content: 'Limited Time!', font: 'Arial', size: 24, color: '#000000', position: [120, 380], size: [160, 40] }
+                    ]
+                },
+                'blank': {
+                    overlays: []
+                }
+            };
+
+            if (builtInTemplates[template]) {
+                // Load built-in template
+                const templateData = builtInTemplates[template];
+                templateData.overlays.forEach(overlay => {
+                    const element = createElementFromOverlay(overlay);
+                    if (element) {
+                        canvas.appendChild(element);
+                    }
+                });
+                showNotification(`Loaded ${template} template`);
+            } else {
+                // Load custom template from server
+                fetch(`/api/templates/${template}.json`)
+                    .then(response => response.json())
+                    .then(templateData => {
+                        if (templateData.overlays) {
+                            templateData.overlays.forEach(overlay => {
+                                const element = createElementFromOverlay(overlay);
+                                if (element) {
+                                    canvas.appendChild(element);
+                                }
+                            });
+                        }
+                        showNotification(`Loaded custom template: ${template}`);
+                    })
+                    .catch(error => {
+                        showNotification('Error loading template', 'error');
+                    });
+            }
+        }
+
+        function createElementFromOverlay(overlay) {
+            // Create element from overlay data
+            const type = overlay.type;
+            const x = overlay.position[0] + 50; // Add some offset
+            const y = overlay.position[1] + 50;
+
+            const element = createElement(type, x, y);
+
+            // Apply overlay properties
+            const elementData = elements.find(el => el.id == element.dataset.id);
+            if (elementData && overlay) {
+                elementData.properties = { ...elementData.properties, ...overlay };
+                elementData.properties.position = overlay.position;
+                elementData.properties.size = overlay.size;
+
+                // Apply visual properties
+                if (overlay.content) {
+                    element.textContent = overlay.content.replace(/\\\\n/g, '\\n');
+                }
+                if (overlay.font) {
+                    element.style.fontFamily = overlay.font;
+                }
+                if (overlay.size) {
+                    element.style.fontSize = overlay.size + 'px';
+                }
+                if (overlay.color) {
+                    element.style.color = overlay.color;
+                }
+                if (overlay.fillColor) {
+                    element.style.backgroundColor = overlay.fillColor;
+                }
+
+                // Set position and size
+                element.style.left = overlay.position[0] + 'px';
+                element.style.top = overlay.position[1] + 'px';
+                element.style.width = overlay.size[0] + 'px';
+                element.style.height = overlay.size[1] + 'px';
             }
 
-            showNotification(`Loaded ${template} template`);
+            return element;
         }
 
         function saveLMS() {
@@ -1089,6 +1198,127 @@ class LMSEditorWebServer(BaseHTTPRequestHandler):
             updatePropertiesPanel();
         }
 
+        function showSaveTemplateModal() {
+            document.getElementById('save-template-modal').style.display = 'flex';
+            // Pre-fill template name
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
+            document.getElementById('template-name').value = `Custom Layout ${timestamp}`;
+        }
+
+        function closeSaveTemplateModal() {
+            document.getElementById('save-template-modal').style.display = 'none';
+            document.getElementById('template-name').value = '';
+            document.getElementById('template-description').value = '';
+        }
+
+        function saveTemplate() {
+            const name = document.getElementById('template-name').value.trim();
+            const description = document.getElementById('template-description').value.trim();
+
+            if (!name) {
+                showNotification('Template name is required', 'error');
+                return;
+            }
+
+            const templateData = {
+                name: name,
+                description: description,
+                display_size: [1080, 1920],
+                orientation: "portrait",
+                overlays: []
+            };
+
+            // Convert elements to overlays
+            elements.forEach(elementData => {
+                const element = elementData.element;
+                const overlay = {
+                    type: elementData.type,
+                    position: [
+                        parseInt(element.style.left),
+                        parseInt(element.style.top)
+                    ],
+                    size: [
+                        parseInt(element.style.width),
+                        parseInt(element.style.height)
+                    ],
+                    ...elementData.properties
+                };
+                templateData.overlays.push(overlay);
+            });
+
+            // Send to server
+            fetch('/api/save-template', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(templateData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Template saved successfully!');
+                    closeSaveTemplateModal();
+                    // Refresh templates list
+                    loadTemplatesList();
+                } else {
+                    showNotification('Error saving template', 'error');
+                }
+            })
+            .catch(error => {
+                showNotification('Error saving template', 'error');
+            });
+        }
+
+        function loadTemplatesList() {
+            fetch('/api/templates')
+                .then(response => response.json())
+                .then(templates => {
+                    updateTemplatesModal(templates);
+                })
+                .catch(error => {
+                    console.error('Error loading templates:', error);
+                });
+        }
+
+        function updateTemplatesModal(templates) {
+            const grid = document.getElementById('templates-grid');
+
+            // Keep built-in templates
+            const builtInTemplates = [
+                { name: 'restaurant', icon: '🍽️', label: 'Restaurant Menu' },
+                { name: 'office', icon: '🏢', label: 'Office Directory' },
+                { name: 'school', icon: '🎓', label: 'School Schedule' },
+                { name: 'retail', icon: '🛍️', label: 'Retail Display' },
+                { name: 'blank', icon: '📄', label: 'Blank Canvas' }
+            ];
+
+            let html = '';
+
+            // Add built-in templates
+            builtInTemplates.forEach(template => {
+                html += `
+                    <div class="template-item" data-template="${template.name}">
+                        <div>${template.icon}</div>
+                        <div>${template.label}</div>
+                    </div>
+                `;
+            });
+
+            // Add user-created templates
+            if (templates && templates.length > 0) {
+                html += '<div style="width: 100%; text-align: center; margin: 1rem 0; color: #666; font-size: 0.9rem;">Custom Templates</div>';
+                templates.forEach(template => {
+                    html += `
+                        <div class="template-item" data-template="${template.name}">
+                            <div>🎨</div>
+                            <div>${template.name}</div>
+                        </div>
+                    `;
+                });
+            }
+
+            grid.innerHTML = html;
+        }
+
         function showNotification(message, type = 'success') {
             const notification = document.createElement('div');
             notification.className = 'notification';
@@ -1105,8 +1335,9 @@ class LMSEditorWebServer(BaseHTTPRequestHandler):
             }, 3000);
         }
 
-        // Initialize with a blank canvas
+        // Initialize with a blank canvas and load templates
         showNotification('314Sign LMS Editor Ready');
+        loadTemplatesList();
     </script>
 </body>
 </html>"""
@@ -1207,6 +1438,50 @@ class LMSEditorWebServer(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'application/json')
         self.end_headers()
         self.wfile.write(json.dumps({'preview': 'Not implemented yet'}).encode())
+
+    def save_template(self):
+        """Save template content from the editor"""
+        try:
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            template_data = json.loads(post_data.decode())
+
+            # Validate required fields
+            if not template_data.get('name'):
+                self.send_error(400, "Template name is required")
+                return
+
+            # Sanitize filename (remove special characters)
+            name = template_data['name']
+            safe_name = "".join(c for c in name if c.isalnum() or c in (' ', '-', '_')).rstrip()
+            safe_name = safe_name.replace(' ', '_').lower()
+
+            # Create filename
+            filename = f"{safe_name}.json"
+            filepath = self.templates_dir / filename
+
+            # Add metadata
+            template_data['created_at'] = int(time.time())
+            template_data['version'] = "1.0"
+
+            # Save template file
+            with open(filepath, 'w') as f:
+                json.dump(template_data, f, indent=2)
+
+            response = {
+                'success': True,
+                'filename': filename,
+                'path': str(filepath),
+                'name': template_data['name']
+            }
+
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(response).encode())
+
+        except Exception as e:
+            self.send_error(500, f"Error saving template: {str(e)}")
 
 class LMSWebEditor:
     """
