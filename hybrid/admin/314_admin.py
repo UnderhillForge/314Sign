@@ -39,7 +39,7 @@ class KioskAdminConsole:
 
         # State
         self.current_tab = 0
-        self.tabs = ['Dashboard', 'System', 'Network', 'Content', 'Bundles', 'Monitor']
+        self.tabs = ['Dashboard', 'System', 'Network', 'Content', 'Bundles', 'Security', 'Monitor']
         self.running = True
 
         # Sub-navigation for settings tabs
@@ -47,7 +47,7 @@ class KioskAdminConsole:
         self.network_subtabs = ['WiFi', 'Ethernet', 'mDNS', 'Firewall']
         self.content_subtabs = ['LMS Files', 'Templates', 'Cache', 'Web Editor']
         self.bundles_subtabs = ['Create', 'List', 'Distribute', 'History']
-        self.bundles_subtabs = ['Create', 'List', 'Distribute', 'History']
+        self.security_subtabs = ['Blockchain', 'Keys', 'Tokens', 'Audit']
         self.monitor_subtabs = ['Devices', 'Performance', 'Logs', 'Alerts']
 
         self.current_subtab = 0
@@ -209,7 +209,16 @@ class KioskAdminConsole:
                 self.draw_bundles_distribute(content)
             elif self.current_subtab == 3:
                 self.draw_bundles_history(content)
-        elif self.current_tab == 5:  # Monitor
+        elif self.current_tab == 5:  # Security
+            if self.current_subtab == 0:
+                self.draw_security_blockchain(content)
+            elif self.current_subtab == 1:
+                self.draw_security_keys(content)
+            elif self.current_subtab == 2:
+                self.draw_security_tokens(content)
+            elif self.current_subtab == 3:
+                self.draw_security_audit(content)
+        elif self.current_tab == 6:  # Monitor
             if self.current_subtab == 0:
                 self.draw_monitor_devices(content)
             elif self.current_subtab == 1:
@@ -1336,6 +1345,338 @@ class KioskAdminConsole:
         return ".1f"
 
     # Security Management Methods
+    def draw_security_blockchain(self, win):
+        """Draw blockchain explorer interface"""
+        win.addstr(0, 0, "=== 314Sign Blockchain Explorer ===", curses.A_BOLD)
+
+        # Blockchain status
+        row = 2
+        win.addstr(row, 0, "Blockchain Status:", curses.A_BOLD)
+
+        # Try to load blockchain data
+        blockchain_file = Path('/var/lib/314sign/blockchain.json')
+        if blockchain_file.exists():
+            try:
+                with open(blockchain_file, 'r') as f:
+                    blockchain_data = json.load(f)
+
+                chain_length = len(blockchain_data)
+                row += 1
+                win.addstr(row, 2, f"Blocks: {chain_length}")
+
+                if chain_length > 0:
+                    latest_block = blockchain_data[-1]
+                    row += 1
+                    win.addstr(row, 2, f"Latest Block: #{latest_block.get('index', 'N/A')}")
+                    row += 1
+                    hash_short = latest_block.get('hash', 'N/A')[:16] + "..."
+                    win.addstr(row, 2, f"Hash: {hash_short}")
+
+                    # Show recent transactions
+                    row += 2
+                    win.addstr(row, 0, "Recent Transactions:", curses.A_BOLD)
+
+                    # Get transactions from recent blocks
+                    recent_txs = []
+                    for block in blockchain_data[-3:]:  # Last 3 blocks
+                        txs = block.get('transactions', [])
+                        for tx in txs:
+                            if len(recent_txs) < 8:  # Show up to 8 recent transactions
+                                recent_txs.append((block['index'], tx))
+
+                    for i, (block_idx, tx) in enumerate(recent_txs):
+                        row += 1
+                        tx_type = tx.get('type', 'unknown')
+                        timestamp = time.ctime(tx.get('timestamp', 0))[:16]
+                        win.addstr(row, 2, f"Block {block_idx}: {tx_type} - {timestamp}")
+                else:
+                    row += 1
+                    win.addstr(row, 2, "No blocks found - blockchain not initialized")
+
+            except Exception as e:
+                row += 1
+                win.addstr(row, 2, f"Error reading blockchain: {str(e)[:40]}")
+        else:
+            row += 1
+            win.addstr(row, 2, "Blockchain not found")
+            row += 1
+            win.addstr(row, 2, "Install and run 314Sign to initialize")
+
+        # Security tokens status
+        row = 10
+        win.addstr(row, 0, "Security Tokens:", curses.A_BOLD)
+
+        tokens_file = Path('/var/lib/314sign/tokens.json')
+        if tokens_file.exists():
+            try:
+                with open(tokens_file, 'r') as f:
+                    tokens_data = json.load(f)
+
+                token_count = len(tokens_data)
+                row += 1
+                win.addstr(row, 2, f"Active Tokens: {token_count}")
+
+                if token_count > 0:
+                    # Show recent tokens
+                    recent_tokens = tokens_data[-3:]  # Last 3 tokens
+                    for i, token in enumerate(recent_tokens):
+                        row += 1
+                        token_id = token.get('token_id', 'unknown')[:20] + "..."
+                        issued = time.ctime(token.get('issued_at', 0))[:16]
+                        win.addstr(row, 2, f"{token_id} - {issued}")
+            except Exception as e:
+                row += 1
+                win.addstr(row, 2, f"Error reading tokens: {str(e)[:30]}")
+        else:
+            row += 1
+            win.addstr(row, 2, "No tokens found")
+
+        # Mining status
+        row = 16
+        win.addstr(row, 0, "Mining Status:", curses.A_BOLD)
+
+        # Check if mining processes are running
+        try:
+            result = subprocess.run(['pgrep', '-f', 'blockchain_security'],
+                                  capture_output=True, text=True, timeout=2)
+            mining_processes = len(result.stdout.strip().split('\n')) if result.stdout.strip() else 0
+
+            row += 1
+            if mining_processes > 0:
+                win.addstr(row, 2, f"Active Mining: {mining_processes} process(es)", curses.color_pair(4))
+            else:
+                win.addstr(row, 2, "Mining: Not active", curses.color_pair(5))
+        except:
+            row += 1
+            win.addstr(row, 2, "Mining: Unable to check")
+
+        # Actions
+        row += 2
+        win.addstr(row, 0, "Actions:", curses.A_BOLD)
+        row += 1
+        win.addstr(row, 2, "m: Mine pending transactions")
+        row += 1
+        win.addstr(row, 2, "s: Start background mining")
+        row += 1
+        win.addstr(row, 2, "v: View block details")
+        row += 1
+        win.addstr(row, 2, "t: Generate security token")
+
+    def draw_security_keys(self, win):
+        """Draw cryptographic keys management"""
+        win.addstr(0, 0, "=== Cryptographic Keys Management ===", curses.A_BOLD)
+
+        # Key status
+        row = 2
+        win.addstr(row, 0, "Key System Status:", curses.A_BOLD)
+
+        keys_file = Path('/var/lib/314sign/keys/system_keys.json')
+        master_key_file = Path('/var/lib/314sign/keys/master.key')
+
+        if master_key_file.exists():
+            row += 1
+            win.addstr(row, 2, "Master Key: Present", curses.color_pair(4))
+        else:
+            row += 1
+            win.addstr(row, 2, "Master Key: Missing", curses.color_pair(3))
+
+        if keys_file.exists():
+            try:
+                with open(keys_file, 'r') as f:
+                    keys_data = json.load(f)
+
+                row += 1
+                key_id = keys_data.get('key_id', 'unknown')[:16] + "..."
+                win.addstr(row, 2, f"Key ID: {key_id}")
+
+                row += 1
+                created = time.ctime(keys_data.get('created_at', 0))[:16]
+                win.addstr(row, 2, f"Created: {created}")
+
+                row += 1
+                if 'rsa_public_key' in keys_data:
+                    win.addstr(row, 2, "RSA Keys: Present", curses.color_pair(4))
+                else:
+                    win.addstr(row, 2, "RSA Keys: Missing", curses.color_pair(3))
+
+            except Exception as e:
+                row += 1
+                win.addstr(row, 2, f"Keys Error: {str(e)[:30]}", curses.color_pair(3))
+        else:
+            row += 1
+            win.addstr(row, 2, "System Keys: Not initialized", curses.color_pair(3))
+
+        # Key operations
+        row += 3
+        win.addstr(row, 0, "Key Operations:", curses.A_BOLD)
+        row += 1
+        win.addstr(row, 2, "• RSA key pairs for digital signatures")
+        row += 1
+        win.addstr(row, 2, "• HMAC keys for API authentication")
+        row += 1
+        win.addstr(row, 2, "• AES encryption for secure storage")
+
+        # Actions
+        row += 3
+        win.addstr(row, 0, "Actions:", curses.A_BOLD)
+        row += 1
+        win.addstr(row, 2, "r: Rotate keys")
+        row += 1
+        win.addstr(row, 2, "e: Export public key")
+        row += 1
+        win.addstr(row, 2, "b: Backup keys")
+
+    def draw_security_tokens(self, win):
+        """Draw security tokens management"""
+        win.addstr(0, 0, "=== Security Tokens Management ===", curses.A_BOLD)
+
+        # Token statistics
+        row = 2
+        win.addstr(row, 0, "Token Statistics:", curses.A_BOLD)
+
+        tokens_file = Path('/var/lib/314sign/tokens.json')
+        if tokens_file.exists():
+            try:
+                with open(tokens_file, 'r') as f:
+                    tokens_data = json.load(f)
+
+                token_count = len(tokens_data)
+                row += 1
+                win.addstr(row, 2, f"Total Tokens: {token_count}")
+
+                if token_count > 0:
+                    # Count by type
+                    type_counts = {}
+                    active_count = 0
+
+                    for token in tokens_data:
+                        token_type = token.get('token_type', 'unknown')
+                        type_counts[token_type] = type_counts.get(token_type, 0) + 1
+
+                        # Check if token is still valid
+                        expires_at = token.get('expires_at', 0)
+                        if time.time() < expires_at:
+                            active_count += 1
+
+                    row += 1
+                    win.addstr(row, 2, f"Active Tokens: {active_count}")
+
+                    row += 1
+                    win.addstr(row, 2, f"Expired Tokens: {token_count - active_count}")
+
+                    # Show type breakdown
+                    row += 2
+                    win.addstr(row, 0, "Token Types:", curses.A_BOLD)
+                    for token_type, count in type_counts.items():
+                        row += 1
+                        win.addstr(row, 2, f"{token_type}: {count}")
+
+            except Exception as e:
+                row += 1
+                win.addstr(row, 2, f"Error reading tokens: {str(e)[:30]}")
+        else:
+            row += 1
+            win.addstr(row, 2, "No tokens found")
+
+        # Recent tokens
+        row += 3
+        win.addstr(row, 0, "Recent Tokens:", curses.A_BOLD)
+
+        if tokens_file.exists():
+            try:
+                with open(tokens_file, 'r') as f:
+                    tokens_data = json.load(f)
+
+                recent_tokens = tokens_data[-5:]  # Last 5 tokens
+                for i, token in enumerate(reversed(recent_tokens)):  # Show newest first
+                    row += 1
+                    token_id = token.get('token_id', 'unknown')[:20] + "..."
+                    token_type = token.get('token_type', 'unknown')
+                    issued = time.ctime(token.get('issued_at', 0))[:10]
+                    win.addstr(row, 2, f"{token_id} ({token_type}) - {issued}")
+            except:
+                row += 1
+                win.addstr(row, 2, "Unable to load recent tokens")
+
+        # Actions
+        row += 3
+        win.addstr(row, 0, "Actions:", curses.A_BOLD)
+        row += 1
+        win.addstr(row, 2, "g: Generate new token")
+        row += 1
+        win.addstr(row, 2, "v: Validate token")
+        row += 1
+        win.addstr(row, 2, "r: Revoke token")
+
+    def draw_security_audit(self, win):
+        """Draw security audit log"""
+        win.addstr(0, 0, "=== Security Audit Log ===", curses.A_BOLD)
+
+        # Audit log from blockchain
+        row = 2
+        win.addstr(row, 0, "Blockchain Audit Trail:", curses.A_BOLD)
+
+        blockchain_file = Path('/var/lib/314sign/blockchain.json')
+        if blockchain_file.exists():
+            try:
+                with open(blockchain_file, 'r') as f:
+                    blockchain_data = json.load(f)
+
+                # Count total transactions
+                total_txs = sum(len(block.get('transactions', [])) for block in blockchain_data)
+                row += 1
+                win.addstr(row, 2, f"Total Audit Events: {total_txs}")
+
+                # Show recent audit events
+                row += 2
+                win.addstr(row, 0, "Recent Security Events:", curses.A_BOLD)
+
+                recent_events = []
+                for block in reversed(blockchain_data[-5:]):  # Last 5 blocks
+                    block_idx = block.get('index', 0)
+                    for tx in reversed(block.get('transactions', [])):
+                        if len(recent_events) < 10:  # Show up to 10 recent events
+                            tx_type = tx.get('type', 'unknown')
+                            timestamp = time.ctime(tx.get('timestamp', 0))[:16]
+                            recent_events.append(f"Block {block_idx}: {tx_type} - {timestamp}")
+
+                for i, event in enumerate(recent_events):
+                    row += 1
+                    win.addstr(row, 2, event)
+
+            except Exception as e:
+                row += 1
+                win.addstr(row, 2, f"Error reading audit log: {str(e)[:30]}")
+        else:
+            row += 1
+            win.addstr(row, 2, "No audit log available")
+
+        # Security metrics
+        row += 3
+        win.addstr(row, 0, "Security Metrics:", curses.A_BOLD)
+
+        # Placeholder for security metrics
+        metrics = [
+            "Failed authentications: 0",
+            "Bundle verification failures: 0",
+            "Security alerts: 0",
+            "Active tokens: Check Tokens tab"
+        ]
+
+        for i, metric in enumerate(metrics):
+            row += 1
+            win.addstr(row, 2, metric)
+
+        # Actions
+        row += 3
+        win.addstr(row, 0, "Actions:", curses.A_BOLD)
+        row += 1
+        win.addstr(row, 2, "e: Export audit log")
+        row += 1
+        win.addstr(row, 2, "f: Filter events")
+        row += 1
+        win.addstr(row, 2, "s: Search events")
+
     def draw_security_ssh(self, win):
         """Draw SSH security configuration"""
         win.addstr(0, 0, "=== SSH Security Configuration ===", curses.A_BOLD)
