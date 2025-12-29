@@ -41,7 +41,7 @@ router.get('/', async (req, res) => {
     }
 
     // Get file-based slideshows
-    const slideshowsDir = path.join(__dirname, '../../slideshows/sets');
+    const slideshowsDir = path.join(__dirname, '../../public/slideshows/sets');
     try {
       const files = await fs.readdir(slideshowsDir);
       for (const file of files) {

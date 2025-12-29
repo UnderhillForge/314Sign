@@ -191,6 +191,7 @@ copy_application_files() {
     # Copy main application files
     cp hybrid/kiosk_main.py "$TEMP_DIR/opt/314sign/"
     cp hybrid/web_editor.py "$TEMP_DIR/opt/314sign/"
+    cp hybrid/bundle_manager.py "$TEMP_DIR/opt/314sign/"
     cp hybrid/splash_screen.py "$TEMP_DIR/opt/314sign/"
     cp hybrid/splash_config.json "$TEMP_DIR/opt/314sign/"
     cp hybrid/314sign2.png "$TEMP_DIR/opt/314sign/"

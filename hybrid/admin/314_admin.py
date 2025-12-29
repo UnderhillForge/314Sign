@@ -39,14 +39,15 @@ class KioskAdminConsole:
 
         # State
         self.current_tab = 0
-        self.tabs = ['Dashboard', 'System', 'Network', 'Content', 'Security', 'Monitor']
+        self.tabs = ['Dashboard', 'System', 'Network', 'Content', 'Bundles', 'Monitor']
         self.running = True
 
         # Sub-navigation for settings tabs
         self.system_subtabs = ['Hardware', 'Services', 'Time/Date', 'Storage']
         self.network_subtabs = ['WiFi', 'Ethernet', 'mDNS', 'Firewall']
         self.content_subtabs = ['LMS Files', 'Templates', 'Cache', 'Web Editor']
-        self.security_subtabs = ['SSH', 'Users', 'Firewall', 'Updates']
+        self.bundles_subtabs = ['Create', 'List', 'Distribute', 'History']
+        self.bundles_subtabs = ['Create', 'List', 'Distribute', 'History']
         self.monitor_subtabs = ['Devices', 'Performance', 'Logs', 'Alerts']
 
         self.current_subtab = 0
@@ -199,15 +200,15 @@ class KioskAdminConsole:
                 self.draw_content_cache(content)
             elif self.current_subtab == 3:
                 self.draw_content_web_editor(content)
-        elif self.current_tab == 4:  # Security
+        elif self.current_tab == 4:  # Bundles
             if self.current_subtab == 0:
-                self.draw_security_ssh(content)
+                self.draw_bundles_create(content)
             elif self.current_subtab == 1:
-                self.draw_security_users(content)
+                self.draw_bundles_list(content)
             elif self.current_subtab == 2:
-                self.draw_security_firewall(content)
+                self.draw_bundles_distribute(content)
             elif self.current_subtab == 3:
-                self.draw_security_updates(content)
+                self.draw_bundles_history(content)
         elif self.current_tab == 5:  # Monitor
             if self.current_subtab == 0:
                 self.draw_monitor_devices(content)
@@ -1145,6 +1146,195 @@ class KioskAdminConsole:
         row += 1
         win.addstr(row, 2, "o: Open in browser")
 
+    # Bundle Management Methods
+    def draw_bundles_create(self, win):
+        """Draw bundle creation interface"""
+        win.addstr(0, 0, "=== Create LMS Bundle ===", curses.A_BOLD)
+
+        # Available LMS files
+        lms_dir = Path('/home/pi/lms')
+        if lms_dir.exists():
+            lms_files = list(lms_dir.glob('*.lms'))
+            win.addstr(2, 0, f"Available LMS Files: {len(lms_files)}")
+
+            for i, lms_file in enumerate(sorted(lms_files, key=lambda x: x.stat().st_mtime, reverse=True)):
+                if i < 8:  # Show first 8
+                    mtime = time.ctime(lms_file.stat().st_mtime)
+                    size = lms_file.stat().st_size
+                    win.addstr(4 + i, 2, f"{i+1}. {lms_file.name}")
+                    win.addstr(4 + i, 35, f"{size} bytes")
+                    win.addstr(4 + i, 50, mtime[:16])
+        else:
+            win.addstr(2, 0, "No LMS files found")
+            win.addstr(4, 0, "Create content first using web editor")
+
+        # Bundle creation info
+        row = 14
+        win.addstr(row, 0, "Bundle Creation:", curses.A_BOLD)
+        row += 1
+        win.addstr(row, 2, "Bundles automatically include:")
+        row += 1
+        win.addstr(row, 4, "• LMS content file")
+        row += 1
+        win.addstr(row, 4, "• Referenced background images")
+        row += 1
+        win.addstr(row, 4, "• Custom fonts used")
+        row += 1
+        win.addstr(row, 4, "• Metadata and checksums")
+
+        # Actions
+        row += 3
+        win.addstr(row, 0, "Actions:", curses.A_BOLD)
+        row += 1
+        win.addstr(row, 2, "c: Create bundle from selected file")
+        row += 1
+        win.addstr(row, 2, "↑↓: Select LMS file")
+
+    def draw_bundles_list(self, win):
+        """Draw bundle listing interface"""
+        win.addstr(0, 0, "=== Available Bundles ===", curses.A_BOLD)
+
+        # List bundles from bundles directory
+        bundles_dir = Path('/var/lib/314sign/bundles')
+        if bundles_dir.exists():
+            bundle_files = list(bundles_dir.glob('*.bundle'))
+            win.addstr(2, 0, f"Found {len(bundle_files)} bundle(s):")
+
+            # Show bundle information
+            for i, bundle_file in enumerate(sorted(bundle_files, key=lambda x: x.stat().st_mtime, reverse=True)):
+                if i < 10:  # Show first 10
+                    bundle_name = bundle_file.stem
+                    size = self._get_file_size(bundle_file)
+                    mtime = time.ctime(bundle_file.stat().st_mtime)
+
+                    win.addstr(4 + i, 2, f"{i+1}. {bundle_name}")
+                    win.addstr(4 + i, 35, f"{size}")
+                    win.addstr(4 + i, 50, mtime[:16])
+        else:
+            win.addstr(2, 0, "No bundles directory found")
+            win.addstr(4, 0, "Create bundles first")
+
+        # Bundle statistics
+        row = 16
+        win.addstr(row, 0, "Bundle Stats:", curses.A_BOLD)
+        try:
+            if bundles_dir.exists():
+                total_size = sum(f.stat().st_size for f in bundles_dir.glob('*.bundle'))
+                win.addstr(row + 1, 2, f"Total bundles: {len(list(bundles_dir.glob('*.bundle')))}")
+                win.addstr(row + 2, 2, f"Total size: {total_size // 1024} KB")
+        except:
+            win.addstr(row + 1, 2, "Unable to calculate stats")
+
+        # Actions
+        row += 4
+        win.addstr(row, 0, "Actions:", curses.A_BOLD)
+        row += 1
+        win.addstr(row, 2, "i: Inspect selected bundle")
+        row += 1
+        win.addstr(row, 2, "d: Delete selected bundle")
+        row += 1
+        win.addstr(row, 2, "↑↓: Select bundle")
+
+    def draw_bundles_distribute(self, win):
+        """Draw bundle distribution interface"""
+        win.addstr(0, 0, "=== Bundle Distribution ===", curses.A_BOLD)
+
+        # Available bundles for distribution
+        bundles_dir = Path('/var/lib/314sign/bundles')
+        if bundles_dir.exists():
+            bundle_files = list(bundles_dir.glob('*.bundle'))
+            win.addstr(2, 0, f"Available Bundles: {len(bundle_files)}")
+
+            for i, bundle_file in enumerate(sorted(bundle_files, key=lambda x: x.stat().st_mtime, reverse=True)):
+                if i < 5:  # Show first 5
+                    bundle_name = bundle_file.stem
+                    size = self._get_file_size(bundle_file)
+                    win.addstr(4 + i, 2, f"{i+1}. {bundle_name} ({size})")
+        else:
+            win.addstr(2, 0, "No bundles available")
+
+        # Remote device discovery
+        row = 10
+        win.addstr(row, 0, "Remote Devices:", curses.A_BOLD)
+
+        # Placeholder for remote device discovery
+        row += 1
+        win.addstr(row, 2, "Scanning for remote devices...")
+        row += 1
+        win.addstr(row, 2, "(No remotes detected)")
+        row += 1
+        win.addstr(row, 2, "Use 's' to scan network")
+
+        # Distribution settings
+        row += 3
+        win.addstr(row, 0, "Distribution Options:", curses.A_BOLD)
+        row += 1
+        win.addstr(row, 2, "Priority: Normal")
+        row += 1
+        win.addstr(row, 2, "Method: Secure SCP")
+        row += 1
+        win.addstr(row, 2, "Verification: SHA256 checksums")
+
+        # Actions
+        row += 3
+        win.addstr(row, 0, "Actions:", curses.A_BOLD)
+        row += 1
+        win.addstr(row, 2, "d: Distribute selected bundle")
+        row += 1
+        win.addstr(row, 2, "s: Scan for remote devices")
+        row += 1
+        win.addstr(row, 2, "↑↓: Select bundle")
+
+    def draw_bundles_history(self, win):
+        """Draw bundle distribution history"""
+        win.addstr(0, 0, "=== Distribution History ===", curses.A_BOLD)
+
+        # Distribution log
+        row = 2
+        win.addstr(row, 0, "Recent Distributions:", curses.A_BOLD)
+
+        # Placeholder for distribution history
+        # In a real implementation, this would read from a log file
+        history_entries = [
+            "2025-12-29 12:30 - restaurant-menu-v3 → lobby-1, lobby-2 (Success)",
+            "2025-12-29 12:15 - office-directory-v2 → conference-room (Success)",
+            "2025-12-29 11:45 - school-schedule-v1 → classroom-101 (Failed - timeout)",
+            "2025-12-29 11:30 - retail-display-v2 → storefront (Success)"
+        ]
+
+        for i, entry in enumerate(history_entries):
+            if i < 10:  # Show first 10 entries
+                win.addstr(4 + i, 2, f"• {entry}")
+
+        # Distribution statistics
+        row = 16
+        win.addstr(row, 0, "Distribution Stats:", curses.A_BOLD)
+        row += 1
+        win.addstr(row, 2, "Total distributions: 24")
+        row += 1
+        win.addstr(row, 2, "Success rate: 95.8%")
+        row += 1
+        win.addstr(row, 2, "Average transfer time: 2.3s")
+
+        # Actions
+        row += 3
+        win.addstr(row, 0, "Actions:", curses.A_BOLD)
+        row += 1
+        win.addstr(row, 2, "c: Clear history")
+        row += 1
+        win.addstr(row, 2, "e: Export history to file")
+        row += 1
+        win.addstr(row, 2, "r: Retry failed distributions")
+
+    def _get_file_size(self, file_path: Path) -> str:
+        """Get human-readable file size"""
+        size = file_path.stat().st_size
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if size < 1024.0:
+                return ".1f"
+            size /= 1024.0
+        return ".1f"
+
     # Security Management Methods
     def draw_security_ssh(self, win):
         """Draw SSH security configuration"""
@@ -1412,8 +1602,8 @@ class KioskAdminConsole:
             self.handle_network_input(key)
         elif self.current_tab == 3:  # Content
             self.handle_content_input(key)
-        elif self.current_tab == 4:  # Security
-            self.handle_security_input(key)
+        elif self.current_tab == 4:  # Bundles
+            self.handle_bundles_input(key)
         elif self.current_tab == 5:  # Monitor
             self.handle_monitor_input(key)
 

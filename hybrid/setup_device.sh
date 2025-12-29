@@ -202,13 +202,20 @@ if [ "$DEVICE_TYPE" = "pi02w" ]; then
     sudo systemctl disable bluetooth.service 2>/dev/null || true
 fi
 
-# Configure device hostname and type
+# Configure device hostname and type (Legacy Remote Compatible)
 echo "🏷️  Configuring device identity..."
 
-# Generate unique device ID from CPU serial
-CPU_SERIAL=$(cat /proc/cpuinfo | grep Serial | cut -d ' ' -f 2 2>/dev/null || echo "unknown")
-DEVICE_ID=$(echo -n "$CPU_SERIAL" | sha256sum | cut -c1-6)
-NEW_HOSTNAME="kiosk-${DEVICE_ID}"
+# Generate device ID using legacy remote method (for compatibility)
+CPU_SERIAL=$(grep "Serial" /proc/cpuinfo | awk '{print $3}' | tr '[:lower:]' '[:upper:]' 2>/dev/null || echo "unknown")
+DEVICE_CODE=$(echo "$CPU_SERIAL" | md5sum | cut -c1-6 | tr '[:lower:]' '[:upper:]')
+DEVICE_ID="$DEVICE_CODE"  # Use same format as legacy
+
+# Set hostname based on device capabilities
+if [ "$DEFAULT_MODE" = "main" ]; then
+    NEW_HOSTNAME="kiosk-${DEVICE_CODE}"
+else
+    NEW_HOSTNAME="remote-${DEVICE_CODE}"
+fi
 
 echo "Device ID: $DEVICE_ID"
 echo "Hostname: $NEW_HOSTNAME"
@@ -216,10 +223,60 @@ echo "Hostname: $NEW_HOSTNAME"
 sudo hostnamectl set-hostname "$NEW_HOSTNAME"
 sudo sed -i "s/127.0.1.1.*/127.0.1.1\t$NEW_HOSTNAME/" /etc/hosts
 
-# Configure mDNS
-echo "🌐 Configuring mDNS..."
+# Configure mDNS (Bonjour/Avahi)
+echo "🌐 Configuring mDNS/Bonjour..."
+
+# Enable and start Avahi
 sudo systemctl enable avahi-daemon
 sudo systemctl start avahi-daemon
+
+# Create Avahi service files for device discovery
+if [ "$DEFAULT_MODE" = "main" ]; then
+    # Main kiosk - advertise web services
+    cat > /etc/avahi/services/314sign-main.service << EOF
+<?xml version="1.0" standalone='no'?><!--*-nxml-*-->
+<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+<service-group>
+  <name replace-wildcards="yes">314Sign Main Kiosk on %h</name>
+  <service>
+    <type>_314sign-main._tcp</type>
+    <port>80</port>
+    <txt-record>version=1.0.2.69</txt-record>
+    <txt-record>device_id=$DEVICE_CODE</txt-record>
+    <txt-record>mode=main</txt-record>
+  </service>
+  <service>
+    <type>_http._tcp</type>
+    <port>80</port>
+    <txt-record>path=/</txt-record>
+  </service>
+  <service>
+    <type>_http._tcp</type>
+    <port>8080</port>
+    <txt-record>path=/</txt-record>
+  </service>
+</service-group>
+EOF
+else
+    # Remote display - advertise for discovery
+    cat > /etc/avahi/services/314sign-remote.service << EOF
+<?xml version="1.0" standalone='no'?><!--*-nxml-*-->
+<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+<service-group>
+  <name replace-wildcards="yes">314Sign Remote Display on %h</name>
+  <service>
+    <type>_314sign-remote._tcp</type>
+    <port>80</port>
+    <txt-record>version=1.0.2.69</txt-record>
+    <txt-record>device_id=$DEVICE_CODE</txt-record>
+    <txt-record>mode=remote</txt-record>
+    <txt-record>status=unregistered</txt-record>
+  </service>
+</service-group>
+EOF
+fi
+
+echo -e "${CHECK} mDNS services configured"
 
 # Create device configuration
 echo "⚙️  Creating device configuration..."
@@ -246,8 +303,51 @@ fi
 echo "   Mode: $DEFAULT_MODE"
 echo "   Web Server: $([ "$WEB_SERVER" = true ] && echo "Enabled" || echo "Disabled")"
 
+# Create device information files (Legacy Remote Compatible)
+echo "📄 Creating device information files..."
+
+# device.json - Device identification (same as legacy remote)
+cat > /home/pi/device.json << EOF
+{
+  "serial": "$CPU_SERIAL",
+  "code": "$DEVICE_CODE",
+  "type": "$DEFAULT_MODE",
+  "setupDate": "$(date -Iseconds)",
+  "version": "hybrid-1.0.2.69",
+  "hardware": "$DEVICE_TYPE",
+  "hostname": "$NEW_HOSTNAME"
+}
+EOF
+
+# remote-config.json - Registration status (for remote devices)
+if [ "$DEFAULT_MODE" = "remote" ]; then
+    cat > /home/pi/remote-config.json << EOF
+{
+  "registered": false,
+  "mode": "unregistered",
+  "lastUpdate": "$(date -Iseconds)",
+  "displayName": "Remote $DEVICE_CODE",
+  "mainKioskUrl": null,
+  "deviceCode": "$DEVICE_CODE"
+}
+EOF
+else
+    # For main kiosks, create a basic config
+    cat > /home/pi/remote-config.json << EOF
+{
+  "registered": true,
+  "mode": "main",
+  "lastUpdate": "$(date -Iseconds)",
+  "displayName": "Main Kiosk $DEVICE_CODE",
+  "deviceCode": "$DEVICE_CODE"
+}
+EOF
+fi
+
+# kiosk_config.json - Application configuration
 cat > /home/pi/kiosk_config.json << EOF
 {
+  "version": "1.0.2.69",
   "mode": "$DEFAULT_MODE",
   "device_id": "$DEVICE_ID",
   "hostname": "$NEW_HOSTNAME",
@@ -260,9 +360,12 @@ cat > /home/pi/kiosk_config.json << EOF
   "fullscreen": true,
   "debug": false,
   "device_type": "$DEVICE_TYPE",
-  "direct_framebuffer": true
+  "direct_framebuffer": true,
+  "legacy_compatible": true
 }
 EOF
+
+echo -e "${CHECK} Device information files created"
 
 # Create systemd service
 echo "🔧 Creating systemd service..."

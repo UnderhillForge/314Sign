@@ -1,0 +1,1 @@
+Taking full control of the hardware we own instead of being limited by the software we are forced to use
