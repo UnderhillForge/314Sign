@@ -1349,37 +1349,59 @@ class KioskAdminConsole:
         """Draw blockchain explorer interface with P2P network support"""
         win.addstr(0, 0, "=== 314Sign P2P Blockchain Explorer ===", curses.A_BOLD)
 
-        # Device Role & Mining Eligibility
+        # Device Hardware Verification
         row = 2
-        win.addstr(row, 0, "Device Mining Status:", curses.A_BOLD)
+        win.addstr(row, 0, "Hardware Verification:", curses.A_BOLD)
 
-        # Check hardware and mining eligibility
+        # Comprehensive hardware verification
         try:
-            # Import hardware verifier
             import sys
             sys.path.append('/opt/314sign')
             from blockchain_security import HardwareVerifier
 
             verifier = HardwareVerifier()
-            device_role = verifier.get_device_role()
+            verification = verifier.verify_mining_eligibility()
 
             row += 1
-            if device_role['role'] == 'miner':
-                win.addstr(row, 2, f"✅ Mining Eligible - {device_role['hardware'].replace('_', ' ').title()}", curses.color_pair(4))
+            if verification['eligible']:
+                win.addstr(row, 2, f"✅ AUTHENTIC PI HARDWARE - Mining Eligible", curses.color_pair(4))
                 row += 1
-                win.addstr(row, 4, f"Capabilities: {', '.join(device_role['capabilities'])}")
+                win.addstr(row, 4, f"Model: {verification['hardware_model']}")
                 row += 1
-                win.addstr(row, 4, f"Reward Multiplier: {device_role['rewards_multiplier']}x")
+                win.addstr(row, 4, f"Serial: {verification['serial_number'][:12]}...")
+                row += 1
+                win.addstr(row, 4, f"Confidence: {verification['confidence_score']:.1%}")
+                row += 1
+                win.addstr(row, 4, f"Anti-Spoofing: {'✓' if verification['anti_spoofing_passed'] else '✗'}")
             else:
-                win.addstr(row, 2, f"❌ Mining Restricted - {device_role['hardware'].replace('_', ' ').title()}", curses.color_pair(5))
+                win.addstr(row, 2, f"❌ HARDWARE VERIFICATION FAILED", curses.color_pair(3))
                 row += 1
-                win.addstr(row, 4, f"Capabilities: {', '.join(device_role['capabilities'])}")
+                win.addstr(row, 4, "Staking Mode Only")
                 row += 1
-                win.addstr(row, 4, "Staking Available: Yes")
+                win.addstr(row, 4, f"Hardware: {verification['hardware_model']}")
+
+            # Show verification details if space allows
+            if row < 12 and verification['verification_details']:
+                details = verification['verification_details']
+                row += 2
+                win.addstr(row, 0, "Verification Checks:", curses.A_BOLD)
+                checks = [
+                    ('CPU Serial', 'cpu_serial'),
+                    ('Hardware RNG', 'hardware_rng'),
+                    ('VideoCore GPU', 'videocore_gpu'),
+                    ('Mailbox Interface', 'mailbox_interface')
+                ]
+
+                for check_name, check_key in checks:
+                    if check_key in details:
+                        status = '✓' if details[check_key].get('passed', False) else '✗'
+                        color = curses.color_pair(4) if status == '✓' else curses.color_pair(3)
+                        row += 1
+                        win.addstr(row, 2, f"{check_name}: {status}", color)
 
         except Exception as e:
             row += 1
-            win.addstr(row, 2, f"Hardware Check Failed: {str(e)[:30]}", curses.color_pair(3))
+            win.addstr(row, 2, f"Verification Error: {str(e)[:35]}", curses.color_pair(3))
 
         # Mining Status
         row += 2
