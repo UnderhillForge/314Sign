@@ -8,8 +8,8 @@ echo "🔨 Building 314Sign Mining Node executable..."
 
 # Check if PyInstaller is installed
 if ! command -v pyinstaller &> /dev/null; then
-    echo "❌ PyInstaller not found. Installing..."
-    pip3 install pyinstaller
+    echo "❌ PyInstaller not found. Installing via apt..."
+    sudo apt update && sudo apt install -y python3-pyinstaller
 fi
 
 # Check if we're in the right directory
