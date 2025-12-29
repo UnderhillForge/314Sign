@@ -4,7 +4,11 @@ a = Analysis(
     ['314st-mining-node.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[
+        # Include jaraco.text data files
+        ('/usr/lib/python3/dist-packages/jaraco/text/', 'jaraco/text/'),
+        # Include any other package data that might be needed
+    ],
     hiddenimports=[
         'pygame',
         'cryptography',
