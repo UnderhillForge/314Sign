@@ -39,7 +39,7 @@ class KioskAdminConsole:
 
         # State
         self.current_tab = 0
-        self.tabs = ['Dashboard', 'System', 'Network', 'Content', 'Bundles', 'Security', 'Monitor']
+        self.tabs = ['Dashboard', 'System', 'Network', 'Content', 'Bundles', 'Security', 'Wallet', 'Monitor']
         self.running = True
 
         # Sub-navigation for settings tabs
@@ -48,6 +48,7 @@ class KioskAdminConsole:
         self.content_subtabs = ['LMS Files', 'Templates', 'Cache', 'Web Editor']
         self.bundles_subtabs = ['Create', 'List', 'Distribute', 'History']
         self.security_subtabs = ['Blockchain', 'Keys', 'Tokens', 'Audit']
+        self.wallet_subtabs = ['Overview', 'Send', 'Receive', 'History', 'Loans']
         self.monitor_subtabs = ['Devices', 'Performance', 'Logs', 'Alerts']
 
         self.current_subtab = 0
@@ -218,7 +219,18 @@ class KioskAdminConsole:
                 self.draw_security_tokens(content)
             elif self.current_subtab == 3:
                 self.draw_security_audit(content)
-        elif self.current_tab == 6:  # Monitor
+        elif self.current_tab == 6:  # Wallet
+            if self.current_subtab == 0:
+                self.draw_wallet_overview(content)
+            elif self.current_subtab == 1:
+                self.draw_wallet_send(content)
+            elif self.current_subtab == 2:
+                self.draw_wallet_receive(content)
+            elif self.current_subtab == 3:
+                self.draw_wallet_history(content)
+            elif self.current_subtab == 4:
+                self.draw_wallet_loans(content)
+        elif self.current_tab == 7:  # Monitor
             if self.current_subtab == 0:
                 self.draw_monitor_devices(content)
             elif self.current_subtab == 1:
@@ -1344,6 +1356,322 @@ class KioskAdminConsole:
             size /= 1024.0
         return ".1f"
 
+    # Wallet Management Methods
+    def draw_wallet_overview(self, win):
+        """Draw wallet overview and balance"""
+        win.addstr(0, 0, "=== Wallet Overview ===", curses.A_BOLD)
+
+        # Wallet ID
+        row = 2
+        try:
+            # Import wallet to get status
+            import sys
+            sys.path.append('/opt/314sign')
+            from bc_security.blockchain_security import SignWallet
+
+            wallet = SignWallet()
+            status = wallet.get_wallet_status()
+
+            win.addstr(row, 0, f"Wallet ID: {status['wallet_id'][:20]}...")
+            row += 1
+            win.addstr(row, 0, f"Created: {time.ctime(status['created_at'])}")
+            row += 1
+            win.addstr(row, 0, f"Tokens: {status['tokens_count']}")
+            row += 1
+            win.addstr(row, 0, f"Backups: {status['backups_count']}")
+            row += 1
+            win.addstr(row, 0, f"Recovery Codes: {status['recovery_codes_count']}")
+
+            # Token balance summary
+            row += 2
+            win.addstr(row, 0, "Token Balance:", curses.A_BOLD)
+            balance = wallet.get_token_balance()
+            row += 1
+            win.addstr(row, 2, f"Total: {balance['total_tokens']} tokens")
+
+            if balance['by_type']:
+                for token_type, count in balance['by_type'].items():
+                    row += 1
+                    win.addstr(row, 2, f"{token_type.title()}: {count}")
+
+            # Recent tokens
+            if balance['recent_tokens']:
+                row += 2
+                win.addstr(row, 0, "Recent Tokens:", curses.A_BOLD)
+                for i, token in enumerate(balance['recent_tokens'][:3]):
+                    row += 1
+                    token_id = token['token_id'][:16] + "..."
+                    token_type = token.get('token_type', 'unknown')
+                    win.addstr(row, 2, f"{token_id} ({token_type})")
+
+        except Exception as e:
+            row = 2
+            win.addstr(row, 0, "Wallet Status: Unable to load", curses.color_pair(3))
+            row += 1
+            win.addstr(row, 0, f"Error: {str(e)[:40]}", curses.color_pair(3))
+
+        # Actions
+        row = self.height - 8
+        win.addstr(row, 0, "Actions:", curses.A_BOLD)
+        row += 1
+        win.addstr(row, 2, "b: View detailed balance")
+        row += 1
+        win.addstr(row, 2, "h: View transfer history")
+        row += 1
+        win.addstr(row, 2, "r: Generate recovery codes")
+
+    def draw_wallet_send(self, win):
+        """Draw token sending interface"""
+        win.addstr(0, 0, "=== Send Tokens ===", curses.A_BOLD)
+
+        try:
+            import sys
+            sys.path.append('/opt/314sign')
+            from blockchain_security import SignWallet
+
+            wallet = SignWallet()
+            tokens = wallet.list_tokens()
+
+            if tokens:
+                row = 2
+                win.addstr(row, 0, "Available Tokens:", curses.A_BOLD)
+
+                for i, token in enumerate(tokens[:10]):  # Show first 10
+                    row += 1
+                    token_id = token['token_id'][:20] + "..."
+                    token_type = token.get('token_type', 'unknown')
+                    win.addstr(row, 2, f"{i+1}. {token_id} ({token_type})")
+
+                # Send instructions
+                row += 3
+                win.addstr(row, 0, "Send Instructions:", curses.A_BOLD)
+                row += 1
+                win.addstr(row, 2, "Use CLI: python3 314st_wallet.py --send-tokens")
+                row += 1
+                win.addstr(row, 2, "RECIPIENT_WALLET TOKEN_ID [TOKEN_ID ...]")
+                row += 1
+                win.addstr(row, 2, "Example:")
+                row += 1
+                win.addstr(row, 4, "python3 314st_wallet.py --send-tokens")
+                row += 1
+                win.addstr(row, 6, "abc123... def456...")
+
+            else:
+                row = 2
+                win.addstr(row, 0, "No tokens available to send", curses.color_pair(3))
+                row += 2
+                win.addstr(row, 0, "Try mining or receiving tokens first")
+
+        except Exception as e:
+            row = 2
+            win.addstr(row, 0, "Unable to load wallet", curses.color_pair(3))
+            row += 1
+            win.addstr(row, 0, f"Error: {str(e)[:40]}", curses.color_pair(3))
+
+        # Actions
+        row = self.height - 8
+        win.addstr(row, 0, "Actions:", curses.A_BOLD)
+        row += 1
+        win.addstr(row, 2, "s: Send tokens via CLI")
+        row += 1
+        win.addstr(row, 2, "↑↓: Select token to send")
+
+    def draw_wallet_receive(self, win):
+        """Draw token receiving interface"""
+        win.addstr(0, 0, "=== Receive Tokens ===", curses.A_BOLD)
+
+        try:
+            import sys
+            sys.path.append('/opt/314sign')
+            from blockchain_security import SignWallet
+
+            wallet = SignWallet()
+            status = wallet.get_wallet_status()
+
+            row = 2
+            win.addstr(row, 0, "Your Wallet Address:", curses.A_BOLD)
+            row += 1
+            win.addstr(row, 2, status['wallet_id'])
+
+            # QR code placeholder (would generate actual QR in production)
+            row += 3
+            win.addstr(row, 0, "QR Code for easy sharing:", curses.A_BOLD)
+            row += 1
+            qr_placeholder = [
+                "███████████████░███████████████",
+                "█▀▀▀▀▀▀▀▀▀▀▀▀▀░█▀▀▀▀▀▀▀▀▀▀▀▀▀█",
+                "█░████░█▀▀▀▀█░█░███░███░███░█",
+                "█░▀▀▀█░█░░░██░█░▀▀█░█░░░█░░░█",
+                "█░████░█▄▄▄██░█░███░███░███░█",
+                "█░░░░░░░░░░░░░█░░░░░░░░░░░░░█",
+                "█░███░███░███░█░███░███░███░█",
+                "█░███░███░███░█░███░███░███░█",
+                "█░███░███░███░█░███░███░███░█",
+                "█░░░░░░░░░░░░░█░░░░░░░░░░░░░█",
+                "█░███░███░███░█░███░███░███░█",
+                "▀▀▀▀▀▀▀▀▀▀▀▀▀▀░▀▀▀▀▀▀▀▀▀▀▀▀▀▀"
+            ]
+
+            for i, line in enumerate(qr_placeholder[:8]):  # Show first 8 lines
+                win.addstr(row + i, 2, line)
+
+            # Receive instructions
+            row += 10
+            win.addstr(row, 0, "To receive tokens:", curses.A_BOLD)
+            row += 1
+            win.addstr(row, 2, "1. Share your wallet address above")
+            row += 1
+            win.addstr(row, 2, "2. Sender uses: 314st_wallet.py --send-tokens")
+            row += 1
+            win.addstr(row, 2, "3. Tokens appear automatically in wallet")
+
+        except Exception as e:
+            row = 2
+            win.addstr(row, 0, "Unable to load wallet", curses.color_pair(3))
+            row += 1
+            win.addstr(row, 0, f"Error: {str(e)[:40]}", curses.color_pair(3))
+
+        # Actions
+        row = self.height - 8
+        win.addstr(row, 0, "Actions:", curses.A_BOLD)
+        row += 1
+        win.addstr(row, 2, "c: Copy wallet address")
+        row += 1
+        win.addstr(row, 2, "r: Check for new transactions")
+
+    def draw_wallet_history(self, win):
+        """Draw token transfer history"""
+        win.addstr(0, 0, "=== Transfer History ===", curses.A_BOLD)
+
+        try:
+            import sys
+            sys.path.append('/opt/314sign')
+            from blockchain_security import SignWallet
+
+            wallet = SignWallet()
+            transfers = wallet.get_transfer_history()
+
+            if transfers:
+                row = 2
+                win.addstr(row, 0, "Recent Transfers:", curses.A_BOLD)
+
+                for i, transfer in enumerate(sorted(transfers, key=lambda x: x['timestamp'], reverse=True)[:10]):
+                    row += 1
+                    transfer_time = time.ctime(transfer['timestamp'])[:16]
+                    status_icon = "✅" if transfer['status'] == 'completed' else "⏳" if transfer['status'] == 'pending' else "❌"
+                    direction = "→" if transfer['type'] == 'sent' else "←"
+                    tokens = len(transfer.get('tokens', []))
+
+                    # Format transfer info
+                    if transfer['type'] == 'sent':
+                        other_party = transfer['recipient'][:12] + "..."
+                        info = f"{direction} {other_party}"
+                    else:
+                        other_party = transfer['sender'][:12] + "..."
+                        info = f"{direction} {other_party}"
+
+                    win.addstr(row, 2, f"{status_icon} {tokens} tokens {info} - {transfer_time}")
+
+            else:
+                row = 2
+                win.addstr(row, 0, "No transfer history found")
+                row += 2
+                win.addstr(row, 0, "Send or receive tokens to see history")
+
+        except Exception as e:
+            row = 2
+            win.addstr(row, 0, "Unable to load transfer history", curses.color_pair(3))
+            row += 1
+            win.addstr(row, 0, f"Error: {str(e)[:40]}", curses.color_pair(3))
+
+        # Actions
+        row = self.height - 8
+        win.addstr(row, 0, "Actions:", curses.A_BOLD)
+        row += 1
+        win.addstr(row, 2, "e: Export transfer history")
+        row += 1
+        win.addstr(row, 2, "f: Filter by type/sender")
+
+    def draw_wallet_loans(self, win):
+        """Draw trust loan status and management"""
+        win.addstr(0, 0, "=== Trust Loans ===", curses.A_BOLD)
+
+        try:
+            import sys
+            sys.path.append('/opt/314sign')
+            from blockchain_security import SignWallet, TrustLoanManager
+
+            wallet = SignWallet()
+            loan_manager = TrustLoanManager()
+
+            loans = loan_manager.get_loan_status(wallet.wallet_data['wallet_id'])
+
+            if loans:
+                row = 2
+                win.addstr(row, 0, "Active Loans:", curses.A_BOLD)
+
+                for i, loan in enumerate(loans):
+                    if loan['status'] == 'active':
+                        row += 1
+                        loan_id = loan['loan_id'][:12] + "..."
+                        amount_remaining = loan['amount_remaining']
+                        created = time.ctime(loan['created_at'])[:10]
+
+                        win.addstr(row, 2, f"Loan {loan_id}: {amount_remaining:.2f}/1.0 314ST")
+                        row += 1
+                        win.addstr(row, 4, f"Created: {created}")
+
+                        # Show repayment progress
+                        repayments = len(loan.get('repayment_history', []))
+                        row += 1
+                        win.addstr(row, 4, f"Repayments: {repayments} (mining rewards)")
+
+                # Loan stats
+                row += 3
+                stats = loan_manager.get_lending_stats()
+                win.addstr(row, 0, "Loan Statistics:", curses.A_BOLD)
+                row += 1
+                win.addstr(row, 2, f"Total Loans: {stats['total_loans']}")
+                row += 1
+                win.addstr(row, 2, f"Active Loans: {stats['active_loans']}")
+                row += 1
+                win.addstr(row, 2, f"Repaid Loans: {stats['repaid_loans']}")
+                row += 1
+                win.addstr(row, 2, ".1%")
+
+            else:
+                row = 2
+                win.addstr(row, 0, "No active loans found")
+                row += 2
+                win.addstr(row, 0, "New kiosks automatically receive")
+                row += 1
+                win.addstr(row, 0, "trust loans when empty")
+
+                # Show lending stats anyway
+                row += 3
+                loan_manager = TrustLoanManager()
+                stats = loan_manager.get_lending_stats()
+                if stats['total_loans'] > 0:
+                    win.addstr(row, 0, "Network Lending Stats:", curses.A_BOLD)
+                    row += 1
+                    win.addstr(row, 2, f"Total Loans: {stats['total_loans']}")
+                    row += 1
+                    win.addstr(row, 2, ".1%")
+
+        except Exception as e:
+            row = 2
+            win.addstr(row, 0, "Unable to load loan information", curses.color_pair(3))
+            row += 1
+            win.addstr(row, 0, f"Error: {str(e)[:40]}", curses.color_pair(3))
+
+        # Actions
+        row = self.height - 8
+        win.addstr(row, 0, "Actions:", curses.A_BOLD)
+        row += 1
+        win.addstr(row, 2, "v: View detailed loan info")
+        row += 1
+        win.addstr(row, 2, "c: Create trust loan (if eligible)")
+
     # Security Management Methods
     def draw_security_blockchain(self, win):
         """Draw blockchain explorer interface with P2P network support"""
@@ -2078,8 +2406,15 @@ class KioskAdminConsole:
         elif self.current_tab == 4:  # Security
             return self.security_subtabs
         elif self.current_tab == 5:  # Monitor
-            return self.monitor_subtabs
-        return []
+            subtabs = self.monitor_subtabs
+        elif self.current_tab == 6:  # Wallet
+            subtabs = self.wallet_subtabs
+        elif self.current_tab == 7:  # Monitor (corrected index)
+            subtabs = self.monitor_subtabs
+        else:
+            return []
+
+        return subtabs
 
     def handle_system_input(self, key):
         """Handle system tab specific input"""

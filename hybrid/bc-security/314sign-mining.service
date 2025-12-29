@@ -1,0 +1,46 @@
+[Unit]
+Description=314Sign Mining Node Service
+After=network.target
+Wants=network.target
+
+# Only start if we're on Raspberry Pi hardware
+ConditionPathExists=/proc/device-tree/model
+ConditionPathExists=/dev/hwrng
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi
+
+# Execute the compiled mining node
+ExecStart=/usr/local/bin/314st-mining-node --wallet-dir /home/pi/314sign-wallet --log-level INFO
+
+# Restart on failure
+Restart=always
+RestartSec=10
+
+# Resource limits (keep it light for background mining)
+CPUQuota=50%
+MemoryLimit=128M
+Nice=10
+
+# Environment
+Environment=PYTHONUNBUFFERED=1
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Security hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths=/home/pi/314sign-wallet /var/lib/314sign /home/pi/.config/314sign
+ProtectHome=read-only
+PrivateDevices=no  # Need access to /dev/hwrng for mining verification
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=314sign-mining
+
+[Install]
+WantedBy=multi-user.target

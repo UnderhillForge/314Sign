@@ -84,6 +84,7 @@ class SignToken:
         self.device_fingerprint = self._generate_device_fingerprint()
         self.blockchain_tx = None
         self.signature = None
+        self.hardware_proof = None  # Hardware provenance data
 
     def _generate_device_fingerprint(self) -> str:
         """Generate unique device fingerprint"""
@@ -163,7 +164,7 @@ class SignToken:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert token to dictionary"""
-        return {
+        token_dict = {
             "token_id": self.token_id,
             "token_type": self.token_type,
             "issued_by": self.issued_by,
@@ -173,6 +174,12 @@ class SignToken:
             "device_fingerprint": self.device_fingerprint,
             "blockchain_tx": self.blockchain_tx
         }
+
+        # Include hardware proof if present (hardware-proven tokens)
+        if self.hardware_proof:
+            token_dict["hardware_proof"] = self.hardware_proof
+
+        return token_dict
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'SignToken':
@@ -188,6 +195,11 @@ class SignToken:
         token.expires_at = data["expires_at"]
         token.device_fingerprint = data["device_fingerprint"]
         token.blockchain_tx = data.get("blockchain_tx")
+
+        # Load hardware proof if present (for hardware-proven tokens)
+        if "hardware_proof" in data:
+            token.hardware_proof = data["hardware_proof"]
+
         return token
 
 class SignChain:
@@ -1237,7 +1249,113 @@ class SignTokenMiner:
         self.staking_system = TokenStaking()
         self.verification_system = VerificationRewards()
 
+        # Mining throttling configuration
+        self.mining_rates = {
+            'Pi 5': {'blocks_per_hour': 12, 'cpu_limit': 75, 'thermal_limit': 70},
+            'Pi 4': {'blocks_per_hour': 8, 'cpu_limit': 70, 'thermal_limit': 65},
+            'Pi Zero 2 W': {'blocks_per_hour': 2, 'cpu_limit': 50, 'thermal_limit': 60},
+            'Pi 3': {'blocks_per_hour': 4, 'cpu_limit': 65, 'thermal_limit': 62},
+            'Pi Zero W': {'blocks_per_hour': 1, 'cpu_limit': 40, 'thermal_limit': 55}
+        }
+
+        self.daily_token_limits = {
+            'Pi 5': 50,           # Premium hardware, higher limit
+            'Pi 4': 25,           # Standard hardware
+            'Pi Zero 2 W': 5,     # Budget hardware, low limit
+            'Pi 3': 10,           # Older hardware
+            'Pi Zero W': 2        # Minimal hardware
+        }
+
+        # Duty cycle mining (mine in bursts, cool down)
+        self.duty_cycles = {
+            'Pi Zero 2 W': {'mine_seconds': 30, 'cool_seconds': 90},  # 25% duty cycle
+            'Pi 4': {'mine_seconds': 120, 'cool_seconds': 60},       # 67% duty cycle
+            'Pi 5': {'mine_seconds': 180, 'cool_seconds': 60}        # 75% duty cycle
+        }
+
+        # Mining statistics for throttling
+        self.daily_tokens_mined = 0
+        self.last_reset_day = time.strftime('%Y-%m-%d')
+
         self.load_tokens()
+
+    def _reset_daily_limits(self):
+        """Reset daily mining limits if it's a new day"""
+        current_day = time.strftime('%Y-%m-%d')
+        if current_day != self.last_reset_day:
+            self.daily_tokens_mined = 0
+            self.last_reset_day = current_day
+
+    def _get_device_model(self) -> str:
+        """Get the current device model for throttling"""
+        if hasattr(self.hardware_verifier, 'verify_mining_eligibility'):
+            verification = self.hardware_verifier.verify_mining_eligibility()
+            return verification.get('hardware_model', 'Pi 4')  # Default fallback
+        return 'Pi 4'
+
+    def _should_throttle_mining(self) -> Tuple[bool, str]:
+        """Check if mining should be throttled due to thermal/CPU limits"""
+        try:
+            device_model = self._get_device_model()
+            limits = self.mining_rates.get(device_model, self.mining_rates['Pi 4'])
+
+            # Check thermal limits
+            try:
+                import subprocess
+                temp_result = subprocess.run(['vcgencmd', 'measure_temp'],
+                                           capture_output=True, text=True, timeout=2)
+                if temp_result.returncode == 0 and 'temp=' in temp_result.stdout:
+                    temp_match = re.search(r'temp=([0-9.]+)', temp_result.stdout)
+                    if temp_match:
+                        temp = float(temp_match.group(1))
+                        if temp > limits['thermal_limit']:
+                            return True, f"thermal_limit_exceeded_{temp}°C"
+            except:
+                pass
+
+            # Check CPU usage
+            try:
+                with open('/proc/loadavg', 'r') as f:
+                    loadavg = f.read().split()
+                    cpu_load = float(loadavg[0])  # 1-minute load average
+                    cpu_percentage = min(100, cpu_load * 100 / 4)  # Assuming 4 cores
+
+                    if cpu_percentage > limits['cpu_limit']:
+                        return True, f"cpu_limit_exceeded_{cpu_percentage:.1f}%"
+            except:
+                pass
+
+            return False, "ok"
+
+        except Exception as e:
+            return False, f"throttling_check_error_{str(e)}"
+
+    def _check_daily_limits(self) -> Tuple[bool, str]:
+        """Check if daily token limits have been exceeded"""
+        self._reset_daily_limits()
+
+        device_model = self._get_device_model()
+        daily_limit = self.daily_token_limits.get(device_model, 5)
+
+        if self.daily_tokens_mined >= daily_limit:
+            return True, f"daily_limit_exceeded_{self.daily_tokens_mined}/{daily_limit}"
+
+        return False, "ok"
+
+    def _check_duty_cycle(self) -> bool:
+        """Check if we're currently in the mining phase of duty cycle"""
+        device_model = self._get_device_model()
+        duty_config = self.duty_cycles.get(device_model)
+
+        if not duty_config:
+            return True  # No duty cycle restriction for this device
+
+        current_time = time.time()
+        cycle_time = duty_config['mine_seconds'] + duty_config['cool_seconds']
+        cycle_position = current_time % cycle_time
+
+        # Only mine during the "mine" portion of the cycle
+        return cycle_position < duty_config['mine_seconds']
 
     def load_tokens(self):
         """Load tokens from file"""
@@ -1337,15 +1455,28 @@ class SignTokenMiner:
         return token.verify_token(key_manager.system_keys["rsa_public_key"])
 
     def start_mining(self):
-        """Start background token mining"""
+        """Start background token mining (Pi hardware only)"""
         if self.mining_thread and self.mining_thread.is_alive():
             return
+
+        # HARDWARE SECURITY: Only allow mining on verified Pi hardware
+        hardware_check = self.hardware_verifier.verify_mining_eligibility()
+        if not hardware_check['eligible']:
+            logging.warning("⛔ Mining blocked: Not running on verified Raspberry Pi hardware")
+            logging.warning(f"Hardware verification: {hardware_check['confidence_score']:.2f} confidence")
+            logging.warning(f"Device role: {self.device_role.get('role', 'unknown')}")
+            return False
+
+        logging.info("✅ Hardware verification passed - starting mining")
+        logging.info(f"📱 Device: {hardware_check['hardware_model']}")
+        logging.info(f"🔒 Anti-spoofing: {'✓' if hardware_check['anti_spoofing_passed'] else '✗'}")
 
         self.mining_active = True
         self.mining_thread = threading.Thread(target=self._mining_loop, daemon=True)
         self.mining_thread.start()
 
-        logging.info("Started token mining")
+        logging.info("⛏️ Started token mining on verified hardware")
+        return True
 
     def stop_mining(self):
         """Stop token mining"""
@@ -1356,17 +1487,46 @@ class SignTokenMiner:
         logging.info("Stopped token mining")
 
     def _mining_loop(self):
-        """Background mining loop with adaptive difficulty and rewards"""
+        """Background mining loop with adaptive difficulty, rewards, and throttling"""
         mining_stats = {
             'blocks_mined': 0,
             'total_rewards': 0,
             'uptime_percentage': 100,
             'p2p_contributions': 0,
-            'start_time': time.time()
+            'start_time': time.time(),
+            'throttled_count': 0
         }
 
         while self.mining_active:
             try:
+                # Check throttling conditions first
+                throttle_needed, throttle_reason = self._should_throttle_mining()
+                if throttle_needed:
+                    mining_stats['throttled_count'] += 1
+                    logging.debug(f"Mining throttled: {throttle_reason}")
+
+                    # Longer sleep when throttled
+                    time.sleep(60)  # Wait 1 minute before checking again
+                    continue
+
+                # Check daily limits
+                daily_exceeded, daily_reason = self._check_daily_limits()
+                if daily_exceeded:
+                    logging.info(f"Daily mining limit reached: {daily_reason}")
+                    logging.info("Mining will resume tomorrow or when limits reset")
+
+                    # Stop mining until tomorrow
+                    self.mining_active = False
+                    break
+
+                # Check duty cycle
+                if not self._check_duty_cycle():
+                    logging.debug("Outside mining duty cycle - cooling down")
+
+                    # Brief sleep during cooling period
+                    time.sleep(30)
+                    continue
+
                 # Adapt difficulty based on network health
                 self.blockchain.adapt_difficulty()
 
@@ -1374,6 +1534,9 @@ class SignTokenMiner:
                 block = self.blockchain.mine_pending_transactions()
                 if block:
                     mining_stats['blocks_mined'] += 1
+
+                    # Increment daily counter
+                    self.daily_tokens_mined += 1
 
                     # Calculate sustainable mining reward
                     reward_amount = self.blockchain.calculate_mining_reward(block, mining_stats)
@@ -1384,14 +1547,25 @@ class SignTokenMiner:
 
                     logging.info(f"⛏️ Mined block {block.index} with {len(block.transactions)} transactions")
                     logging.info(f"💰 Mining reward: {reward_amount} 314ST tokens")
+                    logging.info(f"📊 Daily progress: {self.daily_tokens_mined}/{self.daily_token_limits.get(self._get_device_model(), 5)} tokens")
 
                 # Update uptime statistics
                 uptime = (time.time() - mining_stats['start_time']) / 3600  # Hours
                 if uptime > 0:
                     mining_stats['uptime_percentage'] = 95 + (mining_stats['blocks_mined'] / uptime)  # Base 95% + performance bonus
 
-                # Adaptive sleep based on mining activity
-                sleep_time = 30 if not block else 10  # Mine more frequently if recently successful
+                # Adaptive sleep based on mining activity and throttling
+                if block:
+                    # Recently successful - mine more frequently
+                    sleep_time = 10
+                else:
+                    # No recent success - longer sleep to prevent excessive CPU usage
+                    sleep_time = 30
+
+                # Add small randomization to prevent synchronized mining
+                import random
+                sleep_time += random.uniform(0, 5)
+
                 time.sleep(sleep_time)
 
             except Exception as e:
@@ -1399,34 +1573,72 @@ class SignTokenMiner:
                 time.sleep(10)
 
     def _issue_mining_reward(self, reward_amount: int, block: SignBlock):
-        """Issue mining reward tokens to the local wallet"""
+        """Issue mining reward tokens with hardware proof to the local wallet"""
         try:
+            # Get current hardware verification for proof
+            hardware_check = self.hardware_verifier.verify_mining_eligibility()
+
+            if not hardware_check['eligible']:
+                logging.error("Cannot issue mining reward - hardware verification failed")
+                return
+
+            # Create hardware proof for token provenance
+            hardware_proof = {
+                'verified_at': time.time(),
+                'hardware_fingerprint': self.hardware_verifier.get_hardware_fingerprint(),
+                'verification_score': hardware_check['confidence_score'],
+                'device_model': hardware_check['hardware_model'],
+                'mining_session_id': f"session_{secrets.token_hex(4)}",
+                'block_height': block.index,
+                'uptime_score': min(1.0, (time.time() - self.start_time) / 86400) if hasattr(self, 'start_time') else 0
+            }
+
             # Generate mining reward token
             reward_token = self.generate_token(
                 token_type="mining_reward",
                 device_id=f"miner-{self._get_device_id()}",
-                permissions=["mining", "validation"]
+                permissions=["mining", "validation", "transfer"]
             )
 
-            # Add reward metadata
+            # Add hardware-proven metadata
             reward_token.reward_amount = reward_amount
             reward_token.block_index = block.index
             reward_token.mining_timestamp = time.time()
+            reward_token.hardware_proof = hardware_proof  # CRITICAL: Hardware provenance
 
             # Save updated token
             self.save_tokens()
 
-            # Add to local wallet if available
+            # Record hardware-proven reward on blockchain
+            blockchain_tx = self.blockchain.add_transaction({
+                'type': 'hardware_proven_mining_reward',
+                'token_id': reward_token.token_id,
+                'reward_amount': reward_amount,
+                'hardware_proof': hardware_proof,
+                'miner_wallet': self._get_device_id(),
+                'block_index': block.index,
+                'timestamp': time.time()
+            })
+
+            reward_token.blockchain_tx = blockchain_tx
+
+            # Add to local wallet with hardware verification
             try:
                 from sign_wallet import SignWallet
                 wallet = SignWallet()
                 wallet.add_token(reward_token)
-                logging.info(f"💰 Mining reward added to wallet: {reward_amount} 314ST tokens")
-            except:
-                logging.debug("Local wallet not available for reward storage")
+
+                logging.info(f"🔐 Hardware-proven mining reward issued: {reward_amount} 314ST tokens")
+                logging.info(f"   📱 Hardware: {hardware_proof['device_model']}")
+                logging.info(f"   🔒 Verification Score: {hardware_proof['verification_score']:.1%}")
+                logging.info(f"   🏷️  Token ID: {reward_token.token_id}")
+                logging.info(f"   ⛓️  Blockchain TX: {blockchain_tx[:16]}...")
+
+            except Exception as e:
+                logging.warning(f"Local wallet not available for reward storage: {e}")
 
         except Exception as e:
-            logging.error(f"Failed to issue mining reward: {e}")
+            logging.error(f"Failed to issue hardware-proven mining reward: {e}")
 
     def _get_device_id(self) -> str:
         """Get unique device identifier for mining rewards"""
@@ -1438,6 +1650,175 @@ class SignTokenMiner:
             return f"device-{secrets.token_hex(4)}"
         except:
             return f"unknown-{secrets.token_hex(4)}"
+
+class TrustLoanManager:
+    """Trust-based lending system for 314Sign ecosystem"""
+
+    def __init__(self, loans_file: str = "/var/lib/314sign/trust_loans.json"):
+        self.loans_file = Path(loans_file)
+        self.active_loans: Dict[str, Dict] = {}
+        self.lending_pool_wallet = "network_foundation_pool"
+        self.load_loans()
+
+    def load_loans(self):
+        """Load loan data from file"""
+        if self.loans_file.exists():
+            try:
+                with open(self.loans_file, 'r') as f:
+                    self.active_loans = json.load(f)
+            except Exception as e:
+                logging.error(f"Failed to load loans: {e}")
+                self.active_loans = {}
+
+    def save_loans(self):
+        """Save loan data to file"""
+        try:
+            self.loans_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.loans_file, 'w') as f:
+                json.dump(self.active_loans, f, indent=2)
+        except Exception as e:
+            logging.error(f"Failed to save loans: {e}")
+
+    def check_wallet_eligibility(self, wallet) -> bool:
+        """Check if wallet is eligible for a trust loan"""
+        # Empty wallet = eligible for trust loan
+        token_count = len(wallet.tokens) if hasattr(wallet, 'tokens') else len(wallet.wallet_data.get('tokens', []))
+        return token_count == 0
+
+    def create_trust_loan(self, borrower_wallet, blockchain: SignChain) -> Optional[str]:
+        """Create a trust loan for an empty wallet"""
+        if not self.check_wallet_eligibility(borrower_wallet):
+            return None
+
+        loan_id = f"trust_loan_{secrets.token_hex(8)}"
+        borrower_id = borrower_wallet.wallet_data['wallet_id'] if hasattr(borrower_wallet, 'wallet_data') else borrower_wallet['wallet_id']
+
+        loan = {
+            "loan_id": loan_id,
+            "borrower_wallet": borrower_id,
+            "lender_wallet": self.lending_pool_wallet,
+            "amount": 1.0,  # Single token trust loan
+            "amount_remaining": 1.0,
+            "interest_rate": 0.0,  # Trust-based, no interest
+            "created_at": time.time(),
+            "status": "active",
+            "auto_repayment": True,
+            "trust_score": 1.0,  # Start with perfect trust
+            "repayment_history": [],
+            "device_fingerprint": self._get_device_fingerprint()
+        }
+
+        # Record loan on blockchain
+        loan_tx = {
+            "type": "trust_loan_created",
+            "loan_id": loan_id,
+            "borrower_wallet": borrower_id,
+            "lender_wallet": self.lending_pool_wallet,
+            "amount": 1.0,
+            "timestamp": time.time()
+        }
+        blockchain.add_transaction(loan_tx)
+
+        self.active_loans[loan_id] = loan
+        self.save_loans()
+
+        logging.info(f"Created trust loan {loan_id} for wallet {borrower_id}")
+        return loan_id
+
+    def process_mining_reward(self, miner_wallet, reward_amount: float, blockchain: SignChain):
+        """Auto-apply mining rewards to loan repayment"""
+        miner_id = miner_wallet.wallet_data['wallet_id'] if hasattr(miner_wallet, 'wallet_data') else miner_wallet['wallet_id']
+
+        # Find active loans for this wallet
+        active_loans = [loan for loan in self.active_loans.values()
+                       if loan['borrower_wallet'] == miner_id and loan['status'] == 'active']
+
+        if not active_loans:
+            return reward_amount  # No loans to repay
+
+        remaining_reward = reward_amount
+
+        for loan in active_loans:
+            if loan['auto_repayment'] and remaining_reward > 0:
+                repayment_amount = min(remaining_reward, loan['amount_remaining'])
+
+                # Apply repayment
+                loan['amount_remaining'] -= repayment_amount
+                remaining_reward -= repayment_amount
+
+                # Record repayment
+                repayment_record = {
+                    "timestamp": time.time(),
+                    "amount": repayment_amount,
+                    "source": "mining_reward",
+                    "tx_type": "auto_repayment"
+                }
+                loan['repayment_history'].append(repayment_record)
+
+                # Record on blockchain
+                repayment_tx = {
+                    "type": "loan_repayment",
+                    "loan_id": loan['loan_id'],
+                    "amount": repayment_amount,
+                    "borrower_wallet": miner_id,
+                    "repayment_type": "mining_reward",
+                    "timestamp": time.time()
+                }
+                blockchain.add_transaction(repayment_tx)
+
+                # Check if loan is fully repaid
+                if loan['amount_remaining'] <= 0:
+                    loan['status'] = 'repaid'
+                    loan['repaid_at'] = time.time()
+
+                    # Record completion on blockchain
+                    completion_tx = {
+                        "type": "loan_completed",
+                        "loan_id": loan['loan_id'],
+                        "borrower_wallet": miner_id,
+                        "total_repaid": loan['amount'],
+                        "timestamp": time.time()
+                    }
+                    blockchain.add_transaction(completion_tx)
+
+                    logging.info(f"Trust loan {loan['loan_id']} fully repaid by {miner_id}")
+
+        self.save_loans()
+        return remaining_reward
+
+    def get_loan_status(self, wallet_id: str) -> List[Dict]:
+        """Get loan status for a wallet"""
+        wallet_loans = [loan for loan in self.active_loans.values()
+                       if loan['borrower_wallet'] == wallet_id]
+        return wallet_loans
+
+    def _get_device_fingerprint(self) -> str:
+        """Get device fingerprint for loan tracking"""
+        try:
+            # Use hardware verification for device fingerprint
+            verifier = HardwareVerifier()
+            return verifier.get_hardware_fingerprint()
+        except:
+            return f"unknown_{secrets.token_hex(8)}"
+
+    def get_lending_stats(self) -> Dict[str, Any]:
+        """Get overall lending statistics"""
+        total_loans = len(self.active_loans)
+        active_loans = sum(1 for loan in self.active_loans.values() if loan['status'] == 'active')
+        repaid_loans = sum(1 for loan in self.active_loans.values() if loan['status'] == 'repaid')
+
+        total_loan_value = sum(loan['amount'] for loan in self.active_loans.values())
+        total_repaid = sum(loan['amount'] - loan['amount_remaining'] for loan in self.active_loans.values())
+
+        return {
+            "total_loans": total_loans,
+            "active_loans": active_loans,
+            "repaid_loans": repaid_loans,
+            "total_loan_value": total_loan_value,
+            "total_repaid": total_repaid,
+            "repayment_rate": total_repaid / total_loan_value if total_loan_value > 0 else 0
+        }
+
 
 class SignWallet:
     """314Sign Blockchain Wallet for Backup and Recovery"""
@@ -1767,6 +2148,10 @@ def main():
     parser.add_argument('--import-wallet', metavar='PATH', help='Import wallet from file')
     parser.add_argument('--transfer-tokens', nargs='+', metavar=('RECIPIENT_WALLET', 'TOKEN_ID'), help='Transfer tokens to another wallet')
     parser.add_argument('--transfer-history', action='store_true', help='Show token transfer history')
+    parser.add_argument('--create-trust-loan', action='store_true', help='Create trust loan for empty wallet')
+    parser.add_argument('--loan-status', metavar='WALLET_ID', help='Check loan status for wallet')
+    parser.add_argument('--lending-stats', action='store_true', help='Show overall lending statistics')
+    parser.add_argument('--verify-hardware-token', metavar='TOKEN_ID', help='Verify token hardware provenance')
 
     args = parser.parse_args()
 
@@ -1774,6 +2159,7 @@ def main():
     blockchain = SignChain()
     token_miner = SignTokenMiner(blockchain)
     wallet = SignWallet(blockchain=blockchain)
+    loan_manager = TrustLoanManager()
 
     if args.status:
         chain_info = blockchain.get_chain_info()
@@ -1810,8 +2196,12 @@ def main():
             print("❌ No blocks to mine or mining failed")
 
     elif args.start_mining:
-        token_miner.start_mining()
-        print("⛏️ Started background mining")
+        success = token_miner.start_mining()
+        if success:
+            print("⛏️ Started background mining on verified hardware")
+        else:
+            print("❌ Mining blocked - hardware verification failed")
+            print("   Only Raspberry Pi devices can mine 314ST tokens")
 
     elif args.stop_mining:
         token_miner.stop_mining()
@@ -1887,6 +2277,118 @@ def main():
                     print(f"   Reason: {transfer['failure_reason']}")
 
                 print()
+
+    elif args.create_trust_loan:
+        loan_id = loan_manager.create_trust_loan(wallet, blockchain)
+        if loan_id:
+            print(f"✅ Trust loan created!")
+            print(f"   Loan ID: {loan_id}")
+            print(f"   Amount: 1.0 314ST")
+            print(f"   Borrower: {wallet.wallet_data['wallet_id']}")
+            print(f"   Status: Active (auto-repayment enabled)")
+        else:
+            print("❌ Trust loan creation failed - wallet not eligible")
+
+    elif args.loan_status:
+        loans = loan_manager.get_loan_status(args.loan_status)
+        if loans:
+            print(f"Loan Status for Wallet {args.loan_status}:")
+            print("=" * 60)
+            for loan in loans:
+                status_icon = "🟢" if loan['status'] == 'active' else "✅" if loan['status'] == 'repaid' else "❌"
+                print(f"{status_icon} Loan {loan['loan_id'][:12]}...")
+                print(f"   Amount: {loan['amount']}")
+                print(f"   Remaining: {loan['amount_remaining']:.2f}")
+                print(f"   Status: {loan['status']}")
+                print(f"   Created: {time.ctime(loan['created_at'])}")
+                if loan.get('repaid_at'):
+                    print(f"   Repaid: {time.ctime(loan['repaid_at'])}")
+                if loan['repayment_history']:
+                    print(f"   Repayments: {len(loan['repayment_history'])}")
+                print()
+        else:
+            print(f"No loans found for wallet {args.loan_status}")
+
+    elif args.lending_stats:
+        stats = loan_manager.get_lending_stats()
+        print("314Sign Trust Lending Statistics:")
+        print("=" * 40)
+        print(f"Total Loans: {stats['total_loans']}")
+        print(f"Active Loans: {stats['active_loans']}")
+        print(f"Repaid Loans: {stats['repaid_loans']}")
+        print(f"Total Loan Value: {stats['total_loan_value']}")
+        print(f"Total Repaid: {stats['total_repaid']}")
+        print(f"Repayment Rate: {stats['repayment_rate']:.1%}")
+
+    elif args.verify_hardware_token:
+        # Find token in wallet
+        token_found = None
+        for token_data in wallet.wallet_data.get('tokens', []):
+            if token_data.get('token_id') == args.verify_hardware_token:
+                token_found = SignToken.from_dict(token_data)
+                break
+
+        if not token_found:
+            print(f"❌ Token {args.verify_hardware_token} not found in wallet")
+            exit(1)
+
+        # Check if token has hardware proof
+        if not hasattr(token_found, 'hardware_proof') or not token_found.hardware_proof:
+            print(f"❌ Token {args.verify_hardware_token} has no hardware proof")
+            print("   This token was not issued as a hardware-proven mining reward")
+            exit(1)
+
+        # Verify hardware provenance
+        proof = token_found.hardware_proof
+        current_time = time.time()
+
+        print(f"🔍 Verifying hardware provenance for token {args.verify_hardware_token}")
+        print("=" * 60)
+
+        # Check verification score
+        verification_score = proof.get('verification_score', 0)
+        if verification_score >= 0.7:
+            print(f"✅ Hardware Verification: PASSED ({verification_score:.1%})")
+        else:
+            print(f"❌ Hardware Verification: FAILED ({verification_score:.1%})")
+            exit(1)
+
+        # Check device model
+        device_model = proof.get('device_model', 'unknown')
+        print(f"📱 Device Model: {device_model}")
+
+        # Check verification timestamp
+        verified_at = proof.get('verified_at', 0)
+        if abs(current_time - verified_at) < (365 * 24 * 3600):  # Within 1 year
+            print(f"⏰ Verification Time: {time.ctime(verified_at)}")
+        else:
+            print(f"❌ Verification Time: TOO OLD ({time.ctime(verified_at)})")
+            exit(1)
+
+        # Check blockchain confirmation
+        blockchain_tx = proof.get('blockchain_tx')
+        if blockchain_tx:
+            tx_record = blockchain.get_transaction(blockchain_tx)
+            if tx_record:
+                print(f"✅ Blockchain Confirmed: {blockchain_tx[:16]}...")
+                block_index = proof.get('block_height', 'unknown')
+                print(f"📊 Block Height: {block_index}")
+            else:
+                print(f"❌ Blockchain Record: NOT FOUND")
+                exit(1)
+        else:
+            print(f"❌ Blockchain Record: MISSING")
+            exit(1)
+
+        # Check hardware fingerprint
+        fingerprint = proof.get('hardware_fingerprint', 'none')
+        print(f"🔒 Hardware Fingerprint: {fingerprint[:32]}...")
+
+        print("=" * 60)
+        print("🎉 HARDWARE PROVENANCE VERIFICATION: SUCCESSFUL")
+        print(f"   This 314ST token was legitimately mined on: {device_model}")
+        print(f"   Verification Score: {verification_score:.1%}")
+        print(f"   Blockchain Immutable Proof: {blockchain_tx[:16]}...")
 
     else:
         parser.print_help()

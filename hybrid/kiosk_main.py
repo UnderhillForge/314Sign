@@ -21,6 +21,9 @@ from render.lms_renderer import LMSRenderer
 from render.background_cache import BackgroundCache
 from lms.parser import LMSParser
 
+# Import blockchain and lending system
+from blockchain_security import SignChain, SignTokenMiner, SignWallet, TrustLoanManager
+
 class UnifiedKioskApp:
     """
     Unified application that runs as either:
@@ -50,12 +53,30 @@ class UnifiedKioskApp:
         )
         self.lms_parser = LMSParser()
 
+        # Initialize blockchain and lending system
+        self.blockchain = SignChain()
+        self.token_miner = SignTokenMiner(self.blockchain)
+        self.wallet = SignWallet(blockchain=self.blockchain)
+        self.loan_manager = TrustLoanManager()
+
+        # Check for trust loan on startup
+        self._initialize_trust_loan()
+
         # State
         self.current_lms_path = None
         self.running = False
         self.web_server_process = None
+        self.mining_active = False
 
         self.logger.info(f"Initialized {'Main Kiosk' if self.is_main_kiosk else 'Remote Display'} - {self.device_id}")
+        self.logger.info(f"Wallet: {len(self.wallet.wallet_data.get('tokens', []))} tokens")
+        loans = self.loan_manager.get_loan_status(self.wallet.wallet_data['wallet_id'])
+        if loans:
+            active_loans = [l for l in loans if l['status'] == 'active']
+            if active_loans:
+                self.logger.info(f"Active trust loan: {active_loans[0]['loan_id'][:12]}...")
+                self.logger.info(f"Amount remaining: {active_loans[0]['amount_remaining']:.2f} 314ST")
+                self.mining_active = True
 
     def _load_config(self, config_path: Optional[str]) -> Dict[str, Any]:
         """Load application configuration"""
@@ -351,6 +372,50 @@ class UnifiedKioskApp:
             y_offset += 30
 
         return surface
+
+    def _initialize_trust_loan(self) -> None:
+        """Initialize trust-based lending system on startup"""
+        try:
+            # Check if wallet is empty (eligible for trust loan)
+            token_count = len(self.wallet.wallet_data.get('tokens', []))
+            self.logger.info(f"Wallet token count: {token_count}")
+
+            if token_count == 0:
+                self.logger.info("Empty wallet detected - checking eligibility for trust loan")
+
+                # Check eligibility and create trust loan
+                if self.loan_manager.check_wallet_eligibility(self.wallet):
+                    loan_id = self.loan_manager.create_trust_loan(self.wallet, self.blockchain)
+                    if loan_id:
+                        self.logger.info(f" Trust loan created: {loan_id}")
+                        self.logger.info("=° Received 1.0 314ST token to start mining")
+                        self.logger.info("Ï Starting background mining to repay loan")
+
+                        # Start mining to repay the loan
+                        self.token_miner.start_mining()
+                        self.mining_active = True
+
+                        print("<‰ Welcome to 314Sign!")
+                        print("=° You've received a trust loan of 1 314ST token")
+                        print("Ï Your kiosk is now mining to repay the loan")
+                        print("=Ê Check loan status: python3 blockchain_security.py --loan-status YOUR_WALLET_ID")
+                    else:
+                        self.logger.warning("Failed to create trust loan")
+                else:
+                    self.logger.info("Wallet not eligible for trust loan")
+            else:
+                self.logger.info(f"Wallet has {token_count} tokens - no loan needed")
+
+                # Check for existing loans that need repayment
+                loans = self.loan_manager.get_loan_status(self.wallet.wallet_data['wallet_id'])
+                active_loans = [l for l in loans if l['status'] == 'active']
+                if active_loans:
+                    self.logger.info(f"Found {len(active_loans)} active loan(s) - starting mining for repayment")
+                    self.token_miner.start_mining()
+                    self.mining_active = True
+
+        except Exception as e:
+            self.logger.error(f"Trust loan initialization failed: {e}")
 
     def run(self) -> None:
         """Main application loop"""

@@ -37,9 +37,22 @@ class P2PBlockchainNetwork:
         self.heartbeat_interval = network_config.get('heartbeat_interval', 30)
         self.sync_interval = network_config.get('sync_interval', 300)  # 5 minutes
 
+        # Decentralized bootstrap configuration
+        self.peer_registry_file = network_config.get('peer_registry_file', "/var/lib/314sign/peer_registry.json")
+        self.peer_cache_file = network_config.get('peer_cache_file', "peer_cache.json")
+        self.bootstrap_election_interval = network_config.get('bootstrap_election_interval', 3600)  # 1 hour
+
+        # Load peer registry and cache
+        self.peer_registry = self._load_peer_registry()
+        self.peer_cache = self._load_peer_cache()
+
+        # Legacy bootstrap nodes (for backwards compatibility during transition)
+        self.legacy_bootstrap_nodes = network_config.get('legacy_bootstrap_nodes', [])
+
         # Security
         self.trusted_peers = set(network_config.get('trusted_peers', []))
         self.network_secret = network_config.get('network_secret', '')
+        self.enable_nat_traversal = network_config.get('nat_traversal', True)
 
         # Threads
         self.listener_thread = None
@@ -49,6 +62,9 @@ class P2PBlockchainNetwork:
 
         # Setup logging
         self.logger = logging.getLogger('P2PNetwork')
+
+        # Track start time for uptime calculations
+        self.start_time = time.time()
 
     def start(self):
         """Start the P2P network"""
@@ -252,15 +268,31 @@ class P2PBlockchainNetwork:
             return secrets.token_hex(8)
 
     def _discover_peers(self):
-        """Discover potential peers using mDNS"""
-        # Use existing mDNS discovery to find other kiosks
+        """Discover potential peers using multiple discovery methods"""
+        self.logger.info("Starting comprehensive peer discovery")
+
+        # Method 1: Local mDNS discovery
+        self._discover_peers_mdns()
+
+        # Method 2: Bootstrap node connections
+        self._discover_peers_bootstrap()
+
+        # Method 3: DNS seed resolution
+        self._discover_peers_dns_seeds()
+
+        # Method 4: Peer exchange from connected peers
+        self._request_peer_exchange()
+
+    def _discover_peers_mdns(self):
+        """Discover peers using local mDNS/Bonjour"""
         try:
             from mdns_discovery import MDNSDiscovery
 
-            # Look for other 314Sign kiosks
+            # Look for other 314Sign kiosks on local network
             discovery = MDNSDiscovery("_314sign-kiosk._tcp.local.", timeout=5)
             devices = discovery.discover_devices()
 
+            discovered_count = 0
             for device_info in devices.values():
                 if device_info.get('mode') in ['main', 'remote']:
                     peer_address = device_info.get('address')
@@ -270,25 +302,482 @@ class P2PBlockchainNetwork:
                         # Attempt to connect to discovered peer
                         threading.Thread(
                             target=self._connect_to_peer,
-                            args=(peer_address, peer_port),
+                            args=(peer_address, peer_port, 'mdns'),
                             daemon=True
                         ).start()
+                        discovered_count += 1
+
+            self.logger.info(f"mDNS discovery found {discovered_count} local peers")
 
         except Exception as e:
-            self.logger.error(f"Peer discovery failed: {e}")
+            self.logger.error(f"mDNS peer discovery failed: {e}")
 
-    def _connect_to_peer(self, address: str, port: int):
+    def _discover_peers_bootstrap(self):
+        """Connect to dynamically elected bootstrap nodes from blockchain"""
+        bootstrap_peers = self._get_bootstrap_peers_from_blockchain()
+
+        connected_count = 0
+
+        for bootstrap_addr in bootstrap_peers[:5]:  # Try top 5 elected bootstrap peers
+            try:
+                if ':' in bootstrap_addr:
+                    host, port_str = bootstrap_addr.split(':', 1)
+                    port = int(port_str)
+                else:
+                    host = bootstrap_addr
+                    port = self.listen_port
+
+                self.logger.debug(f"Attempting decentralized bootstrap connection to {host}:{port}")
+
+                # Attempt connection
+                threading.Thread(
+                    target=self._connect_to_peer,
+                    args=(host, port, 'decentralized_bootstrap'),
+                    daemon=True
+                ).start()
+
+                connected_count += 1
+
+            except Exception as e:
+                self.logger.debug(f"Decentralized bootstrap connection to {bootstrap_addr} failed: {e}")
+
+        # Fallback to legacy bootstrap nodes if no blockchain peers found
+        if connected_count == 0 and self.legacy_bootstrap_nodes:
+            self.logger.info("No blockchain bootstrap peers found, using legacy fallback")
+            for bootstrap_node in self.legacy_bootstrap_nodes[:3]:  # Try first 3 legacy nodes
+                try:
+                    if ':' in bootstrap_node:
+                        host, port_str = bootstrap_node.split(':', 1)
+                        port = int(port_str)
+                    else:
+                        host = bootstrap_node
+                        port = self.listen_port
+
+                    threading.Thread(
+                        target=self._connect_to_peer,
+                        args=(host, port, 'legacy_bootstrap'),
+                        daemon=True
+                    ).start()
+
+                    connected_count += 1
+
+                except Exception as e:
+                    self.logger.debug(f"Legacy bootstrap connection to {bootstrap_node} failed: {e}")
+
+        self.logger.info(f"Initiated {connected_count} bootstrap connections")
+
+    def _discover_peers_dns_seeds(self):
+        """Resolve peers from DNS seed servers (placeholder for future)"""
+        # For now, this is a placeholder for DNS seed functionality
+        # In a full implementation, this would resolve domain names to peer IPs
+        # Since we have decentralized bootstrap, this is less critical
+
+        self.logger.debug("DNS seed discovery not implemented - using decentralized bootstrap")
+
+        # Could implement DNS seed resolution here in the future
+        # For now, rely on decentralized bootstrap and peer exchange
+
+    def _request_peer_exchange(self):
+        """Request peer lists from connected peers"""
+        if not self.peer_connections:
+            return
+
+        # Request peer exchange from a few random peers
+        peer_ids = list(self.peer_connections.keys())
+        exchange_count = min(3, len(peer_ids))  # Ask up to 3 peers
+
+        for i in range(exchange_count):
+            peer_id = peer_ids[i % len(peer_ids)]
+            try:
+                self._send_to_peer(peer_id, {
+                    'type': 'peer_exchange_request',
+                    'timestamp': time.time()
+                })
+                self.logger.debug(f"Requested peer exchange from {peer_id}")
+            except Exception as e:
+                self.logger.debug(f"Peer exchange request failed for {peer_id}: {e}")
+
+    def _connect_to_peer(self, address: str, port: int, discovery_method: str = 'manual'):
         """Attempt to connect to a discovered peer"""
         try:
+            # Skip if already connected
+            for peer_info in self.peers.values():
+                if peer_info.get('address') == (address, port):
+                    return
+
+            # Skip local addresses
+            if address in ['127.0.0.1', 'localhost', '::1'] or address == self._get_local_ip():
+                return
+
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(10)
+
+            self.logger.debug(f"Connecting to peer {address}:{port} via {discovery_method}")
             sock.connect((address, port))
 
-            self.logger.info(f"Connecting to peer at {address}:{port}")
-            self._handle_peer_connection(sock, (address, port))
+            # Store discovery method in peer info
+            peer_info = {'discovery_method': discovery_method}
+            self._handle_peer_connection(sock, (address, port), peer_info)
 
         except Exception as e:
-            self.logger.debug(f"Failed to connect to peer {address}:{port}: {e}")
+            self.logger.debug(f"Failed to connect to peer {address}:{port} ({discovery_method}): {e}")
+
+    def _handle_peer_connection(self, client_socket: socket.socket, address: Tuple[str, int],
+                               peer_info: Dict = None):
+        """Handle incoming peer connection"""
+        if peer_info is None:
+            peer_info = {}
+
+        try:
+            # Perform handshake
+            peer_info.update(self._perform_handshake(client_socket, address))
+            if not peer_info:
+                client_socket.close()
+                return
+
+            peer_id = peer_info['peer_id']
+
+            # Check if we want to connect to this peer
+            if not self._should_accept_peer(peer_info):
+                self._send_message(client_socket, {'type': 'reject', 'reason': 'not_trusted'})
+                client_socket.close()
+                return
+
+            # Accept connection
+            self._send_message(client_socket, {'type': 'accept', 'local_info': self._get_local_info()})
+
+            # Add to connected peers
+            self.peers[peer_id] = peer_info
+            self.peer_connections[peer_id] = client_socket
+
+            self.logger.info(f"Connected to peer {peer_id} at {address} ({peer_info.get('discovery_method', 'unknown')})")
+
+            # Register self as potential bootstrap peer
+            self._register_self_as_bootstrap()
+
+            # Start message handling for this peer
+            self._handle_peer_messages(peer_id, client_socket)
+
+        except Exception as e:
+            self.logger.error(f"Error handling peer connection from {address}: {e}")
+            try:
+                client_socket.close()
+            except:
+                pass
+
+    def _load_peer_registry(self) -> Dict[str, Dict]:
+        """Load peer registry from blockchain and file"""
+        registry = {}
+
+        try:
+            # Load from file first
+            if os.path.exists(self.peer_registry_file):
+                with open(self.peer_registry_file, 'r') as f:
+                    registry = json.load(f)
+        except Exception as e:
+            self.logger.error(f"Failed to load peer registry: {e}")
+
+        # Update from blockchain (more recent registrations)
+        if hasattr(self.local_blockchain, 'chain'):
+            for block in reversed(self.local_blockchain.chain[-50:]):  # Last 50 blocks
+                for tx in block.transactions:
+                    if tx.get('type') == 'peer_registration':
+                        peer_id = tx.get('peer_id')
+                        if peer_id:
+                            registry[peer_id] = {
+                                'registration': tx,
+                                'block_height': block.index,
+                                'last_updated': block.timestamp
+                            }
+
+        self.logger.info(f"Loaded peer registry with {len(registry)} entries")
+        return registry
+
+    def _load_peer_cache(self) -> List[str]:
+        """Load recently connected peer cache"""
+        cache = []
+
+        try:
+            if os.path.exists(self.peer_cache_file):
+                with open(self.peer_cache_file, 'r') as f:
+                    cache_data = json.load(f)
+
+                    # Check if cache is recent (24 hours)
+                    if time.time() - cache_data.get('timestamp', 0) < 86400:
+                        cache = cache_data.get('peers', [])
+                        self.logger.info(f"Loaded peer cache with {len(cache)} entries")
+        except Exception as e:
+            self.logger.error(f"Failed to load peer cache: {e}")
+
+        return cache
+
+    def _save_peer_cache(self):
+        """Save current peer connections to cache"""
+        try:
+            cache_data = {
+                'timestamp': time.time(),
+                'peers': list(self.peers.keys()),
+                'version': '1.0'
+            }
+
+            with open(self.peer_cache_file, 'w') as f:
+                json.dump(cache_data, f, indent=2)
+
+        except Exception as e:
+            self.logger.error(f"Failed to save peer cache: {e}")
+
+    def _register_self_as_bootstrap(self):
+        """Register this node as a potential bootstrap peer"""
+        try:
+            # Calculate uptime score (how long we've been running)
+            uptime_score = min(1.0, (time.time() - self.start_time) / 86400)  # Max 1.0 for 24h+
+
+            # Get geographic region (simplified)
+            geo_region = self._get_geographic_region()
+
+            # Get public IP (if available)
+            public_ip = self._get_public_ip()
+
+            if not public_ip:
+                return  # Can't register without public IP
+
+            # Create registration transaction
+            registration = {
+                'type': 'peer_registration',
+                'peer_id': self._generate_peer_id(),
+                'public_ip': public_ip,
+                'port': self.listen_port,
+                'uptime_score': uptime_score,
+                'geographic_region': geo_region,
+                'capabilities': ['bootstrap', 'mining', 'storage'],
+                'registration_timestamp': time.time(),
+                'version': '1.0.2.77'
+            }
+
+            # Add to blockchain
+            if hasattr(self.local_blockchain, 'add_transaction'):
+                tx_hash = self.local_blockchain.add_transaction(registration)
+                self.logger.info(f"Registered as bootstrap peer: {registration['peer_id'][:12]}...")
+
+                # Update local registry
+                self.peer_registry[self._generate_peer_id()] = {
+                    'registration': registration,
+                    'block_height': len(self.local_blockchain.chain) if hasattr(self.local_blockchain, 'chain') else 0,
+                    'last_updated': time.time()
+                }
+
+        except Exception as e:
+            self.logger.error(f"Failed to register as bootstrap peer: {e}")
+
+    def _get_bootstrap_peers_from_blockchain(self) -> List[str]:
+        """Elect bootstrap peers from blockchain registry"""
+        candidates = []
+
+        # Collect all peer registrations from recent blocks
+        if hasattr(self.local_blockchain, 'chain'):
+            for block in self.local_blockchain.chain[-100:]:  # Last 100 blocks
+                for tx in block.transactions:
+                    if tx.get('type') == 'peer_registration':
+                        candidates.append(tx)
+
+        if not candidates:
+            # Fallback to legacy bootstrap nodes
+            return self.legacy_bootstrap_nodes
+
+        # Score and rank candidates
+        scored_candidates = []
+        current_time = time.time()
+
+        for candidate in candidates:
+            score = self._calculate_bootstrap_score(candidate, current_time)
+            scored_candidates.append((score, candidate))
+
+        # Sort by score (highest first)
+        scored_candidates.sort(reverse=True)
+
+        # Select top candidates, ensuring geographic diversity
+        selected_peers = []
+        regions_used = set()
+
+        for score, candidate in scored_candidates[:20]:  # Consider top 20
+            region = candidate.get('geographic_region', 'unknown')
+
+            # Allow max 3 peers per region for diversity
+            if region not in regions_used or list(regions_used).count(region) < 3:
+                ip = candidate.get('public_ip')
+                port = candidate.get('port', self.listen_port)
+
+                if ip and ip != self._get_local_ip():
+                    selected_peers.append(f"{ip}:{port}")
+                    regions_used.add(region)
+
+                    if len(selected_peers) >= 10:  # Max 10 bootstrap peers
+                        break
+
+        self.logger.info(f"Elected {len(selected_peers)} bootstrap peers from {len(candidates)} candidates")
+        return selected_peers
+
+    def _calculate_bootstrap_score(self, candidate: Dict, current_time: float) -> float:
+        """Calculate bootstrap peer score based on stability and reliability"""
+        score = 0.0
+
+        # Uptime score (0-40 points)
+        uptime_score = candidate.get('uptime_score', 0)
+        score += uptime_score * 40
+
+        # Age of registration (0-20 points) - prefer established peers
+        registration_age = current_time - candidate.get('registration_timestamp', current_time)
+        age_score = min(1.0, registration_age / (30 * 24 * 3600))  # Max at 30 days
+        score += age_score * 20
+
+        # Version compatibility (0-20 points)
+        version = candidate.get('version', '0.0.0')
+        if self._is_version_compatible(version):
+            score += 20
+
+        # Capabilities bonus (0-10 points)
+        capabilities = candidate.get('capabilities', [])
+        if 'bootstrap' in capabilities:
+            score += 5
+        if 'mining' in capabilities:
+            score += 3
+        if 'storage' in capabilities:
+            score += 2
+
+        # Geographic diversity bonus (0-10 points)
+        # Prefer peers in different regions for global distribution
+        region = candidate.get('geographic_region', 'unknown')
+        if region != 'unknown':
+            score += 10
+
+        return score
+
+    def _get_geographic_region(self) -> str:
+        """Determine geographic region (simplified)"""
+        try:
+            # Use IP geolocation API (would need real implementation)
+            # For demo, return placeholder
+            return "us-east"  # Would be determined by IP
+        except:
+            return "unknown"
+
+    def _get_public_ip(self) -> Optional[str]:
+        """Get public IP address"""
+        try:
+            # Query external service for public IP
+            import urllib.request
+            with urllib.request.urlopen('https://api.ipify.org', timeout=5) as response:
+                return response.read().decode('utf-8').strip()
+        except:
+            # Fallback methods
+            try:
+                # Try different services
+                services = ['https://icanhazip.com', 'https://checkip.amazonaws.com']
+                for service in services:
+                    try:
+                        with urllib.request.urlopen(service, timeout=3) as response:
+                            return response.read().decode('utf-8').strip()
+                    except:
+                        continue
+            except:
+                pass
+
+        return None
+
+    def _discover_peers_bootstrap(self):
+        """Connect to dynamically elected bootstrap nodes"""
+        bootstrap_peers = self._get_bootstrap_peers_from_blockchain()
+
+        connected_count = 0
+
+        for bootstrap_addr in bootstrap_peers[:5]:  # Try top 5
+            try:
+                if ':' in bootstrap_addr:
+                    host, port_str = bootstrap_addr.split(':', 1)
+                    port = int(port_str)
+                else:
+                    host = bootstrap_addr
+                    port = self.listen_port
+
+                self.logger.debug(f"Attempting decentralized bootstrap connection to {host}:{port}")
+
+                # Attempt connection
+                threading.Thread(
+                    target=self._connect_to_peer,
+                    args=(host, port, 'decentralized_bootstrap'),
+                    daemon=True
+                ).start()
+
+                connected_count += 1
+
+            except Exception as e:
+                self.logger.debug(f"Decentralized bootstrap connection to {bootstrap_addr} failed: {e}")
+
+        self.logger.info(f"Initiated {connected_count} decentralized bootstrap connections")
+
+    def _handle_peer_exchange_request(self, peer_id: str, message: Dict):
+        """Handle peer exchange request from another peer"""
+        try:
+            # Send list of known peers (excluding the requesting peer and local addresses)
+            known_peers = []
+            for pid, peer_info in self.peers.items():
+                if pid != peer_id:  # Don't send requester back to themselves
+                    address = peer_info.get('address')
+                    if address and isinstance(address, tuple) and len(address) >= 2:
+                        ip, port = address
+                        # Don't share local/private addresses
+                        if not (ip.startswith('127.') or ip.startswith('192.168.') or
+                               ip.startswith('10.') or ip.startswith('172.')):
+                            known_peers.append({
+                                'address': ip,
+                                'port': port,
+                                'peer_id': pid,
+                                'last_seen': peer_info.get('last_seen', 0)
+                            })
+
+            # Limit to 10 peers to avoid message size issues
+            known_peers = known_peers[:10]
+
+            response = {
+                'type': 'peer_exchange_response',
+                'peers': known_peers,
+                'timestamp': time.time()
+            }
+
+            self._send_to_peer(peer_id, response)
+            self.logger.debug(f"Sent {len(known_peers)} peers to {peer_id}")
+
+        except Exception as e:
+            self.logger.error(f"Peer exchange request handling failed for {peer_id}: {e}")
+
+    def _handle_peer_exchange_response(self, peer_id: str, message: Dict):
+        """Handle peer exchange response with list of peers"""
+        try:
+            peers_list = message.get('peers', [])
+
+            discovered_count = 0
+            for peer_data in peers_list:
+                address = peer_data.get('address')
+                port = peer_data.get('port', self.listen_port)
+                remote_peer_id = peer_data.get('peer_id')
+
+                # Skip if we already know this peer
+                if remote_peer_id in self.peers:
+                    continue
+
+                # Attempt to connect to the new peer
+                if address and address != self._get_local_ip():
+                    threading.Thread(
+                        target=self._connect_to_peer,
+                        args=(address, port, 'peer_exchange'),
+                        daemon=True
+                    ).start()
+                    discovered_count += 1
+
+            self.logger.info(f"Peer exchange from {peer_id} yielded {discovered_count} new connection attempts")
+
+        except Exception as e:
+            self.logger.error(f"Peer exchange response handling failed for {peer_id}: {e}")
 
     def _handle_peer_messages(self, peer_id: str, sock: socket.socket):
         """Handle messages from connected peer"""
@@ -338,6 +827,10 @@ class P2PBlockchainNetwork:
             self._handle_token_transfer_response(peer_id, message)
         elif msg_type == 'ping':
             self._handle_ping(peer_id, message)
+        elif msg_type == 'peer_exchange_request':
+            self._handle_peer_exchange_request(peer_id, message)
+        elif msg_type == 'peer_exchange_response':
+            self._handle_peer_exchange_response(peer_id, message)
         else:
             self.logger.debug(f"Unknown message type from {peer_id}: {msg_type}")
 
@@ -582,7 +1075,7 @@ class P2PBlockchainNetwork:
         """Process and accept an incoming token transfer"""
         try:
             # Use local wallet to receive the transfer
-            from blockchain_security import SignWallet
+            from bc_security.blockchain_security import SignWallet
             local_blockchain = self.local_blockchain  # This should be passed in constructor
             wallet = SignWallet(blockchain=local_blockchain)
 

@@ -1,0 +1,12 @@
+{
+  "wallet_id": "8ec3eae88f12ffa585bf1326659d8bd2",
+  "created_at": 1766989501.801225,
+  "version": "1.0.2.73",
+  "tokens": [],
+  "backup_chains": [],
+  "recovery_codes": [],
+  "metadata": {
+    "description": "314Sign Backup Wallet",
+    "hardware": "backup-system"
+  }
+}

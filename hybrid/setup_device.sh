@@ -178,6 +178,51 @@ EOF
     echo "  Run: sudo systemctl start 314sign-splash.service (to test)"
 fi
 
+# Setup mining node if requested
+read -p "⛏️  Install 314ST mining node service? (y/N): " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo "⛏️  Setting up 314Sign mining node service..."
+
+    # Build the mining node executable
+    echo "🔨 Building mining node executable..."
+    cd /opt/314sign/bc-security
+    if [ -f "build_mining_node.sh" ]; then
+        bash build_mining_node.sh
+        if [ -f "dist/314st-mining-node" ]; then
+            sudo cp dist/314st-mining-node /usr/local/bin/
+            echo "✓ Mining node executable installed to /usr/local/bin/"
+        else
+            echo "! Build failed, mining service will use Python script"
+        fi
+    else
+        echo "! Build script not found, mining service will use Python script"
+    fi
+
+    # Install systemd service
+    if [ -f "/opt/314sign/bc-security/314sign-mining.service" ]; then
+        sudo cp /opt/314sign/bc-security/314sign-mining.service /etc/systemd/system/
+        sudo systemctl daemon-reload
+        sudo systemctl enable 314sign-mining.service
+
+        echo "✓ Mining service installed and enabled"
+        echo "  Service: 314sign-mining.service"
+        echo "  Wallet: /home/pi/314sign-wallet"
+        echo "  Run: sudo systemctl start 314sign-mining.service (to start)"
+    else
+        echo "! Service file not found"
+    fi
+
+    # Create wallet directory
+    mkdir -p /home/pi/314sign-wallet
+    sudo chown pi:pi /home/pi/314sign-wallet
+
+    echo "✓ Mining node setup complete"
+    echo "  Wallet directory: /home/pi/314sign-wallet"
+    echo "  Initialize wallet: python3 /opt/314sign/bc-security/314st_wallet.py --status"
+    echo "  Mining will start automatically after reboot"
+fi
+
 # Configure boot for direct framebuffer
 echo "🔧 Configuring boot for direct framebuffer..."
 

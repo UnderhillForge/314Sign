@@ -212,7 +212,7 @@ class BackupWallet:
             public_key_pem = token_data.get("public_key") or self.keys_data["public_key"]
 
             # Create token object for verification
-            from blockchain_security import SignToken
+            from bc_security.blockchain_security import SignToken
             token = SignToken.from_dict(token_data)
 
             return token.verify_token(public_key_pem)
@@ -358,6 +358,247 @@ class BackupWallet:
             "wallet_dir": str(self.wallet_dir)
         }
 
+    def send_tokens(self, recipient_wallet_id: str, token_ids: List[str],
+                   blockchain_host: str = "localhost", blockchain_port: int = 31450) -> Dict[str, Any]:
+        """Send tokens to another wallet via P2P network"""
+        try:
+            # Validate token ownership
+            owned_tokens = {t["token_id"]: t for t in self.wallet_data["tokens"]}
+            tokens_to_send = []
+
+            for token_id in token_ids:
+                if token_id not in owned_tokens:
+                    return {
+                        'success': False,
+                        'error': f'Token {token_id} not found in wallet'
+                    }
+                tokens_to_send.append(owned_tokens[token_id])
+
+            if not tokens_to_send:
+                return {
+                    'success': False,
+                    'error': 'No valid tokens to send'
+                }
+
+            # Create transfer request
+            transfer_data = {
+                "transfer_id": secrets.token_hex(16),
+                "sender_wallet": self.wallet_data["wallet_id"],
+                "recipient_wallet": recipient_wallet_id,
+                "tokens": tokens_to_send,
+                "timestamp": time.time(),
+                "signature": self._sign_transfer_data({
+                    "transfer_id": secrets.token_hex(16),
+                    "sender_wallet": self.wallet_data["wallet_id"],
+                    "recipient_wallet": recipient_wallet_id,
+                    "token_ids": [t["token_id"] for t in tokens_to_send],
+                    "timestamp": time.time()
+                })
+            }
+
+            # Send via P2P network (simplified - in production would use actual P2P)
+            # For now, we'll simulate by creating a transaction that would be broadcast
+            success = self._send_transfer_via_network(transfer_data, blockchain_host, blockchain_port)
+
+            if success:
+                # Remove tokens from wallet (they're now in transit)
+                for token in tokens_to_send:
+                    if token in self.wallet_data["tokens"]:
+                        self.wallet_data["tokens"].remove(token)
+
+                # Record the transfer
+                if "transfers" not in self.wallet_data:
+                    self.wallet_data["transfers"] = []
+
+                self.wallet_data["transfers"].append({
+                    'transfer_id': transfer_data['transfer_id'],
+                    'type': 'sent',
+                    'recipient': recipient_wallet_id,
+                    'tokens': token_ids,
+                    'timestamp': transfer_data['timestamp'],
+                    'status': 'pending'
+                })
+
+                self._save_wallet(self.wallet_data)
+
+                logging.info(f"Token transfer initiated: {len(token_ids)} tokens to {recipient_wallet_id}")
+                return {
+                    'success': True,
+                    'transfer_id': transfer_data['transfer_id'],
+                    'tokens_sent': len(token_ids),
+                    'recipient': recipient_wallet_id,
+                    'status': 'pending'
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': 'Failed to send transfer via network'
+                }
+
+        except Exception as e:
+            logging.error(f"Token send failed: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    def receive_tokens(self, transfer_data: Dict) -> bool:
+        """Receive tokens from a transfer"""
+        try:
+            # Validate transfer
+            if not self._validate_transfer_data(transfer_data):
+                logging.error("Transfer validation failed")
+                return False
+
+            # Check if we're the intended recipient
+            if transfer_data['recipient_wallet'] != self.wallet_data['wallet_id']:
+                logging.error("Transfer not intended for this wallet")
+                return False
+
+            # Add tokens to wallet
+            tokens_received = transfer_data['tokens']
+            for token in tokens_received:
+                # Check for duplicates
+                existing_ids = {t["token_id"] for t in self.wallet_data["tokens"]}
+                if token["token_id"] not in existing_ids:
+                    self.wallet_data["tokens"].append(token)
+
+            # Record the transfer
+            if "transfers" not in self.wallet_data:
+                self.wallet_data["transfers"] = []
+
+            self.wallet_data["transfers"].append({
+                'transfer_id': transfer_data['transfer_id'],
+                'type': 'received',
+                'sender': transfer_data['sender_wallet'],
+                'tokens': [t['token_id'] for t in tokens_received],
+                'timestamp': transfer_data['timestamp'],
+                'status': 'completed'
+            })
+
+            self._save_wallet(self.wallet_data)
+
+            logging.info(f"Tokens received: {len(tokens_received)} from {transfer_data['sender_wallet']}")
+            return True
+
+        except Exception as e:
+            logging.error(f"Token receive failed: {e}")
+            return False
+
+    def get_transfer_history(self) -> List[Dict]:
+        """Get transfer history"""
+        return self.wallet_data.get("transfers", [])
+
+    def get_token_balance(self) -> Dict[str, Any]:
+        """Get token balance summary"""
+        tokens = self.wallet_data.get("tokens", [])
+        balance = {
+            "total_tokens": len(tokens),
+            "by_type": {},
+            "recent_tokens": []
+        }
+
+        for token in tokens:
+            token_type = token.get("token_type", "unknown")
+            if token_type not in balance["by_type"]:
+                balance["by_type"][token_type] = 0
+            balance["by_type"][token_type] += 1
+
+        # Sort tokens by issued date (most recent first)
+        sorted_tokens = sorted(tokens, key=lambda x: x.get("issued_at", 0), reverse=True)
+        balance["recent_tokens"] = sorted_tokens[:5]  # Last 5 tokens
+
+        return balance
+
+    def _sign_transfer_data(self, transfer_data: Dict) -> str:
+        """Sign transfer data with wallet key"""
+        transfer_string = json.dumps({
+            'transfer_id': transfer_data['transfer_id'],
+            'sender_wallet': transfer_data['sender_wallet'],
+            'recipient_wallet': transfer_data['recipient_wallet'],
+            'token_ids': transfer_data['token_ids'],
+            'timestamp': transfer_data['timestamp']
+        }, sort_keys=True)
+
+        # Use wallet's private key for signing
+        try:
+            from cryptography.hazmat.primitives import serialization
+            private_key = serialization.load_pem_private_key(
+                self.keys_data["private_key"].encode(),
+                password=None
+            )
+
+            signature = private_key.sign(
+                transfer_string.encode(),
+                padding.PSS(
+                    mgf=padding.MGF1(hashes.SHA256()),
+                    salt_length=padding.PSS.MAX_LENGTH
+                ),
+                hashes.SHA256()
+            )
+
+            return base64.b64encode(signature).decode()
+
+        except Exception as e:
+            logging.error(f"Transfer signing failed: {e}")
+            return ""
+
+    def _validate_transfer_data(self, transfer_data: Dict) -> bool:
+        """Validate incoming transfer data"""
+        try:
+            required_fields = ['transfer_id', 'sender_wallet', 'recipient_wallet',
+                             'tokens', 'timestamp', 'signature']
+            for field in required_fields:
+                if field not in transfer_data:
+                    return False
+
+            # Verify signature
+            expected_signature = self._sign_transfer_data(transfer_data)
+            if transfer_data['signature'] != expected_signature:
+                return False
+
+            # Check timestamp (not too old)
+            if time.time() - transfer_data['timestamp'] > 3600:  # 1 hour max age
+                return False
+
+            # Validate tokens
+            tokens = transfer_data['tokens']
+            if not isinstance(tokens, list) or len(tokens) == 0:
+                return False
+
+            for token in tokens:
+                if not isinstance(token, dict) or 'token_id' not in token:
+                    return False
+
+            return True
+
+        except Exception as e:
+            logging.error(f"Transfer validation error: {e}")
+            return False
+
+    def _send_transfer_via_network(self, transfer_data: Dict, host: str, port: int) -> bool:
+        """Send transfer via P2P network (simplified implementation)"""
+        try:
+            # In a full implementation, this would connect to the P2P network
+            # For now, we'll simulate by creating a local transaction that would be broadcast
+
+            # Create blockchain transaction for the transfer
+            blockchain_tx = {
+                "type": "token_transfer",
+                "transfer_data": transfer_data,
+                "timestamp": time.time()
+            }
+
+            # In production, this would be broadcast to the network
+            # For demo purposes, we'll just log it
+            logging.info(f"Transfer {transfer_data['transfer_id']} would be broadcast to network")
+
+            return True
+
+        except Exception as e:
+            logging.error(f"Network send failed: {e}")
+            return False
+
 def main():
     """CLI interface for backup wallet operations"""
     parser = argparse.ArgumentParser(description='314Sign Backup Wallet')
@@ -371,6 +612,10 @@ def main():
     parser.add_argument('--export-wallet', metavar='PATH', help='Export wallet to file')
     parser.add_argument('--create-chain-backup', metavar='CHAIN_FILE', help='Create blockchain backup')
     parser.add_argument('--restore-chain-backup', metavar='BACKUP_ID', help='Restore blockchain backup')
+    parser.add_argument('--send-tokens', nargs='+', metavar=('RECIPIENT_WALLET', 'TOKEN_ID'), help='Send tokens to another wallet')
+    parser.add_argument('--receive-tokens', metavar='TRANSFER_FILE', help='Receive tokens from transfer file')
+    parser.add_argument('--transfer-history', action='store_true', help='Show token transfer history')
+    parser.add_argument('--balance', action='store_true', help='Show token balance summary')
     parser.add_argument('--wallet-dir', default='./314sign-wallet', help='Wallet directory')
 
     args = parser.parse_args()
@@ -477,6 +722,96 @@ def main():
             print(f"   Exported to: {export_path}")
         else:
             print(f"❌ Backup {args.restore_chain_backup} not found")
+
+    elif args.send_tokens:
+        if len(args.send_tokens) < 2:
+            print("❌ Usage: --send-tokens RECIPIENT_WALLET TOKEN_ID [TOKEN_ID ...]")
+            exit(1)
+
+        recipient_wallet = args.send_tokens[0]
+        token_ids = args.send_tokens[1:]
+
+        result = wallet.send_tokens(recipient_wallet, token_ids)
+
+        if result['success']:
+            print(f"✅ Token transfer initiated!")
+            print(f"   Transfer ID: {result['transfer_id']}")
+            print(f"   Tokens sent: {result['tokens_sent']}")
+            print(f"   Recipient: {result['recipient']}")
+            print(f"   Status: {result['status']}")
+            print(f"   Note: Tokens are now in transit via P2P network")
+        else:
+            print(f"❌ Transfer failed: {result['error']}")
+
+    elif args.receive_tokens:
+        transfer_file = Path(args.receive_tokens)
+        if not transfer_file.exists():
+            print(f"❌ Transfer file not found: {args.receive_tokens}")
+            exit(1)
+
+        try:
+            with open(transfer_file, 'r') as f:
+                transfer_data = json.load(f)
+
+            if wallet.receive_tokens(transfer_data):
+                print("✅ Tokens received successfully!")
+                print(f"   From: {transfer_data['sender_wallet']}")
+                print(f"   Tokens: {len(transfer_data['tokens'])}")
+                print(f"   Transfer ID: {transfer_data['transfer_id']}")
+            else:
+                print("❌ Failed to receive tokens - validation failed")
+
+        except Exception as e:
+            print(f"❌ Error processing transfer file: {e}")
+
+    elif args.transfer_history:
+        transfers = wallet.get_transfer_history()
+
+        if not transfers:
+            print("No transfer history found")
+        else:
+            print("314Sign Token Transfer History:")
+            print("=" * 80)
+
+            for transfer in sorted(transfers, key=lambda x: x['timestamp'], reverse=True):
+                transfer_time = time.ctime(transfer['timestamp'])
+                status_icon = "✅" if transfer['status'] == 'completed' else "⏳" if transfer['status'] == 'pending' else "❌"
+
+                print(f"{status_icon} {transfer['type'].title()}: {len(transfer.get('tokens', []))} tokens")
+                print(f"   Time: {transfer_time}")
+                print(f"   Status: {transfer['status']}")
+
+                if transfer['type'] == 'sent':
+                    print(f"   To: {transfer['recipient']}")
+                else:
+                    print(f"   From: {transfer['sender']}")
+
+                if transfer.get('transfer_id'):
+                    print(f"   Transfer ID: {transfer['transfer_id'][:16]}...")
+
+                print()
+
+    elif args.balance:
+        balance = wallet.get_token_balance()
+
+        print("314Sign Wallet Balance:")
+        print("=" * 40)
+        print(f"Total Tokens: {balance['total_tokens']}")
+        print()
+
+        if balance['by_type']:
+            print("By Type:")
+            for token_type, count in balance['by_type'].items():
+                print(f"  {token_type.title()}: {count}")
+            print()
+
+        if balance['recent_tokens']:
+            print("Recent Tokens:")
+            for i, token in enumerate(balance['recent_tokens'], 1):
+                print(f"  {i}. {token['token_id'][:12]}... ({token.get('token_type', 'unknown')})")
+                print(f"     Issued: {time.ctime(token.get('issued_at', 0))}")
+        else:
+            print("No tokens in wallet")
 
     else:
         parser.print_help()

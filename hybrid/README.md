@@ -93,6 +93,11 @@ hybrid/
 ├── splash_config.json          # Splash screen branding configuration
 ├── 314sign2.png               # Professional 314Sign logo
 ├── setup_device.sh            # One-command Pi setup (all models)
+├── bc-security/               # Hardware-verified blockchain system
+│   ├── __init__.py           # Python package initialization
+│   ├── blockchain_security.py # Complete blockchain implementation
+│   ├── 314st_wallet.py       # Standalone wallet management
+│   └── 314st-mining-node.py  # Standalone mining client
 ├── lms/
 │   └── parser.py              # LMS JSON parser with validation
 ├── render/
@@ -419,6 +424,49 @@ This project is licensed under the MIT License - see LICENSE file for details.
 5. **Enjoy professional digital signage** with 99.9% bandwidth savings
 
 **This represents a fundamental breakthrough in digital signage technology - efficient, secure, professional, and ready for global deployment!** 🚀✨
+
+---
+
+## ⛏️ **Standalone Mining Node**
+
+For users who want to mine 314ST tokens without running the full kiosk display:
+
+### **Hardware Requirements**
+- **Raspberry Pi only** (all models supported)
+- Hardware verification ensures mining integrity
+
+### **Quick Start**
+```bash
+# Initialize wallet (if not already done)
+python3 bc-security/314st_wallet.py --status
+
+# Start mining node (Python script)
+python3 bc-security/314st-mining-node.py --wallet-dir ./314sign-wallet
+
+# Or build and install as systemd service
+cd bc-security && bash build_mining_node.sh
+sudo cp dist/314st-mining-node /usr/local/bin/
+sudo cp 314sign-mining.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable 314sign-mining
+sudo systemctl start 314sign-mining
+
+# Mining rewards automatically credit to your wallet
+# Check logs: journalctl -u 314sign-mining -f
+```
+
+### **Features**
+- **Hardware-locked mining**: Only verified Pi hardware can mine
+- **Automatic wallet integration**: Rewards go directly to your wallet
+- **Real-time statistics**: Uptime, blocks mined, tokens earned
+- **Graceful shutdown**: Ctrl+C to stop cleanly
+- **Background operation**: Can run alongside other services
+
+### **Use Cases**
+- **Token accumulation**: Build 314ST balance for future deployments
+- **Loan repayment**: Mine to repay trust loans automatically
+- **Network participation**: Contribute to blockchain security
+- **Staking preparation**: Earn tokens for validator staking
 
 ---
 
