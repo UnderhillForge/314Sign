@@ -32,7 +32,7 @@ sudo apt update
 
 # Install Node.js (NodeSource repository for latest LTS)
 echo "Installing Node.js..."
-if ! curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -; then
+if ! curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -; then
   echo "Failed to add NodeSource repository, trying alternative..."
   # Fallback: try installing from default repos
   sudo apt install -y nodejs npm || {
