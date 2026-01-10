@@ -28,13 +28,20 @@ echo ""
 
 # === 1. Install required packages ===
 echo "Installing packages..."
+
+# Clean up any existing NodeSource repositories that might be unreachable
+echo "Cleaning up any problematic NodeSource repositories..."
+sudo rm -f /etc/apt/sources.list.d/nodesource.list
+sudo rm -f /etc/apt/sources.list.d/nodesource*.list
+
+# Update package lists
 sudo apt update
 
 # Install Node.js (NodeSource repository for latest LTS)
 echo "Installing Node.js..."
 
 # Get the latest LTS version dynamically
-LATEST_LTS_JSON=$(curl -s https://nodejs.org/dist/index.json)
+LATEST_LTS_JSON=$(curl -s --connect-timeout 10 https://nodejs.org/dist/index.json)
 if [ -z "$LATEST_LTS_JSON" ]; then
   echo "Failed to fetch Node.js version data, falling back to Node.js 24.x"
   NODE_MAJOR_VERSION="24"
@@ -51,16 +58,28 @@ else
   fi
 fi
 
-if ! curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR_VERSION}.x" | sudo -E bash -; then
-  echo "Failed to add NodeSource repository, trying alternative..."
+# Try NodeSource first, but with better error handling
+echo "Attempting to install Node.js $NODE_MAJOR_VERSION.x from NodeSource..."
+if curl -fsSL --connect-timeout 30 "https://deb.nodesource.com/setup_${NODE_MAJOR_VERSION}.x" | sudo -E bash - 2>/dev/null; then
+  if sudo apt install -y nodejs 2>/dev/null; then
+    echo "✓ Node.js installed successfully from NodeSource"
+  else
+    echo "NodeSource repository setup succeeded but package installation failed, trying fallback..."
+    sudo apt install -y nodejs npm || {
+      echo "ERROR: Failed to install Node.js"
+      echo "Please check your internet connection or install Node.js manually: https://nodejs.org/"
+      exit 1
+    }
+  fi
+else
+  echo "NodeSource setup failed, falling back to system repositories..."
   # Fallback: try installing from default repos
   sudo apt install -y nodejs npm || {
-    echo "ERROR: Failed to install Node.js"
-    echo "Please install Node.js manually: https://nodejs.org/"
+    echo "ERROR: Failed to install Node.js from system repositories"
+    echo "Please install Node.js manually from: https://nodejs.org/"
+    echo "Or check your network connectivity to deb.nodesource.com"
     exit 1
   }
-else
-  sudo apt install -y nodejs
 fi
 
 # Verify Node.js installation
