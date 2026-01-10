@@ -401,9 +401,9 @@ EOF
 
   echo "✓ PM2 ecosystem configuration created"
 
-  # Create logs directory
+  # Create logs directory with correct ownership for PM2 user
   sudo mkdir -p /var/www/html/logs
-  sudo chown www-data:www-data /var/www/html/logs
+  sudo chown "$PM2_USER:$PM2_USER" /var/www/html/logs
 
   # Start 314Sign with PM2
   echo "Starting 314Sign server with PM2..."
