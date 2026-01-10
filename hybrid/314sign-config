@@ -1,0 +1,1217 @@
+#!/bin/bash
+# 314Sign Configuration Manager
+# Whiptail-based configuration interface with dark mode
+# Provides comprehensive system and application configuration
+
+set -e
+
+# Configuration file paths
+CONFIG_DIR="/etc/314sign"
+MAIN_CONFIG="${CONFIG_DIR}/main_kiosk.json"
+REMOTE_CONFIG="${CONFIG_DIR}/remote_kiosk.json"
+SYSTEM_CONFIG="${CONFIG_DIR}/system.json"
+BACKUP_DIR="${CONFIG_DIR}/backups"
+
+# Color scheme for dark mode
+setup_colors() {
+    export NEWT_COLORS='
+    root=,black
+    window=,black
+    shadow=,darkgray
+    title=white,black
+    button=black,white
+    actbutton=white,blue
+    compactbutton=black,white
+    listbox=white,black
+    actlistbox=black,white
+    actsellistbox=white,blue
+    textbox=white,black
+    acttextbox=blue,white
+    entry=white,black
+    disentry=gray,black
+    label=white,black
+    checkbox=white,black
+    actcheckbox=blue,white
+    '
+}
+
+# Ensure configuration directory exists
+ensure_config_dir() {
+    sudo mkdir -p "$CONFIG_DIR"
+    sudo mkdir -p "$BACKUP_DIR"
+    sudo chown -R root:root "$CONFIG_DIR"
+}
+
+# Backup configuration before changes
+backup_config() {
+    local config_file="$1"
+    local backup_file="${BACKUP_DIR}/$(basename "$config_file").backup.$(date +%Y%m%d_%H%M%S)"
+
+    if [ -f "$config_file" ]; then
+        sudo cp "$config_file" "$backup_file"
+        echo "✓ Configuration backed up to: $backup_file"
+    fi
+}
+
+# Load JSON value from config file
+get_config_value() {
+    local config_file="$1"
+    local key="$2"
+    local default="$3"
+
+    if [ -f "$config_file" ]; then
+        python3 -c "
+import json
+import sys
+try:
+    with open('$config_file', 'r') as f:
+        config = json.load(f)
+    keys = '$key'.split('.')
+    value = config
+    for k in keys:
+        value = value.get(k, '$default')
+    print(value)
+except:
+    print('$default')
+" 2>/dev/null || echo "$default"
+    else
+        echo "$default"
+    fi
+}
+
+# Update JSON configuration
+update_config() {
+    local config_file="$1"
+    local key="$2"
+    local value="$3"
+
+    # Backup before changes
+    backup_config "$config_file"
+
+    # Update configuration
+    python3 -c "
+import json
+import sys
+import os
+
+config_file = '$config_file'
+key = '$key'
+value = '$value'
+
+# Parse value type
+if value.lower() in ['true', 'false']:
+    value = value.lower() == 'true'
+elif value.isdigit():
+    value = int(value)
+elif '.' in value and value.replace('.', '').isdigit():
+    value = float(value)
+
+# Load or create config
+if os.path.exists(config_file):
+    with open(config_file, 'r') as f:
+        config = json.load(f)
+else:
+    config = {}
+
+# Set nested value
+keys = key.split('.')
+current = config
+for k in keys[:-1]:
+    if k not in current:
+        current[k] = {}
+    current = current[k]
+current[keys[-1]] = value
+
+# Save config
+os.makedirs(os.path.dirname(config_file), exist_ok=True)
+with open(config_file, 'w') as f:
+    json.dump(config, f, indent=2)
+" 2>/dev/null
+}
+
+# Show main menu
+show_main_menu() {
+    local CHOICE
+    CHOICE=$(whiptail --title "314Sign Configuration Manager (Dark Mode)" \
+                     --menu "Choose a configuration category:" \
+                     --cancel-button "Exit" \
+                     22 70 12 \
+                     "1" "📱 Application Settings" \
+                     "2" "🌐 Network Configuration" \
+                     "3" "🖥️  Display & Hardware Settings" \
+                     "4" "📄 Content Management" \
+                     "5" "🔒 Security & Access Control" \
+                     "6" "⚙️  System Services" \
+                     "7" "🚀 Performance Tuning" \
+                     "8" "💾 Backup & Restore" \
+                     "9" "🔍 Diagnostics & Testing" \
+                     "10" "ℹ️  System Information" \
+                     3>&1 1>&2 2>&3)
+
+    case $CHOICE in
+        1) application_settings ;;
+        2) network_configuration ;;
+        3) display_hardware_settings ;;
+        4) content_management ;;
+        5) security_access_control ;;
+        6) system_services ;;
+        7) performance_tuning ;;
+        8) backup_restore ;;
+        9) diagnostics_testing ;;
+        10) system_information ;;
+        *) return 0 ;;
+    esac
+}
+
+# Application Settings Menu
+application_settings() {
+    local CHOICE
+    CHOICE=$(whiptail --title "Application Settings" \
+                     --menu "Configure application behavior:" \
+                     --cancel-button "Back" \
+                     20 70 10 \
+                     "1" "Device Identification" \
+                     "2" "Kiosk Configuration" \
+                     "3" "Content Settings" \
+                     "4" "Remote Management" \
+                     "5" "Debug & Logging" \
+                     3>&1 1>&2 2>&3)
+
+    case $CHOICE in
+        1) device_identification ;;
+        2) kiosk_configuration ;;
+        3) content_settings ;;
+        4) remote_management ;;
+        5) debug_logging ;;
+        *) show_main_menu ;;
+    esac
+}
+
+# Device Identification
+device_identification() {
+    local current_code current_name current_location
+    current_code=$(get_config_value "$MAIN_CONFIG" "device_code" "MAIN_KIOSK")
+    current_name=$(get_config_value "$MAIN_CONFIG" "device_name" "")
+    current_location=$(get_config_value "$MAIN_CONFIG" "location" "")
+
+    local device_code device_name location
+
+    device_code=$(whiptail --title "Device Identification" \
+                          --inputbox "Enter device code (unique identifier):" \
+                          10 60 "$current_code" \
+                          3>&1 1>&2 2>&3)
+
+    if [ $? -eq 0 ]; then
+        device_name=$(whiptail --title "Device Identification" \
+                              --inputbox "Enter device name (display name):" \
+                              10 60 "$current_name" \
+                              3>&1 1>&2 2>&3)
+
+        location=$(whiptail --title "Device Identification" \
+                           --inputbox "Enter location description:" \
+                           10 60 "$current_location" \
+                           3>&1 1>&2 2>&3)
+
+        update_config "$MAIN_CONFIG" "device_code" "$device_code"
+        update_config "$MAIN_CONFIG" "device_name" "$device_name"
+        update_config "$MAIN_CONFIG" "location" "$location"
+
+        whiptail --title "Success" \
+                --msgbox "Device identification updated successfully!" \
+                8 50
+    fi
+
+    application_settings
+}
+
+# Kiosk Configuration
+kiosk_configuration() {
+    local current_url current_port current_web_port
+    current_url=$(get_config_value "$MAIN_CONFIG" "main_kiosk_url" "http://localhost:80")
+    current_port=$(get_config_value "$MAIN_CONFIG" "port" "80")
+    current_web_port=$(get_config_value "$MAIN_CONFIG" "web_port" "8080")
+
+    local main_url port web_port
+
+    main_url=$(whiptail --title "Kiosk Configuration" \
+                       --inputbox "Main kiosk URL (for remote displays):" \
+                       10 60 "$current_url" \
+                       3>&1 1>&2 2>&3)
+
+    if [ $? -eq 0 ]; then
+        port=$(whiptail --title "Kiosk Configuration" \
+                       --inputbox "Main port:" \
+                       10 60 "$current_port" \
+                       3>&1 1>&2 2>&3)
+
+        web_port=$(whiptail --title "Kiosk Configuration" \
+                           --inputbox "Web interface port:" \
+                           10 60 "$current_web_port" \
+                           3>&1 1>&2 2>&3)
+
+        update_config "$MAIN_CONFIG" "main_kiosk_url" "$main_url"
+        update_config "$MAIN_CONFIG" "port" "$port"
+        update_config "$MAIN_CONFIG" "web_port" "$web_port"
+
+        whiptail --title "Success" \
+                --msgbox "Kiosk configuration updated!\n\nNote: Services may need to be restarted for changes to take effect." \
+                10 60
+    fi
+
+    application_settings
+}
+
+# Network Configuration Menu
+network_configuration() {
+    local CHOICE
+    CHOICE=$(whiptail --title "Network Configuration" \
+                     --menu "Configure network settings:" \
+                     --cancel-button "Back" \
+                     18 70 8 \
+                     "1" "IP Address Settings" \
+                     "2" "DNS Configuration" \
+                     "3" "WiFi Management" \
+                     "4" "Firewall Settings" \
+                     "5" "Network Testing" \
+                     3>&1 1>&2 2>&3)
+
+    case $CHOICE in
+        1) ip_address_settings ;;
+        2) dns_configuration ;;
+        3) wifi_management ;;
+        4) firewall_settings ;;
+        5) network_testing ;;
+        *) show_main_menu ;;
+    esac
+}
+
+# IP Address Settings
+ip_address_settings() {
+    local current_method current_ip current_gateway current_dns
+    current_method="DHCP"  # Default assumption
+    current_ip=$(hostname -I | awk '{print $1}')
+    current_gateway=$(ip route | grep default | awk '{print $3}')
+    current_dns=$(grep "nameserver" /etc/resolv.conf | head -1 | awk '{print $2}')
+
+    local method_choice ip_addr gateway dns
+
+    # Choose DHCP or Static
+    if whiptail --title "IP Configuration Method" \
+               --yesno "Use DHCP (automatic IP assignment)?\n\nSelect 'Yes' for DHCP, 'No' for Static IP" \
+               10 60; then
+        method_choice="DHCP"
+
+        whiptail --title "DHCP Configuration" \
+                --msgbox "DHCP selected. Network will use automatic IP assignment.\n\nCurrent IP: $current_ip\nGateway: $current_gateway\nDNS: $current_dns" \
+                12 60
+    else
+        method_choice="Static"
+
+        ip_addr=$(whiptail --title "Static IP Configuration" \
+                          --inputbox "Enter static IP address:" \
+                          10 40 "$current_ip" \
+                          3>&1 1>&2 2>&3)
+
+        if [ $? -eq 0 ]; then
+            gateway=$(whiptail --title "Static IP Configuration" \
+                              --inputbox "Enter gateway address:" \
+                              10 40 "$current_gateway" \
+                              3>&1 1>&2 2>&3)
+
+            dns=$(whiptail --title "Static IP Configuration" \
+                          --inputbox "Enter DNS server:" \
+                          10 40 "$current_dns" \
+                          3>&1 1>&2 2>&3)
+
+            # Here we would apply the static IP configuration
+            whiptail --title "Static IP Setup" \
+                    --msgbox "Static IP configuration would be applied:\n\nIP: $ip_addr\nGateway: $gateway\nDNS: $dns\n\nNote: This requires manual network configuration." \
+                    12 60
+        fi
+    fi
+
+    network_configuration
+}
+
+# Display & Hardware Settings
+display_hardware_settings() {
+    local CHOICE
+    CHOICE=$(whiptail --title "Display & Hardware Settings" \
+                     --menu "Configure display and hardware:" \
+                     --cancel-button "Back" \
+                     18 70 8 \
+                     "1" "Display Resolution" \
+                     "2" "Display Orientation" \
+                     "3" "GPU Memory Allocation" \
+                     "4" "CPU Performance" \
+                     "5" "Thermal Management" \
+                     3>&1 1>&2 2>&3)
+
+    case $CHOICE in
+        1) display_resolution ;;
+        2) display_orientation ;;
+        3) gpu_memory_allocation ;;
+        4) cpu_performance ;;
+        5) thermal_management ;;
+        *) show_main_menu ;;
+    esac
+}
+
+# Display Resolution
+display_resolution() {
+    local resolutions="1920x1080 60Hz 1920x1080p 60Hz
+1680x1050 60Hz 1680x1050p 60Hz
+1440x900 60Hz 1440x900p 60Hz
+1280x1024 60Hz 1280x1024p 60Hz
+1280x720 60Hz 1280x720p 60Hz
+1024x768 60Hz 1024x768p 60Hz"
+
+    local choice
+    choice=$(whiptail --title "Display Resolution" \
+                     --menu "Select display resolution:" \
+                     --cancel-button "Back" \
+                     20 60 10 \
+                     $resolutions \
+                     3>&1 1>&2 2>&3)
+
+    if [ $? -eq 0 ] && [ -n "$choice" ]; then
+        local hdmi_mode
+        case $choice in
+            "1920x1080 60Hz") hdmi_mode="16" ;;
+            "1680x1050 60Hz") hdmi_mode="58" ;;
+            "1440x900 60Hz") hdmi_mode="47" ;;
+            "1280x1024 60Hz") hdmi_mode="35" ;;
+            "1280x720 60Hz") hdmi_mode="4" ;;
+            "1024x768 60Hz") hdmi_mode="16" ;;  # Fallback
+        esac
+
+        # Update config.txt
+        sudo sed -i '/^hdmi_mode=/d' /boot/firmware/config.txt
+        echo "hdmi_mode=$hdmi_mode" | sudo tee -a /boot/firmware/config.txt > /dev/null
+
+        whiptail --title "Display Resolution" \
+                --msgbox "Display resolution set to: $choice\n\nHDMI Mode: $hdmi_mode\n\nChanges will take effect after reboot." \
+                10 50
+    fi
+
+    display_hardware_settings
+}
+
+# System Information
+system_information() {
+    local info
+    info="314Sign System Information\n"
+    info+="==========================\n\n"
+    info+="Device: $(get_config_value "$MAIN_CONFIG" "device_code" "Unknown")\n"
+    info+="Location: $(get_config_value "$MAIN_CONFIG" "location" "Not set")\n"
+    info+="Hardware: $(cat /proc/device-tree/model 2>/dev/null || echo 'Unknown')\n"
+    info+="Kernel: $(uname -r)\n"
+    info+="Uptime: $(uptime -p)\n"
+    info+="CPU Temperature: $(vcgencmd measure_temp 2>/dev/null | cut -d= -f2 || echo 'N/A')\n"
+    info+="Memory: $(free -h | grep '^Mem:' | awk '{print $3 "/" $2}')\n"
+    info+="Storage: $(df -h / | tail -1 | awk '{print $3 "/" $2 " (" $5 " used)"}')\n"
+    info+="IP Address: $(hostname -I | awk '{print $1}')\n"
+    info+="Services Status:\n"
+    info+="  Main Kiosk: $(systemctl is-active 314sign-main-kiosk.service 2>/dev/null || echo 'Not installed')\n"
+    info+="  Nginx: $(systemctl is-active nginx 2>/dev/null || echo 'Not installed')\n"
+
+    whiptail --title "System Information" \
+            --msgbox "$info" \
+            20 70
+
+    show_main_menu
+}
+
+# Diagnostics & Testing
+diagnostics_testing() {
+    local CHOICE
+    CHOICE=$(whiptail --title "Diagnostics & Testing" \
+                     --menu "Run diagnostic tests:" \
+                     --cancel-button "Back" \
+                     18 70 8 \
+                     "1" "Hardware Diagnostics" \
+                     "2" "Network Diagnostics" \
+                     "3" "Application Tests" \
+                     "4" "Performance Benchmark" \
+                     "5" "Configuration Validation" \
+                     "6" "Log Analysis" \
+                     3>&1 1>&2 2>&3)
+
+    case $CHOICE in
+        1) hardware_diagnostics ;;
+        2) network_diagnostics ;;
+        3) application_tests ;;
+        4) run_performance_benchmark ;;
+        5) configuration_validation ;;
+        6) log_analysis ;;
+        *) show_main_menu ;;
+    esac
+}
+
+# Hardware Diagnostics
+hardware_diagnostics() {
+    whiptail --title "Hardware Diagnostics" \
+            --infobox "Running hardware diagnostics...\n\nPlease wait..." \
+            8 40
+
+    local diag_info
+    diag_info="Hardware Diagnostics Results\n"
+    diag_info+="===========================\n\n"
+
+    # CPU Info
+    diag_info+="CPU Model: $(grep 'model name' /proc/cpuinfo | head -1 | cut -d: -f2 | sed 's/^ *//')\n"
+    diag_info+="CPU Cores: $(nproc)\n"
+    diag_info+="CPU Temperature: $(vcgencmd measure_temp 2>/dev/null | cut -d= -f2 || echo 'N/A')\n\n"
+
+    # Memory Info
+    diag_info+="Memory Total: $(free -h | grep '^Mem:' | awk '{print $2}')\n"
+    diag_info+="Memory Used: $(free -h | grep '^Mem:' | awk '{print $3}')\n"
+    diag_info+="Memory Available: $(free -h | grep '^Mem:' | awk '{print $7}')\n\n"
+
+    # Storage Info
+    diag_info+="Storage Total: $(df -h / | tail -1 | awk '{print $2}')\n"
+    diag_info+="Storage Used: $(df -h / | tail -1 | awk '{print $3}')\n"
+    diag_info+="Storage Available: $(df -h / | tail -1 | awk '{print $4}')\n\n"
+
+    # GPU Info
+    diag_info+="GPU Memory: $(vcgencmd get_mem gpu 2>/dev/null | cut -d= -f2 || echo 'N/A')\n"
+    diag_info+="GPU Temperature: $(vcgencmd measure_temp 2>/dev/null | cut -d= -f2 || echo 'N/A')\n\n"
+
+    # Display Info
+    diag_info+="Display Connected: $(tvservice -s 2>/dev/null | grep -q "HDMI" && echo "Yes" || echo "No")\n"
+    diag_info+="Display Resolution: $(fbset 2>/dev/null | grep geometry | awk '{print $2 "x" $3}' || echo 'N/A')\n"
+
+    whiptail --title "Hardware Diagnostics" \
+            --msgbox "$diag_info" \
+            20 70
+
+    diagnostics_testing
+}
+
+# Network Diagnostics
+network_diagnostics() {
+    whiptail --title "Network Diagnostics" \
+            --infobox "Running network diagnostics...\n\nPlease wait..." \
+            8 40
+
+    local net_info
+    net_info="Network Diagnostics Results\n"
+    net_info+="============================\n\n"
+
+    # Basic connectivity
+    net_info+="Local IP: $(hostname -I | awk '{print $1}')\n"
+    net_info+="Gateway: $(ip route | grep default | awk '{print $3}')\n"
+    net_info+="DNS: $(grep 'nameserver' /etc/resolv.conf | head -1 | awk '{print $2}')\n\n"
+
+    # Internet connectivity test
+    if ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1; then
+        net_info+="Internet: ✓ Connected\n"
+
+        # Speed test (simple)
+        local ping_time
+        ping_time=$(ping -c 3 8.8.8.8 | tail -1 | awk '{print $4}' | cut -d '/' -f 2)
+        net_info+="Latency: ${ping_time}ms\n"
+    else
+        net_info+="Internet: ✗ Disconnected\n"
+    fi
+
+    # Local network
+    net_info+="\nLocal Network:\n"
+    net_info+="$(ip -brief addr show | grep -v lo)\n\n"
+
+    # Services
+    net_info+="Network Services:\n"
+    if systemctl is-active nginx >/dev/null 2>&1; then
+        net_info+="  Web Server: ✓ Running (Port 80)\n"
+    else
+        net_info+="  Web Server: ✗ Not running\n"
+    fi
+
+    if systemctl is-active 314sign-main-kiosk.service >/dev/null 2>&1; then
+        net_info+="  Main Kiosk: ✓ Running\n"
+    else
+        net_info+="  Main Kiosk: ✗ Not running\n"
+    fi
+
+    whiptail --title "Network Diagnostics" \
+            --msgbox "$net_info" \
+            20 70
+
+    diagnostics_testing
+}
+
+# Application Tests
+application_tests() {
+    whiptail --title "Application Tests" \
+            --infobox "Running application tests...\n\nPlease wait..." \
+            8 40
+
+    local test_results
+    test_results="Application Test Results\n"
+    test_results+="========================\n\n"
+
+    # Python imports test
+    if python3 -c "import pygame; print('OK')" 2>/dev/null; then
+        test_results+="Python/Pygame: ✓ Working\n"
+    else
+        test_results+="Python/Pygame: ✗ Failed\n"
+    fi
+
+    # Configuration file test
+    if [ -f "$MAIN_CONFIG" ]; then
+        test_results+="Main Config: ✓ Exists\n"
+        if python3 -c "import json; json.load(open('$MAIN_CONFIG'))" 2>/dev/null; then
+            test_results+="Main Config: ✓ Valid JSON\n"
+        else
+            test_results+="Main Config: ✗ Invalid JSON\n"
+        fi
+    else
+        test_results+="Main Config: ✗ Missing\n"
+    fi
+
+    # Directory permissions test
+    if [ -d "/opt/314sign" ] && [ -w "/opt/314sign" ]; then
+        test_results+="App Directory: ✓ Writable\n"
+    else
+        test_results+="App Directory: ✗ Permission issue\n"
+    fi
+
+    if [ -d "/var/cache/314sign" ] && [ -w "/var/cache/314sign" ]; then
+        test_results+="Cache Directory: ✓ Writable\n"
+    else
+        test_results+="Cache Directory: ✗ Permission issue\n"
+    fi
+
+    # LMS parser test
+    if [ -f "/opt/314sign/lms/parser.py" ]; then
+        test_results+="LMS Parser: ✓ Exists\n"
+        if python3 -c "import sys; sys.path.append('/opt/314sign'); from lms.parser import LMSParser; p = LMSParser(); print('OK')" 2>/dev/null; then
+            test_results+="LMS Parser: ✓ Importable\n"
+        else
+            test_results+="LMS Parser: ✗ Import failed\n"
+        fi
+    else
+        test_results+="LMS Parser: ✗ Missing\n"
+    fi
+
+    whiptail --title "Application Tests" \
+            --msgbox "$test_results" \
+            20 70
+
+    diagnostics_testing
+}
+
+# Performance Benchmark
+run_performance_benchmark() {
+    if whiptail --title "Performance Benchmark" \
+               --yesno "Run comprehensive performance benchmark?\n\nThis will take several minutes and may temporarily impact system performance." \
+               10 60; then
+
+        whiptail --title "Performance Benchmark" \
+                --infobox "Running performance benchmark...\n\nThis may take 5-10 minutes..." \
+                8 50
+
+        # Run the benchmark script if it exists
+        if [ -f "/usr/local/bin/314sign-benchmark" ]; then
+            local benchmark_output
+            benchmark_output=$(/usr/local/bin/314sign-benchmark 2>&1)
+
+            whiptail --title "Performance Benchmark Results" \
+                    --scrolltext \
+                    --msgbox "$benchmark_output" \
+                    20 70
+        else
+            whiptail --title "Benchmark Not Available" \
+                    --msgbox "Benchmark script not found.\n\nRun 'sudo bash hybrid/pi5_optimization.sh' to install performance monitoring tools." \
+                    10 60
+        fi
+    fi
+
+    diagnostics_testing
+}
+
+# Configuration Validation
+configuration_validation() {
+    whiptail --title "Configuration Validation" \
+            --infobox "Validating configuration files...\n\nPlease wait..." \
+            8 40
+
+    local validation_results
+    validation_results="Configuration Validation Results\n"
+    validation_results+="================================\n\n"
+
+    # Check main config
+    if [ -f "$MAIN_CONFIG" ]; then
+        validation_results+="Main Config: ✓ Exists\n"
+        if python3 -c "import json; json.load(open('$MAIN_CONFIG'))" 2>/dev/null; then
+            validation_results+="Main Config: ✓ Valid JSON\n"
+        else
+            validation_results+="Main Config: ✗ Invalid JSON\n"
+        fi
+    else
+        validation_results+="Main Config: ✗ Missing\n"
+    fi
+
+    # Check remote config
+    if [ -f "$REMOTE_CONFIG" ]; then
+        validation_results+="Remote Config: ✓ Exists\n"
+        if python3 -c "import json; json.load(open('$REMOTE_CONFIG'))" 2>/dev/null; then
+            validation_results+="Remote Config: ✓ Valid JSON\n"
+        else
+            validation_results+="Remote Config: ✗ Invalid JSON\n"
+        fi
+    else
+        validation_results+="Remote Config: ⚠ Not configured (normal for main kiosk)\n"
+    fi
+
+    # Check directories
+    if [ -d "/opt/314sign" ]; then
+        validation_results+="App Directory: ✓ Exists\n"
+    else
+        validation_results+="App Directory: ✗ Missing\n"
+    fi
+
+    if [ -d "/var/cache/314sign" ]; then
+        validation_results+="Cache Directory: ✓ Exists\n"
+    else
+        validation_results+="Cache Directory: ✗ Missing\n"
+    fi
+
+    if [ -d "/var/log/314sign" ]; then
+        validation_results+="Log Directory: ✓ Exists\n"
+    else
+        validation_results+="Log Directory: ✗ Missing\n"
+    fi
+
+    # Check permissions
+    if [ -w "/opt/314sign" ]; then
+        validation_results+="App Permissions: ✓ Writable\n"
+    else
+        validation_results+="App Permissions: ✗ Not writable\n"
+    fi
+
+    whiptail --title "Configuration Validation" \
+            --msgbox "$validation_results" \
+            20 70
+
+    diagnostics_testing
+}
+
+# Log Analysis
+log_analysis() {
+    local log_choice
+    log_choice=$(whiptail --title "Log Analysis" \
+                         --menu "Select log to analyze:" \
+                         --cancel-button "Back" \
+                         15 60 6 \
+                         "1" "Main Kiosk Logs" \
+                         "2" "System Logs" \
+                         "3" "Web Server Logs" \
+                         "4" "All Recent Logs" \
+                         3>&1 1>&2 2>&3)
+
+    case $log_choice in
+        1)
+            if [ -f "/var/log/314sign/main_kiosk.log" ]; then
+                local log_content
+                log_content=$(tail -50 "/var/log/314sign/main_kiosk.log" 2>/dev/null || echo "Log file not accessible")
+                whiptail --title "Main Kiosk Logs (Last 50 lines)" \
+                        --scrolltext \
+                        --msgbox "$log_content" \
+                        20 80
+            else
+                whiptail --title "Log Not Found" \
+                        --msgbox "Main kiosk log file not found.\n\nExpected location: /var/log/314sign/main_kiosk.log" \
+                        10 60
+            fi
+            ;;
+        2)
+            local syslog_content
+            syslog_content=$(journalctl -n 50 --no-pager 2>/dev/null || echo "System log not accessible")
+            whiptail --title "System Logs (Last 50 entries)" \
+                    --scrolltext \
+                    --msgbox "$syslog_content" \
+                    20 80
+            ;;
+        3)
+            if [ -f "/var/log/nginx/access.log" ]; then
+                local nginx_content
+                nginx_content=$(tail -30 "/var/log/nginx/access.log" 2>/dev/null || echo "Nginx log not accessible")
+                whiptail --title "Web Server Logs (Last 30 entries)" \
+                        --scrolltext \
+                        --msgbox "$nginx_content" \
+                        20 80
+            else
+                whiptail --title "Log Not Found" \
+                        --msgbox "Nginx access log not found.\n\nExpected location: /var/log/nginx/access.log" \
+                        10 60
+            fi
+            ;;
+        4)
+            local all_logs
+            all_logs="Recent System Activity (Last 24 hours)\n"
+            all_logs+="=====================================\n\n"
+
+            # 314Sign specific logs
+            if [ -f "/var/log/314sign/main_kiosk.log" ]; then
+                all_logs+="314Sign Main Kiosk Errors:\n"
+                all_logs+="$(grep -i error /var/log/314sign/main_kiosk.log | tail -5 2>/dev/null || echo "None")\n\n"
+            fi
+
+            # System errors
+            all_logs+="System Errors:\n"
+            all_logs+="$(journalctl --since "24 hours ago" -p err --no-pager | tail -10 2>/dev/null || echo "Log access failed")\n\n"
+
+            # Service status
+            all_logs+="Service Status:\n"
+            all_logs+="Main Kiosk: $(systemctl is-active 314sign-main-kiosk.service 2>/dev/null || echo 'Unknown')\n"
+            all_logs+="Web Server: $(systemctl is-active nginx 2>/dev/null || echo 'Unknown')\n"
+
+            whiptail --title "All Recent Logs (Last 24h)" \
+                    --scrolltext \
+                    --msgbox "$all_logs" \
+                    20 80
+            ;;
+    esac
+
+    diagnostics_testing
+}
+
+# Content Settings
+content_settings() {
+    local current_lms_dir current_slideshow_dir current_cache_size
+    current_lms_dir=$(get_config_value "$MAIN_CONFIG" "lms_dir" "/opt/314sign/lms")
+    current_slideshow_dir=$(get_config_value "$MAIN_CONFIG" "slideshow_dir" "/opt/314sign/slideshows")
+    current_cache_size=$(get_config_value "$MAIN_CONFIG" "max_cache_size" "1073741824")  # 1GB default
+
+    local lms_dir slideshow_dir cache_size_mb
+
+    lms_dir=$(whiptail --title "Content Settings" \
+                      --inputbox "LMS content directory:" \
+                      10 60 "$current_lms_dir" \
+                      3>&1 1>&2 2>&3)
+
+    if [ $? -eq 0 ]; then
+        slideshow_dir=$(whiptail --title "Content Settings" \
+                                --inputbox "Slideshow content directory:" \
+                                10 60 "$current_slideshow_dir" \
+                                3>&1 1>&2 2>&3)
+
+        cache_size_mb=$(whiptail --title "Content Settings" \
+                                --inputbox "Cache size (MB):" \
+                                10 40 "$((current_cache_size / 1024 / 1024))" \
+                                3>&1 1>&2 2>&3)
+
+        if [ $? -eq 0 ]; then
+            cache_size_bytes=$((cache_size_mb * 1024 * 1024))
+
+            update_config "$MAIN_CONFIG" "lms_dir" "$lms_dir"
+            update_config "$MAIN_CONFIG" "slideshow_dir" "$slideshow_dir"
+            update_config "$MAIN_CONFIG" "max_cache_size" "$cache_size_bytes"
+
+            whiptail --title "Success" \
+                    --msgbox "Content settings updated successfully!" \
+                    8 50
+        fi
+    fi
+
+    application_settings
+}
+
+# Remote Management
+remote_management() {
+    local current_enabled current_poll_interval
+    current_enabled=$(get_config_value "$MAIN_CONFIG" "remote_management_enabled" "true")
+    current_poll_interval=$(get_config_value "$MAIN_CONFIG" "config_poll_interval" "120")
+
+    local enabled_choice poll_interval
+
+    if whiptail --title "Remote Management" \
+               --yesno "Enable remote management features?\n\nThis allows the main kiosk to manage remote displays." \
+               10 60; then
+        enabled_choice="true"
+
+        poll_interval=$(whiptail --title "Remote Management" \
+                                --inputbox "Configuration poll interval (seconds):" \
+                                10 50 "$current_poll_interval" \
+                                3>&1 1>&2 2>&3)
+
+        if [ $? -eq 0 ]; then
+            update_config "$MAIN_CONFIG" "remote_management_enabled" "$enabled_choice"
+            update_config "$MAIN_CONFIG" "config_poll_interval" "$poll_interval"
+
+            whiptail --title "Success" \
+                    --msgbox "Remote management enabled!\n\nPoll interval: $poll_interval seconds" \
+                    10 50
+        fi
+    else
+        enabled_choice="false"
+        update_config "$MAIN_CONFIG" "remote_management_enabled" "$enabled_choice"
+
+        whiptail --title "Success" \
+                --msgbox "Remote management disabled." \
+                8 40
+    fi
+
+    application_settings
+}
+
+# Debug & Logging
+debug_logging() {
+    local current_debug current_log_level
+    current_debug=$(get_config_value "$MAIN_CONFIG" "debug" "false")
+    current_log_level=$(get_config_value "$MAIN_CONFIG" "log_level" "INFO")
+
+    local debug_choice log_level
+
+    if whiptail --title "Debug & Logging" \
+               --yesno "Enable debug logging?\n\nThis will increase log verbosity and may impact performance." \
+               10 60; then
+        debug_choice="true"
+        log_level="DEBUG"
+    else
+        debug_choice="false"
+        log_level="INFO"
+    fi
+
+    update_config "$MAIN_CONFIG" "debug" "$debug_choice"
+    update_config "$MAIN_CONFIG" "log_level" "$log_level"
+
+    whiptail --title "Success" \
+            --msgbox "Debug settings updated!\n\nDebug: $debug_choice\nLog Level: $log_level\n\nNote: Services may need to be restarted for changes to take effect." \
+            12 60
+
+    application_settings
+}
+
+# Content Management (placeholder)
+content_management() {
+    whiptail --title "Content Management" \
+            --msgbox "Content management features:\n\n• LMS Content Library\n• Slideshow Management\n• Remote Content Sync\n• Cache Management\n\nThese features are available through the web interface at:\nhttp://localhost/admin" \
+            15 60
+
+    show_main_menu
+}
+
+# Security & Access Control (placeholder)
+security_access_control() {
+    whiptail --title "Security & Access Control" \
+            --msgbox "Security features:\n\n• User Authentication\n• API Access Control\n• Remote Management Security\n• Blockchain-based Security\n\nConfiguration available through web interface or manual config files." \
+            15 60
+
+    show_main_menu
+}
+
+# System Services (placeholder)
+system_services() {
+    local services_info
+    services_info="System Services Status\n"
+    services_info+="=====================\n\n"
+
+    services_info+="314Sign Main Kiosk:\n"
+    services_info+="  Status: $(systemctl is-active 314sign-main-kiosk.service 2>/dev/null || echo 'Not installed')\n"
+    services_info+="  Auto-start: $(systemctl is-enabled 314sign-main-kiosk.service 2>/dev/null || echo 'Unknown')\n\n"
+
+    services_info+="Web Server (Nginx):\n"
+    services_info+="  Status: $(systemctl is-active nginx 2>/dev/null || echo 'Not installed')\n"
+    services_info+="  Auto-start: $(systemctl is-enabled nginx 2>/dev/null || echo 'Unknown')\n\n"
+
+    services_info+="Redis (Cache):\n"
+    services_info+="  Status: $(systemctl is-active redis-server 2>/dev/null || echo 'Not installed')\n"
+    services_info+="  Auto-start: $(systemctl is-enabled redis-server 2>/dev/null || echo 'Unknown')\n"
+
+    whiptail --title "System Services" \
+            --msgbox "$services_info" \
+            18 70
+
+    show_main_menu
+}
+
+# Performance Tuning (placeholder)
+performance_tuning() {
+    whiptail --title "Performance Tuning" \
+            --msgbox "Performance tuning options:\n\n• CPU Governor Settings\n• Memory Management\n• I/O Scheduling\n• Network Optimization\n• GPU Memory Allocation\n\nUse 'sudo bash hybrid/pi5_optimization.sh' for comprehensive Pi 5 tuning." \
+            15 60
+
+    show_main_menu
+}
+
+# Backup & Restore (placeholder)
+backup_restore() {
+    whiptail --title "Backup & Restore" \
+            --msgbox "Backup and restore features:\n\n• Configuration Backup\n• Content Backup\n• System Restore\n• Version Rollback\n\nAutomatic backups are created when configurations change.\nBackup location: /etc/314sign/backups/" \
+            15 60
+
+    show_main_menu
+}
+
+# Display Orientation
+display_orientation() {
+    local current_orientation
+    current_orientation=$(get_config_value "$MAIN_CONFIG" "orientation" "landscape")
+
+    local orientation_choice
+    orientation_choice=$(whiptail --title "Display Orientation" \
+                                 --menu "Select display orientation:" \
+                                 --cancel-button "Back" \
+                                 15 50 4 \
+                                 "landscape" "Landscape (default)" \
+                                 "portrait" "Portrait (rotated)" \
+                                 3>&1 1>&2 2>&3)
+
+    if [ $? -eq 0 ] && [ -n "$orientation_choice" ]; then
+        update_config "$MAIN_CONFIG" "orientation" "$orientation_choice"
+
+        whiptail --title "Display Orientation" \
+                --msgbox "Display orientation set to: $orientation_choice\n\nNote: Services may need to be restarted for changes to take effect." \
+                10 50
+    fi
+
+    display_hardware_settings
+}
+
+# GPU Memory Allocation
+gpu_memory_allocation() {
+    local current_gpu_mem
+    current_gpu_mem=$(vcgencmd get_mem gpu 2>/dev/null | cut -d= -f2 | sed 's/M//' || echo "128")
+
+    local gpu_mem_choice
+    gpu_mem_choice=$(whiptail --title "GPU Memory Allocation" \
+                             --menu "Select GPU memory allocation:" \
+                             --cancel-button "Back" \
+                             15 50 5 \
+                             "128" "128MB (Minimal)" \
+                             "256" "256MB (Standard)" \
+                             "512" "512MB (High Performance)" \
+                             "1024" "1024MB (Ultra - Pi 5)" \
+                             3>&1 1>&2 2>&3)
+
+    if [ $? -eq 0 ] && [ -n "$gpu_mem_choice" ]; then
+        # Update /boot/firmware/config.txt
+        sudo sed -i '/^gpu_mem=/d' /boot/firmware/config.txt
+        echo "gpu_mem=$gpu_mem_choice" | sudo tee -a /boot/firmware/config.txt > /dev/null
+
+        whiptail --title "GPU Memory Allocation" \
+                --msgbox "GPU memory set to: ${gpu_mem_choice}MB\n\nChanges will take effect after reboot.\n\nNote: Higher values improve graphics performance but reduce available system RAM." \
+                12 60
+    fi
+
+    display_hardware_settings
+}
+
+# CPU Performance
+cpu_performance() {
+    local current_governor
+    current_governor=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null || echo "ondemand")
+
+    local governor_choice
+    governor_choice=$(whiptail --title "CPU Performance" \
+                              --menu "Select CPU governor:" \
+                              --cancel-button "Back" \
+                              15 50 4 \
+                              "performance" "Performance (max speed)" \
+                              "ondemand" "Ondemand (balanced)" \
+                              "conservative" "Conservative (power saving)" \
+                              "powersave" "Powersave (minimal)" \
+                              3>&1 1>&2 2>&3)
+
+    if [ $? -eq 0 ] && [ -n "$governor_choice" ]; then
+        # Apply governor to all cores
+        for cpu in /sys/devices/system/cpu/cpu[0-3]; do
+            echo "$governor_choice" | sudo tee "${cpu}/cpufreq/scaling_governor" > /dev/null 2>&1
+        done
+
+        whiptail --title "CPU Performance" \
+                --msgbox "CPU governor set to: $governor_choice\n\nCurrent governor: $(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null || echo 'Unknown')" \
+                10 50
+    fi
+
+    display_hardware_settings
+}
+
+# Thermal Management
+thermal_management() {
+    local current_temp
+    current_temp=$(vcgencmd measure_temp 2>/dev/null | cut -d= -f2 | sed 's/'\''C//' || echo "N/A")
+
+    local temp_info
+    temp_info="Thermal Management\n"
+    temp_info+="==================\n\n"
+    temp_info+="Current CPU Temperature: $current_temp\n\n"
+
+    temp_info+="Temperature ranges:\n"
+    temp_info+="• Normal: < 60°C\n"
+    temp_info+="• Warm: 60-70°C\n"
+    temp_info+="• Hot: 70-80°C\n"
+    temp_info+="• Critical: > 80°C\n\n"
+
+    if [ "$current_temp" != "N/A" ]; then
+        temp_num=$(echo "$current_temp" | cut -d. -f1)
+        if [ "$temp_num" -gt 80 ]; then
+            temp_info+="⚠️  WARNING: High temperature detected!\n"
+            temp_info+="   Consider improving cooling.\n\n"
+        elif [ "$temp_num" -gt 70 ]; then
+            temp_info+="⚠️  Temperature elevated.\n"
+            temp_info+="   Monitor system performance.\n\n"
+        else
+            temp_info+="✓ Temperature normal.\n\n"
+        fi
+    fi
+
+    temp_info+="Thermal throttling status:\n"
+    temp_info+="$(vcgencmd get_throttled 2>/dev/null || echo 'Not available')\n\n"
+
+    temp_info+="Recommendations:\n"
+    temp_info+="• Ensure adequate ventilation\n"
+    temp_info+="• Use active cooling for sustained loads\n"
+    temp_info+="• Monitor temperatures during operation"
+
+    whiptail --title "Thermal Management" \
+            --msgbox "$temp_info" \
+            20 70
+
+    display_hardware_settings
+}
+
+# Network Testing
+network_testing() {
+    whiptail --title "Network Testing" \
+            --infobox "Testing network connectivity...\n\nPlease wait..." \
+            8 40
+
+    local test_results
+    test_results="Network Connectivity Test\n"
+    test_results+="==========================\n\n"
+
+    # Local network test
+    test_results+="Local Network:\n"
+    if ping -c 2 127.0.0.1 >/dev/null 2>&1; then
+        test_results+="  Loopback: ✓ OK\n"
+    else
+        test_results+="  Loopback: ✗ Failed\n"
+    fi
+
+    # Gateway test
+    gateway=$(ip route | grep default | awk '{print $3}')
+    if [ -n "$gateway" ]; then
+        if ping -c 2 -W 3 "$gateway" >/dev/null 2>&1; then
+            test_results+="  Gateway ($gateway): ✓ OK\n"
+        else
+            test_results+="  Gateway ($gateway): ✗ Failed\n"
+        fi
+    else
+        test_results+="  Gateway: ✗ Not configured\n"
+    fi
+
+    # DNS test
+    test_results+="\nDNS Resolution:\n"
+    if nslookup google.com >/dev/null 2>&1; then
+        test_results+="  DNS Lookup: ✓ OK\n"
+    else
+        test_results+="  DNS Lookup: ✗ Failed\n"
+    fi
+
+    # Internet test
+    test_results+="\nInternet Connectivity:\n"
+    if ping -c 2 -W 5 8.8.8.8 >/dev/null 2>&1; then
+        test_results+="  Google DNS: ✓ OK\n"
+        # Get ping time
+        ping_time=$(ping -c 3 8.8.8.8 | tail -1 | awk '{print $4}' | cut -d '/' -f 2)
+        test_results+="  Latency: ${ping_time}ms\n"
+    else
+        test_results+="  Internet: ✗ No connectivity\n"
+    fi
+
+    # Services test
+    test_results+="\nLocal Services:\n"
+    if nc -z localhost 80 2>/dev/null; then
+        test_results+="  HTTP (port 80): ✓ OK\n"
+    else
+        test_results+="  HTTP (port 80): ✗ Not responding\n"
+    fi
+
+    if nc -z localhost 8080 2>/dev/null; then
+        test_results+="  API (port 8080): ✓ OK\n"
+    else
+        test_results+="  API (port 8080): ✗ Not responding\n"
+    fi
+
+    whiptail --title "Network Testing Results" \
+            --msgbox "$test_results" \
+            20 70
+
+    network_configuration
+}
+
+# DNS Configuration (placeholder)
+dns_configuration() {
+    local current_dns
+    current_dns=$(grep "nameserver" /etc/resolv.conf | head -1 | awk '{print $2}' || echo "8.8.8.8")
+
+    local dns_servers
+
+    dns_servers=$(whiptail --title "DNS Configuration" \
+                          --inputbox "Enter DNS server(s), separated by spaces:" \
+                          10 60 "$current_dns" \
+                          3>&1 1>&2 2>&3)
+
+    if [ $? -eq 0 ] && [ -n "$dns_servers" ]; then
+        # Backup current resolv.conf
+        sudo cp /etc/resolv.conf /etc/resolv.conf.backup
+
+        # Update resolv.conf
+        echo "# Generated by 314Sign Configuration Manager" | sudo tee /etc/resolv.conf > /dev/null
+        for dns in $dns_servers; do
+            echo "nameserver $dns" | sudo tee -a /etc/resolv.conf > /dev/null
+        done
+
+        whiptail --title "DNS Configuration" \
+                --msgbox "DNS servers updated!\n\nNew DNS: $dns_servers\n\nNote: Changes may take a few moments to take effect." \
+                10 60
+    fi
+
+    network_configuration
+}
+
+# WiFi Management (placeholder)
+wifi_management() {
+    whiptail --title "WiFi Management" \
+            --msgbox "WiFi configuration:\n\n• Network scanning\n• Connection setup\n• Security settings\n\nUse 'sudo raspi-config' or 'nmcli' for WiFi configuration.\n\nNote: 314Sign works with both Ethernet and WiFi connections." \
+            15 60
+
+    network_configuration
+}
+
+# Firewall Settings (placeholder)
+firewall_settings() {
+    whiptail --title "Firewall Settings" \
+            --msgbox "Firewall configuration:\n\n• UFW (Uncomplicated Firewall)\n• Port management\n• Service access control\n\nDefault 314Sign ports:\n• 80 (HTTP/Web interface)\n• 8080 (API/Admin interface)\n\nUse 'sudo ufw status' to check current rules." \
+            15 60
+
+    network_configuration
+}
+
+# Main function
+main() {
+    # Check if running as root
+    if [ "$EUID" -ne 0 ]; then
+        echo "This configuration tool must be run as root (sudo)."
+        echo "Usage: sudo 314sign-config"
+        exit 1
+    fi
+
+    # Setup colors and ensure directories
+    setup_colors
+    ensure_config_dir
+
+    # Show main menu in loop
+    while true; do
+        show_main_menu || break
+    done
+
+    clear
+    echo "314Sign Configuration Manager closed."
+}
+
+# Run main function
+main "$@"
