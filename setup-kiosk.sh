@@ -373,9 +373,9 @@ if [ "$NODEJS_INSTALLED" = true ] && command -v node >/dev/null 2>&1 && command 
     echo "✓ PM2 startup configured"
   fi
 
-  # Create PM2 ecosystem file for 314Sign (ES module syntax)
-  cat > /var/www/html/ecosystem.config.js << 'EOF'
-export default {
+  # Create PM2 ecosystem file for 314Sign (CommonJS syntax with .cjs extension)
+  cat > /var/www/html/ecosystem.config.cjs << 'EOF'
+module.exports = {
   apps: [{
     name: '314sign',
     script: 'dist/server.js',
@@ -404,7 +404,7 @@ EOF
   # Start 314Sign with PM2
   echo "Starting 314Sign server with PM2..."
   cd /var/www/html
-  if pm2 start ecosystem.config.js; then
+  if pm2 start ecosystem.config.cjs; then
     echo "✓ 314Sign server started successfully"
     pm2 save
     echo "✓ PM2 configuration saved"
@@ -424,7 +424,7 @@ else
   echo "   1. Install Node.js and npm"
   echo "   2. Install PM2: sudo npm install -g pm2"
   echo "   3. Configure PM2: pm2 startup"
-  echo "   4. Start server: cd /var/www/html && pm2 start ecosystem.config.js"
+  echo "   4. Start server: cd /var/www/html && pm2 start ecosystem.config.cjs"
 fi
 
 # === 7. Generate QR codes ===
@@ -634,9 +634,9 @@ echo ""
 echo "Print QR codes from /var/www/html/qr-*.png"
 echo ""
 echo "📋 PM2 Commands:"
-echo "   pm2 start ecosystem.config.js    # Start server"
-echo "   pm2 stop ecosystem.config.js     # Stop server"
-echo "   pm2 restart ecosystem.config.js  # Restart server"
+echo "   pm2 start ecosystem.config.cjs   # Start server"
+echo "   pm2 stop ecosystem.config.cjs    # Stop server"
+echo "   pm2 restart ecosystem.config.cjs # Restart server"
 echo "   pm2 logs 314sign                 # View logs"
 echo "   pm2 monit                        # Monitor processes"
 echo ""
