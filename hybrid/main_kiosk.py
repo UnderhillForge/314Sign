@@ -5,6 +5,12 @@ Full-featured kiosk with framebuffer display, web server, and mobile access
 Optimized for powerful hardware with comprehensive feature set
 """
 
+import sys
+import os
+
+# Add current directory to Python path for imports
+sys.path.insert(0, os.path.dirname(__file__))
+
 import pygame
 import json
 import time
