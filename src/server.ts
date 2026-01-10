@@ -21,6 +21,7 @@ import fontsRoutes from './routes/fonts.js';
 import backgroundsRoutes from './routes/backgrounds.js';
 import authRoutes, { authenticateToken, requireAdmin } from './routes/auth.js';
 import remotesRoutes from './routes/remotes.js';
+import lmsRoutes from './routes/lms.js';
 import { requireAuthPage } from './middleware/auth.js';
 import { initializeDatabase } from './database.js';
 import db from './database.js';
@@ -147,6 +148,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/fonts', fontsRoutes);
 app.use('/api/backgrounds', backgroundsRoutes);
 app.use('/api/remotes', remotesRoutes);
+app.use('/api/lms', lmsRoutes);
 
 // Debug logs endpoint (admin only)
 app.get('/api/debug/logs', authenticateToken, requireAdmin, (req, res) => {

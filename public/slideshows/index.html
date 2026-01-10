@@ -197,6 +197,223 @@
       max-height: 100%;
       object-fit: contain;
     }
+    .wysiwyg-editor {
+      background: #2d2d2d;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      padding: 1rem;
+    }
+    .slide-thumbnails {
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+      padding: 0.5rem;
+      background: #1a1a1a;
+      border-radius: 6px;
+      min-height: 80px;
+    }
+    .slide-thumbnail {
+      flex-shrink: 0;
+      width: 120px;
+      height: 67px;
+      background: #000;
+      border-radius: 4px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      color: #666;
+      transition: all 0.2s;
+    }
+    .slide-thumbnail.active {
+      border-color: #4a9eff;
+    }
+    .slide-thumbnail:hover {
+      border-color: #666;
+    }
+    .slide-thumbnail.drag-over {
+      border-color: #4a9eff;
+      background: #2a2a2a;
+    }
+    .slide-thumbnail .slide-number {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 1px 4px;
+      border-radius: 2px;
+      font-size: 0.7rem;
+    }
+    .slide-thumbnail .slide-type {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      background: rgba(74,158,255,0.8);
+      color: white;
+      padding: 1px 4px;
+      border-radius: 2px;
+      font-size: 0.6rem;
+      text-transform: uppercase;
+    }
+    .canvas-container {
+      background: #000;
+      border-radius: 6px;
+      min-height: 300px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .canvas-background {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      opacity: 1;
+    }
+    .canvas-element {
+      position: absolute;
+      cursor: move;
+      user-select: none;
+      border: 2px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .canvas-element.selected {
+      border-color: #4a9eff;
+    }
+    .canvas-element:hover {
+      border-color: #666;
+    }
+    .canvas-element.text-element {
+      white-space: pre-wrap;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+      max-width: 90%;
+      word-wrap: break-word;
+    }
+    .canvas-element.image-element img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    .resize-handle {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: #4a9eff;
+      border-radius: 50%;
+      cursor: nw-resize;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .canvas-element.selected .resize-handle {
+      opacity: 1;
+    }
+    .resize-handle.nw { top: -4px; left: -4px; cursor: nw-resize; }
+    .resize-handle.ne { top: -4px; right: -4px; cursor: ne-resize; }
+    .resize-handle.sw { bottom: -4px; left: -4px; cursor: sw-resize; }
+    .resize-handle.se { bottom: -4px; right: -4px; cursor: se-resize; }
+    .toolbar {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      background: #1a1a1a;
+      padding: 0.5rem;
+      border-radius: 6px;
+    }
+    .tool-btn {
+      padding: 0.5rem 1rem;
+      background: #2d2d2d;
+      color: #e0e0e0;
+      border: 1px solid #555;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    .tool-btn:hover {
+      background: #3a3a3a;
+      border-color: #666;
+    }
+    .tool-btn.active {
+      background: #4a9eff;
+      border-color: #4a9eff;
+      color: white;
+    }
+    .properties-panel {
+      background: #1a1a1a;
+      padding: 1rem;
+      border-radius: 6px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .properties-panel h4 {
+      margin: 0 0 0.5rem 0;
+      color: #e0e0e0;
+    }
+    .property-group {
+      margin-bottom: 1rem;
+    }
+    .property-group label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.8rem;
+      color: #ccc;
+      margin-bottom: 0.25rem;
+    }
+    .property-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .property-row input[type="number"] {
+      width: 80px;
+    }
+    .color-picker {
+      width: 40px;
+      height: 30px;
+      border: 1px solid #555;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .delete-btn {
+      background: #c44;
+      color: white;
+      border: none;
+      padding: 0.25rem 0.5rem;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+    }
+    .delete-btn:hover {
+      background: #d55;
+    }
+    .element-selector {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 0.25rem 0.5rem;
+      border-radius: 3px;
+      font-size: 0.8rem;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .canvas-container.editing .element-selector {
+      opacity: 1;
+    }
     .view-tabs {
       display: flex;
       gap: 0.5rem;
@@ -319,7 +536,101 @@
       <button class="view-tab" onclick="switchView('preview')">👁️ Preview</button>
     </div>
 
-    <!-- Slide Editor -->
+    <!-- WYSIWYG Slide Editor -->
+    <div class="wysiwyg-editor" id="wysiwygEditor" style="display: none;">
+      <!-- Slide Thumbnails -->
+      <div class="slide-thumbnails" id="slideThumbnails">
+        <!-- Populated dynamically -->
+      </div>
+
+      <!-- Canvas and Properties -->
+      <div style="display: flex; gap: 1rem; flex: 1;">
+        <!-- Canvas Container -->
+        <div style="flex: 1;">
+          <!-- Toolbar -->
+          <div class="toolbar">
+            <button class="tool-btn" id="addTextBtn" onclick="addTextElement()">📝 Text</button>
+            <button class="tool-btn" id="addImageBtn" onclick="addImageElement()">🖼️ Image</button>
+            <button class="tool-btn" id="addShapeBtn" onclick="addShapeElement()">⬜ Shape</button>
+            <button class="tool-btn" id="addLmsBtn" onclick="addLmsElement()">📄 LMS</button>
+            <button class="tool-btn" onclick="undoAction()">↶ Undo</button>
+            <button class="tool-btn" onclick="redoAction()">↷ Redo</button>
+            <button class="tool-btn" onclick="duplicateSlide()">📋 Duplicate</button>
+          </div>
+
+          <!-- Canvas -->
+          <div class="canvas-container" id="canvasContainer" onclick="deselectElements(event)">
+            <div class="canvas-background" id="canvasBackground"></div>
+            <div class="element-selector" id="elementSelector">Click element to edit</div>
+            <!-- Canvas elements will be added here dynamically -->
+          </div>
+        </div>
+
+        <!-- Properties Panel -->
+        <div class="properties-panel" id="propertiesPanel">
+          <h4>Slide Properties</h4>
+
+          <div class="property-group">
+            <label>Duration (seconds)</label>
+            <input type="number" id="slideDurationProp" min="1" max="300" step="0.5">
+          </div>
+
+          <div class="property-group">
+            <label>Transition</label>
+            <select id="slideTransitionProp">
+              <option value="fade">Fade</option>
+              <option value="slide-left">Slide Left</option>
+              <option value="slide-right">Slide Right</option>
+              <option value="slide-up">Slide Up</option>
+              <option value="slide-down">Slide Down</option>
+              <option value="slide-top-left">Slide Top-Left</option>
+              <option value="slide-top-right">Slide Top-Right</option>
+              <option value="slide-bottom-left">Slide Bottom-Left</option>
+              <option value="slide-bottom-right">Slide Bottom-Right</option>
+              <option value="zoom">Zoom In</option>
+              <option value="zoom-out">Zoom Out</option>
+              <option value="rotate">Rotate</option>
+              <option value="flip-horizontal">Flip Horizontal</option>
+              <option value="flip-vertical">Flip Vertical</option>
+              <option value="scale">Scale</option>
+              <option value="bounce">Bounce</option>
+              <option value="elastic">Elastic</option>
+              <option value="none">None</option>
+            </select>
+          </div>
+
+          <div class="property-group">
+            <label>Transition Duration (ms)</label>
+            <input type="number" id="transitionDurationProp" min="100" max="5000" step="100" value="1000">
+          </div>
+
+          <div class="property-group">
+            <label>Easing</label>
+            <select id="transitionEasingProp">
+              <option value="linear">Linear</option>
+              <option value="ease-in">Ease In</option>
+              <option value="ease-out">Ease Out</option>
+              <option value="ease-in-out">Ease In-Out</option>
+              <option value="bounce">Bounce</option>
+              <option value="elastic">Elastic</option>
+            </select>
+          </div>
+
+          <div class="property-group">
+            <label>Background</label>
+            <input type="text" id="slideBackgroundProp" placeholder="../bg/image.jpg">
+            <input type="file" id="bgUpload" accept="image/*" onchange="uploadBackground(this)" style="margin-top: 0.5rem; font-size: 0.8rem;">
+          </div>
+
+          <h4 style="margin-top: 1.5rem;">Element Properties</h4>
+          <div id="elementProperties">
+            <p style="color: #666; font-size: 0.9rem;">Select an element to edit properties</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legacy Form Editor (fallback) -->
     <div class="editor-panel" id="editorPanel">
       <h3>Slide Editor</h3>
       <p style="color: #666;">Select a slide to edit</p>
@@ -872,19 +1183,39 @@
       }, ms);
     }
 
+    // WYSIWYG Editor Variables
+    let selectedElement = null;
+    let isDragging = false;
+    let isResizing = false;
+    let dragOffset = { x: 0, y: 0 };
+    let resizeHandle = null;
+    let elementCounter = 0;
+    let undoStack = [];
+    let redoStack = [];
+
     // Switch between editor and preview views
     function switchView(view) {
+      const wysiwygEditor = document.getElementById('wysiwygEditor');
       const editorPanel = document.getElementById('editorPanel');
       const previewPanel = document.getElementById('previewPanel');
       const editorTab = document.querySelector('.view-tab:first-child');
       const previewTab = document.querySelector('.view-tab:last-child');
 
       if (view === 'editor') {
-        editorPanel.style.display = 'block';
+        if (currentSlideIndex !== null) {
+          loadWYSIWYGEditor();
+          wysiwygEditor.style.display = 'flex';
+          editorPanel.style.display = 'none';
+        } else {
+          wysiwygEditor.style.display = 'none';
+          editorPanel.style.display = 'block';
+          showEmptyEditor();
+        }
         previewPanel.style.display = 'none';
         editorTab.classList.add('active');
         previewTab.classList.remove('active');
       } else if (view === 'preview') {
+        wysiwygEditor.style.display = 'none';
         editorPanel.style.display = 'none';
         previewPanel.style.display = 'block';
         editorTab.classList.remove('active');
@@ -894,6 +1225,743 @@
           updatePreview();
         }
       }
+    }
+
+    // Load WYSIWYG Editor for current slide
+    function loadWYSIWYGEditor() {
+      if (currentSlideIndex === null) return;
+
+      const slide = slideData.slides[currentSlideIndex];
+      renderSlideThumbnails();
+      loadCanvasElements(slide);
+      updateSlideProperties();
+
+      // Set background
+      const canvasBg = document.getElementById('canvasBackground');
+      if (slide.background) {
+        canvasBg.style.backgroundImage = `url('${slide.background}')`;
+        canvasBg.style.opacity = '1';
+      } else {
+        canvasBg.style.backgroundImage = 'none';
+        canvasBg.style.backgroundColor = '#000';
+      }
+    }
+
+    // Render slide thumbnails
+    function renderSlideThumbnails() {
+      const container = document.getElementById('slideThumbnails');
+      container.innerHTML = '';
+
+      slideData.slides.forEach((slide, index) => {
+        const thumbnail = document.createElement('div');
+        thumbnail.className = `slide-thumbnail ${index === currentSlideIndex ? 'active' : ''}`;
+        thumbnail.onclick = () => selectSlide(index);
+        thumbnail.innerHTML = `
+          <div class="slide-number">${index + 1}</div>
+          <div class="slide-type">${slide.type?.toUpperCase() || 'TXT'}</div>
+        `;
+
+        // Add drag and drop for reordering
+        thumbnail.draggable = true;
+        thumbnail.ondragstart = (e) => startDrag(e, index);
+        thumbnail.ondragover = (e) => allowDrop(e);
+        thumbnail.ondrop = (e) => dropSlide(e, index);
+
+        container.appendChild(thumbnail);
+      });
+    }
+
+    // Select a slide
+    function selectSlide(index) {
+      saveCurrentCanvasState();
+      currentSlideIndex = index;
+      renderSlideThumbnails();
+      loadWYSIWYGEditor();
+    }
+
+    // Drag and drop for slide reordering
+    function startDrag(e, index) {
+      e.dataTransfer.setData('text/plain', index);
+    }
+
+    function allowDrop(e) {
+      e.preventDefault();
+      e.currentTarget.classList.add('drag-over');
+    }
+
+    function dropSlide(e, targetIndex) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('drag-over');
+
+      const sourceIndex = parseInt(e.dataTransfer.getData('text/plain'));
+      if (sourceIndex === targetIndex) return;
+
+      // Reorder slides
+      const [removed] = slideData.slides.splice(sourceIndex, 1);
+      slideData.slides.splice(targetIndex, 0, removed);
+
+      // Update current slide index
+      if (sourceIndex === currentSlideIndex) {
+        currentSlideIndex = targetIndex;
+      } else if (sourceIndex < currentSlideIndex && targetIndex >= currentSlideIndex) {
+        currentSlideIndex--;
+      } else if (sourceIndex > currentSlideIndex && targetIndex <= currentSlideIndex) {
+        currentSlideIndex++;
+      }
+
+      renderSlideThumbnails();
+      renderSlidesList();
+      loadWYSIWYGEditor();
+    }
+
+    // Load canvas elements for current slide
+    function loadCanvasElements(slide) {
+      const canvas = document.getElementById('canvasContainer');
+      const elements = canvas.querySelectorAll('.canvas-element:not(#canvasBackground):not(#elementSelector)');
+      elements.forEach(el => el.remove());
+
+      // Initialize elements array if it doesn't exist
+      if (!slide.elements) {
+        slide.elements = [];
+      }
+
+      slide.elements.forEach((element, index) => {
+        createCanvasElement(element, index);
+      });
+    }
+
+    // Create canvas element
+    function createCanvasElement(elementData, index) {
+      const canvas = document.getElementById('canvasContainer');
+      const element = document.createElement('div');
+
+      element.className = `canvas-element ${elementData.type}-element`;
+      element.dataset.index = index;
+      element.style.left = elementData.x + 'px';
+      element.style.top = elementData.y + 'px';
+      element.style.width = elementData.width + 'px';
+      element.style.height = elementData.height + 'px';
+
+      // Add resize handles
+      ['nw', 'ne', 'sw', 'se'].forEach(handle => {
+        const resizeHandle = document.createElement('div');
+        resizeHandle.className = `resize-handle ${handle}`;
+        resizeHandle.onmousedown = (e) => startResize(e, element, handle);
+        element.appendChild(resizeHandle);
+      });
+
+      // Element content
+      if (elementData.type === 'text') {
+        element.textContent = elementData.content || 'Sample Text';
+        element.style.fontSize = elementData.fontSize || '24px';
+        element.style.fontFamily = elementData.fontFamily || 'Arial';
+        element.style.color = elementData.color || '#ffffff';
+        element.style.textAlign = elementData.textAlign || 'center';
+      } else if (elementData.type === 'image') {
+        const img = document.createElement('img');
+        img.src = elementData.src || '';
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'contain';
+        element.appendChild(img);
+      } else if (elementData.type === 'shape') {
+        element.style.backgroundColor = elementData.fillColor || '#4a9eff';
+        element.style.border = `2px solid ${elementData.strokeColor || '#ffffff'}`;
+      }
+
+      // Event handlers
+      element.onclick = (e) => selectElement(e, element);
+      element.onmousedown = (e) => startDragElement(e, element);
+
+      canvas.appendChild(element);
+      return element;
+    }
+
+    // Add text element
+    function addTextElement() {
+      const newElement = {
+        type: 'text',
+        content: 'New Text',
+        x: 100,
+        y: 100,
+        width: 200,
+        height: 50,
+        fontSize: '24px',
+        fontFamily: 'Arial',
+        color: '#ffffff',
+        textAlign: 'center'
+      };
+
+      const slide = slideData.slides[currentSlideIndex];
+      if (!slide.elements) slide.elements = [];
+      slide.elements.push(newElement);
+
+      createCanvasElement(newElement, slide.elements.length - 1);
+      saveCanvasState();
+    }
+
+    // Add image element
+    function addImageElement() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          uploadAndAddImage(file);
+        }
+      };
+      input.click();
+    }
+
+    // Upload and add image
+    function uploadAndAddImage(file) {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      fetch('upload-media.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.filename) {
+          const newElement = {
+            type: 'image',
+            src: 'media/' + data.filename,
+            x: 50,
+            y: 50,
+            width: 200,
+            height: 150
+          };
+
+          const slide = slideData.slides[currentSlideIndex];
+          if (!slide.elements) slide.elements = [];
+          slide.elements.push(newElement);
+
+          createCanvasElement(newElement, slide.elements.length - 1);
+          saveCanvasState();
+        }
+      })
+      .catch(err => {
+        showToast('Failed to upload image', 3000);
+      });
+    }
+
+    // Add shape element
+    function addShapeElement() {
+      const newElement = {
+        type: 'shape',
+        x: 150,
+        y: 150,
+        width: 100,
+        height: 100,
+        fillColor: '#4a9eff',
+        strokeColor: '#ffffff'
+      };
+
+      const slide = slideData.slides[currentSlideIndex];
+      if (!slide.elements) slide.elements = [];
+      slide.elements.push(newElement);
+
+      createCanvasElement(newElement, slide.elements.length - 1);
+      saveCanvasState();
+    }
+
+    // Add LMS element (placeholder)
+    function addLmsElement() {
+      showToast('LMS integration coming soon!', 2000);
+    }
+
+    // Select element
+    function selectElement(e, element) {
+      e.stopPropagation();
+      deselectElements();
+
+      selectedElement = element;
+      element.classList.add('selected');
+
+      const index = parseInt(element.dataset.index);
+      const slide = slideData.slides[currentSlideIndex];
+      const elementData = slide.elements[index];
+
+      showElementProperties(elementData, index);
+    }
+
+    // Deselect elements
+    function deselectElements() {
+      document.querySelectorAll('.canvas-element.selected').forEach(el => {
+        el.classList.remove('selected');
+      });
+      selectedElement = null;
+      document.getElementById('elementProperties').innerHTML =
+        '<p style="color: #666; font-size: 0.9rem;">Select an element to edit properties</p>';
+    }
+
+    // Start dragging element
+    function startDragElement(e, element) {
+      if (e.target.classList.contains('resize-handle')) return;
+
+      e.preventDefault();
+      isDragging = true;
+      selectedElement = element;
+
+      const rect = element.getBoundingClientRect();
+      dragOffset.x = e.clientX - rect.left;
+      dragOffset.y = e.clientY - rect.top;
+
+      document.addEventListener('mousemove', dragElement);
+      document.addEventListener('mouseup', stopDragElement);
+    }
+
+    // Drag element
+    function dragElement(e) {
+      if (!isDragging || !selectedElement) return;
+
+      const canvas = document.getElementById('canvasContainer');
+      const canvasRect = canvas.getBoundingClientRect();
+
+      let newX = e.clientX - canvasRect.left - dragOffset.x;
+      let newY = e.clientY - canvasRect.top - dragOffset.y;
+
+      // Constrain to canvas bounds
+      const maxX = canvasRect.width - selectedElement.offsetWidth;
+      const maxY = canvasRect.height - selectedElement.offsetHeight;
+      newX = Math.max(0, Math.min(newX, maxX));
+      newY = Math.max(0, Math.min(newY, maxY));
+
+      selectedElement.style.left = newX + 'px';
+      selectedElement.style.top = newY + 'px';
+
+      updateElementData(selectedElement, { x: newX, y: newY });
+    }
+
+    // Stop dragging
+    function stopDragElement() {
+      if (isDragging) {
+        saveCanvasState();
+        isDragging = false;
+      }
+      document.removeEventListener('mousemove', dragElement);
+      document.removeEventListener('mouseup', stopDragElement);
+    }
+
+    // Start resizing
+    function startResize(e, element, handle) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      isResizing = true;
+      selectedElement = element;
+      resizeHandle = handle;
+
+      document.addEventListener('mousemove', resizeElement);
+      document.addEventListener('mouseup', stopResize);
+    }
+
+    // Resize element
+    function resizeElement(e) {
+      if (!isResizing || !selectedElement) return;
+
+      const rect = selectedElement.getBoundingClientRect();
+      const canvas = document.getElementById('canvasContainer');
+      const canvasRect = canvas.getBoundingClientRect();
+
+      let newWidth = rect.width;
+      let newHeight = rect.height;
+      let newX = parseFloat(selectedElement.style.left);
+      let newY = parseFloat(selectedElement.style.top);
+
+      if (resizeHandle.includes('e')) {
+        newWidth = Math.max(50, e.clientX - canvasRect.left - newX);
+      }
+      if (resizeHandle.includes('s')) {
+        newHeight = Math.max(30, e.clientY - canvasRect.top - newY);
+      }
+      if (resizeHandle.includes('w')) {
+        const deltaX = rect.left - (e.clientX - canvasRect.left);
+        newWidth = Math.max(50, rect.width + deltaX);
+        newX = Math.max(0, newX - deltaX);
+      }
+      if (resizeHandle.includes('n')) {
+        const deltaY = rect.top - (e.clientY - canvasRect.top);
+        newHeight = Math.max(30, rect.height + deltaY);
+        newY = Math.max(0, newY - deltaY);
+      }
+
+      selectedElement.style.width = newWidth + 'px';
+      selectedElement.style.height = newHeight + 'px';
+      selectedElement.style.left = newX + 'px';
+      selectedElement.style.top = newY + 'px';
+
+      updateElementData(selectedElement, {
+        x: newX,
+        y: newY,
+        width: newWidth,
+        height: newHeight
+      });
+    }
+
+    // Stop resizing
+    function stopResize() {
+      if (isResizing) {
+        saveCanvasState();
+        isResizing = false;
+        resizeHandle = null;
+      }
+      document.removeEventListener('mousemove', resizeElement);
+      document.removeEventListener('mouseup', stopResize);
+    }
+
+    // Update element data
+    function updateElementData(element, updates) {
+      const index = parseInt(element.dataset.index);
+      const slide = slideData.slides[currentSlideIndex];
+      if (slide.elements && slide.elements[index]) {
+        Object.assign(slide.elements[index], updates);
+      }
+    }
+
+    // Show element properties
+    function showElementProperties(elementData, index) {
+      const container = document.getElementById('elementProperties');
+
+      if (elementData.type === 'text') {
+        container.innerHTML = `
+          <div class="property-group">
+            <label>Content</label>
+            <textarea id="textContent" onchange="updateTextProperty('content', this.value, ${index})">${elementData.content || ''}</textarea>
+          </div>
+          <div class="property-row">
+            <div class="property-group">
+              <label>Font Size</label>
+              <input type="number" id="fontSize" value="${parseInt(elementData.fontSize) || 24}" min="8" max="100"
+                     onchange="updateTextProperty('fontSize', this.value + 'px', ${index})">
+            </div>
+            <div class="property-group">
+              <label>Color</label>
+              <input type="color" id="textColor" value="${elementData.color || '#ffffff'}"
+                     onchange="updateTextProperty('color', this.value, ${index})">
+            </div>
+          </div>
+          <div class="property-group">
+            <label>Font Family</label>
+            <select id="fontFamily" onchange="updateTextProperty('fontFamily', this.value, ${index})">
+              <option value="Arial" ${elementData.fontFamily === 'Arial' ? 'selected' : ''}>Arial</option>
+              <option value="Helvetica" ${elementData.fontFamily === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
+              <option value="Times New Roman" ${elementData.fontFamily === 'Times New Roman' ? 'selected' : ''}>Times New Roman</option>
+              <option value="Courier New" ${elementData.fontFamily === 'Courier New' ? 'selected' : ''}>Courier New</option>
+            </select>
+          </div>
+          <button class="delete-btn" onclick="deleteElement(${index})">Delete Element</button>
+        `;
+      } else if (elementData.type === 'image') {
+        container.innerHTML = `
+          <div class="property-group">
+            <label>Image Source</label>
+            <input type="text" id="imageSrc" value="${elementData.src || ''}"
+                   onchange="updateImageProperty('src', this.value, ${index})">
+          </div>
+          <button class="delete-btn" onclick="deleteElement(${index})">Delete Element</button>
+        `;
+      } else if (elementData.type === 'shape') {
+        container.innerHTML = `
+          <div class="property-row">
+            <div class="property-group">
+              <label>Fill Color</label>
+              <input type="color" id="fillColor" value="${elementData.fillColor || '#4a9eff'}"
+                     onchange="updateShapeProperty('fillColor', this.value, ${index})">
+            </div>
+            <div class="property-group">
+              <label>Stroke Color</label>
+              <input type="color" id="strokeColor" value="${elementData.strokeColor || '#ffffff'}"
+                     onchange="updateShapeProperty('strokeColor', this.value, ${index})">
+            </div>
+          </div>
+          <button class="delete-btn" onclick="deleteElement(${index})">Delete Element</button>
+        `;
+      }
+    }
+
+    // Update text property
+    function updateTextProperty(property, value, index) {
+      const slide = slideData.slides[currentSlideIndex];
+      if (slide.elements && slide.elements[index]) {
+        slide.elements[index][property] = value;
+
+        // Update visual element
+        const element = document.querySelector(`.canvas-element[data-index="${index}"]`);
+        if (element) {
+          if (property === 'content') {
+            element.textContent = value;
+          } else if (property === 'fontSize') {
+            element.style.fontSize = value;
+          } else if (property === 'color') {
+            element.style.color = value;
+          } else if (property === 'fontFamily') {
+            element.style.fontFamily = value;
+          }
+        }
+        saveCanvasState();
+      }
+    }
+
+    // Update image property
+    function updateImageProperty(property, value, index) {
+      const slide = slideData.slides[currentSlideIndex];
+      if (slide.elements && slide.elements[index]) {
+        slide.elements[index][property] = value;
+
+        // Update visual element
+        const element = document.querySelector(`.canvas-element[data-index="${index}"] img`);
+        if (element) {
+          element.src = value;
+        }
+        saveCanvasState();
+      }
+    }
+
+    // Update shape property
+    function updateShapeProperty(property, value, index) {
+      const slide = slideData.slides[currentSlideIndex];
+      if (slide.elements && slide.elements[index]) {
+        slide.elements[index][property] = value;
+
+        // Update visual element
+        const element = document.querySelector(`.canvas-element[data-index="${index}"]`);
+        if (element) {
+          if (property === 'fillColor') {
+            element.style.backgroundColor = value;
+          } else if (property === 'strokeColor') {
+            element.style.borderColor = value;
+          }
+        }
+        saveCanvasState();
+      }
+    }
+
+    // Delete element
+    function deleteElement(index) {
+      if (!confirm('Delete this element?')) return;
+
+      const slide = slideData.slides[currentSlideIndex];
+      if (slide.elements) {
+        slide.elements.splice(index, 1);
+
+        // Remove from canvas
+        const element = document.querySelector(`.canvas-element[data-index="${index}"]`);
+        if (element) {
+          element.remove();
+        }
+
+        // Update remaining elements' data-index
+        document.querySelectorAll('.canvas-element').forEach((el, i) => {
+          el.dataset.index = i;
+        });
+
+        deselectElements();
+        saveCanvasState();
+      }
+    }
+
+    // Update slide properties
+    function updateSlideProperties() {
+      const slide = slideData.slides[currentSlideIndex];
+      if (!slide) return;
+
+      document.getElementById('slideDurationProp').value = slide.duration / 1000 || 5;
+      document.getElementById('slideTransitionProp').value = slide.transition || 'fade';
+      document.getElementById('transitionDurationProp').value = slide.transitionDuration || 1000;
+      document.getElementById('transitionEasingProp').value = slide.transitionEasing || 'linear';
+      document.getElementById('slideBackgroundProp').value = slide.background || '';
+    }
+
+    // Add event listeners for slide property changes
+    document.addEventListener('DOMContentLoaded', function() {
+      // Add listeners for slide property inputs
+      const slideDurationProp = document.getElementById('slideDurationProp');
+      const slideTransitionProp = document.getElementById('slideTransitionProp');
+      const transitionDurationProp = document.getElementById('transitionDurationProp');
+      const transitionEasingProp = document.getElementById('transitionEasingProp');
+      const slideBackgroundProp = document.getElementById('slideBackgroundProp');
+
+      if (slideDurationProp) {
+        slideDurationProp.addEventListener('change', function() {
+          if (currentSlideIndex !== null) {
+            slideData.slides[currentSlideIndex].duration = parseFloat(this.value) * 1000;
+            saveCanvasState();
+          }
+        });
+      }
+
+      if (slideTransitionProp) {
+        slideTransitionProp.addEventListener('change', function() {
+          if (currentSlideIndex !== null) {
+            slideData.slides[currentSlideIndex].transition = this.value;
+            saveCanvasState();
+          }
+        });
+      }
+
+      if (transitionDurationProp) {
+        transitionDurationProp.addEventListener('change', function() {
+          if (currentSlideIndex !== null) {
+            slideData.slides[currentSlideIndex].transitionDuration = parseInt(this.value);
+            saveCanvasState();
+          }
+        });
+      }
+
+      if (transitionEasingProp) {
+        transitionEasingProp.addEventListener('change', function() {
+          if (currentSlideIndex !== null) {
+            slideData.slides[currentSlideIndex].transitionEasing = this.value;
+            saveCanvasState();
+          }
+        });
+      }
+
+      if (slideBackgroundProp) {
+        slideBackgroundProp.addEventListener('input', function() {
+          if (currentSlideIndex !== null) {
+            slideData.slides[currentSlideIndex].background = this.value;
+            // Update canvas background
+            const canvasBg = document.getElementById('canvasBackground');
+            if (this.value) {
+              canvasBg.style.backgroundImage = `url('${this.value}')`;
+              canvasBg.style.opacity = '1';
+            } else {
+              canvasBg.style.backgroundImage = 'none';
+              canvasBg.style.backgroundColor = '#000';
+            }
+            saveCanvasState();
+          }
+        });
+      }
+    });
+
+    // Add transition preview functionality
+    function previewTransition() {
+      if (currentSlideIndex === null || currentSlideIndex >= slideData.slides.length - 1) {
+        showToast('No next slide to preview transition', 2000);
+        return;
+      }
+
+      const currentSlide = slideData.slides[currentSlideIndex];
+      const nextSlide = slideData.slides[currentSlideIndex + 1];
+
+      showToast(`Previewing: ${currentSlide.transition} (${currentSlide.transitionDuration || 1000}ms)`, 2000);
+
+      // Could implement visual transition preview here
+      // For now, just show the transition info
+    }
+
+    // Add transition preview button to toolbar
+    function updateToolbar() {
+      const toolbar = document.querySelector('.toolbar');
+      if (toolbar && !document.getElementById('previewTransitionBtn')) {
+        const previewBtn = document.createElement('button');
+        previewBtn.id = 'previewTransitionBtn';
+        previewBtn.className = 'tool-btn';
+        previewBtn.onclick = previewTransition;
+        previewBtn.innerHTML = '👁️ Preview Transition';
+        toolbar.appendChild(previewBtn);
+      }
+    }
+
+    // Call updateToolbar when WYSIWYG editor loads
+    const originalLoadWYSIWYGEditor = loadWYSIWYGEditor;
+    loadWYSIWYGEditor = function() {
+      originalLoadWYSIWYGEditor();
+      updateToolbar();
+    };
+
+    // Upload background
+    function uploadBackground(input) {
+      if (!input.files || !input.files[0]) return;
+
+      const file = input.files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+
+      fetch('upload-media.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.filename) {
+          const slide = slideData.slides[currentSlideIndex];
+          slide.background = 'media/' + data.filename;
+          document.getElementById('slideBackgroundProp').value = slide.background;
+
+          // Update canvas background
+          const canvasBg = document.getElementById('canvasBackground');
+          canvasBg.style.backgroundImage = `url('${slide.background}')`;
+
+          saveCanvasState();
+        }
+      })
+      .catch(err => {
+        showToast('Failed to upload background', 3000);
+      });
+    }
+
+    // Save canvas state
+    function saveCanvasState() {
+      // Save to undo stack
+      const slide = slideData.slides[currentSlideIndex];
+      undoStack.push(JSON.stringify(slide));
+      if (undoStack.length > 20) undoStack.shift();
+      redoStack = []; // Clear redo stack
+    }
+
+    // Save current canvas state before switching
+    function saveCurrentCanvasState() {
+      if (currentSlideIndex !== null) {
+        saveCanvasState();
+      }
+    }
+
+    // Undo action
+    function undoAction() {
+      if (undoStack.length > 0) {
+        redoStack.push(JSON.stringify(slideData.slides[currentSlideIndex]));
+        const previousState = JSON.parse(undoStack.pop());
+        slideData.slides[currentSlideIndex] = previousState;
+        loadWYSIWYGEditor();
+      }
+    }
+
+    // Redo action
+    function redoAction() {
+      if (redoStack.length > 0) {
+        undoStack.push(JSON.stringify(slideData.slides[currentSlideIndex]));
+        const nextState = JSON.parse(redoStack.pop());
+        slideData.slides[currentSlideIndex] = nextState;
+        loadWYSIWYGEditor();
+      }
+    }
+
+    // Duplicate slide
+    function duplicateSlide() {
+      if (currentSlideIndex === null) return;
+
+      const slide = slideData.slides[currentSlideIndex];
+      const duplicate = JSON.parse(JSON.stringify(slide));
+
+      // Reset elements IDs to avoid conflicts
+      if (duplicate.elements) {
+        duplicate.elements.forEach(el => {
+          if (el.id) delete el.id;
+        });
+      }
+
+      slideData.slides.splice(currentSlideIndex + 1, 0, duplicate);
+      selectSlide(currentSlideIndex + 1);
+      renderSlidesList();
+      renderSlideThumbnails();
+      showToast('Slide duplicated');
     }
 
     // Load version dynamically
