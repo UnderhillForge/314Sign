@@ -42,9 +42,13 @@ sudo apt install -y libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-
 sudo apt install -y libffi-dev libssl-dev libjpeg-dev zlib1g-dev
 sudo apt install -y nginx redis-server sqlite3
 
-# Install Python packages
+# Install Python packages using apt (recommended for Debian packages)
 echo "Installing Python packages..."
-sudo pip3 install pygame requests flask-cors psutil
+sudo apt install -y python3-pygame python3-requests python3-psutil
+
+# Install flask-cors using pip (not available in Debian repos)
+echo "Installing flask-cors..."
+sudo pip3 install flask-cors --break-system-packages
 
 # Create 314sign user and directories
 echo "Setting up 314sign user and directories..."
