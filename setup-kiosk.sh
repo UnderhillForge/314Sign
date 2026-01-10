@@ -32,7 +32,26 @@ sudo apt update
 
 # Install Node.js (NodeSource repository for latest LTS)
 echo "Installing Node.js..."
-if ! curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -; then
+
+# Get the latest LTS version dynamically
+LATEST_LTS_JSON=$(curl -s https://nodejs.org/dist/index.json)
+if [ -z "$LATEST_LTS_JSON" ]; then
+  echo "Failed to fetch Node.js version data, falling back to Node.js 24.x"
+  NODE_MAJOR_VERSION="24"
+else
+  # Find the first LTS version (look for lts that is not false)
+  LATEST_LTS_VERSION=$(echo "$LATEST_LTS_JSON" | grep -A1 '"lts":"[^"]*"' | grep '"version"' | head -1 | sed 's/.*"version":"v\([^"]*\)".*/v\1/')
+  if [ -z "$LATEST_LTS_VERSION" ]; then
+    echo "Failed to determine latest LTS version, falling back to Node.js 24.x"
+    NODE_MAJOR_VERSION="24"
+  else
+    # Extract major version (e.g., v24.12.0 -> 24)
+    NODE_MAJOR_VERSION=$(echo "$LATEST_LTS_VERSION" | sed 's/v\([0-9]*\).*/\1/')
+    echo "Latest LTS version: $LATEST_LTS_VERSION (major version: $NODE_MAJOR_VERSION)"
+  fi
+fi
+
+if ! curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR_VERSION}.x" | sudo -E bash -; then
   echo "Failed to add NodeSource repository, trying alternative..."
   # Fallback: try installing from default repos
   sudo apt install -y nodejs npm || {
