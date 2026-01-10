@@ -317,9 +317,9 @@ else
   echo "✓ PM2 startup configured"
 fi
 
-# Create PM2 ecosystem file for 314Sign
+# Create PM2 ecosystem file for 314Sign (ES module syntax)
 cat > /var/www/html/ecosystem.config.js << 'EOF'
-module.exports = {
+export default {
   apps: [{
     name: '314sign',
     script: 'dist/server.js',
