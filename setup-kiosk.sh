@@ -67,39 +67,49 @@ else
 fi
 
 # Try NodeSource first, but with better error handling
+NODEJS_INSTALLED=false
 echo "Attempting to install Node.js $NODE_MAJOR_VERSION.x from NodeSource..."
 if curl -fsSL --connect-timeout 30 "https://deb.nodesource.com/setup_${NODE_MAJOR_VERSION}.x" | sudo -E bash - 2>/dev/null; then
   if sudo apt install -y nodejs 2>/dev/null; then
     echo "✓ Node.js installed successfully from NodeSource"
+    NODEJS_INSTALLED=true
   else
     echo "NodeSource repository setup succeeded but package installation failed, trying fallback..."
-    sudo apt install -y nodejs npm || {
-      echo "ERROR: Failed to install Node.js"
-      echo "Please check your internet connection or install Node.js manually: https://nodejs.org/"
-      exit 1
-    }
+    if sudo apt install -y nodejs npm 2>/dev/null; then
+      echo "✓ Node.js installed from system repositories"
+      NODEJS_INSTALLED=true
+    fi
   fi
 else
-  echo "NodeSource setup failed, falling back to system repositories..."
-  # Fallback: try installing from default repos
-  sudo apt install -y nodejs npm || {
-    echo "ERROR: Failed to install Node.js from system repositories"
-    echo "Please install Node.js manually from: https://nodejs.org/"
-    echo "Or check your network connectivity to deb.nodesource.com"
-    exit 1
-  }
+  echo "NodeSource setup failed, trying system repositories..."
+  if sudo apt install -y nodejs npm 2>/dev/null; then
+    echo "✓ Node.js installed from system repositories"
+    NODEJS_INSTALLED=true
+  fi
 fi
 
-# Verify Node.js installation
-if ! command -v node >/dev/null 2>&1; then
-  echo "ERROR: Node.js installation failed"
-  exit 1
+# Check Node.js installation
+if [ "$NODEJS_INSTALLED" = true ] && command -v node >/dev/null 2>&1; then
+  NODE_VERSION=$(node --version)
+  NPM_VERSION=$(npm --version)
+  echo "✓ Node.js $NODE_VERSION installed"
+  echo "✓ npm $NPM_VERSION installed"
+else
+  echo ""
+  echo "⚠️  WARNING: Node.js installation failed!"
+  echo "   This may be due to network issues or incompatible system repositories."
+  echo ""
+  echo "   To install Node.js manually:"
+  echo "   1. Download from: https://nodejs.org/dist/v${NODE_MAJOR_VERSION}.12.0/"
+  echo "   2. Extract and install, or use Node Version Manager (nvm):"
+  echo "      curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash"
+  echo "      source ~/.bashrc"
+  echo "      nvm install ${NODE_MAJOR_VERSION}"
+  echo "      nvm use ${NODE_MAJOR_VERSION}"
+  echo ""
+  echo "   Continuing with installation - Node.js-dependent features will be skipped..."
+  echo ""
 fi
-
-NODE_VERSION=$(node --version)
-NPM_VERSION=$(npm --version)
-echo "✓ Node.js $NODE_VERSION installed"
-echo "✓ npm $NPM_VERSION installed"
 
 # Install additional packages
 sudo apt install -y git qrencode avahi-daemon sqlite3
@@ -199,35 +209,43 @@ fi
 
 # === 3b. Install Node.js dependencies and build ===
 echo ""
-echo "Installing Node.js dependencies..."
-cd /var/www/html
+if [ "$NODEJS_INSTALLED" = true ] && command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+  echo "Installing Node.js dependencies..."
+  cd /var/www/html
 
-# Check if package.json exists
-if [ ! -f "package.json" ]; then
-  echo "ERROR: package.json not found in /var/www/html"
-  echo "Installation incomplete - missing package.json"
-  exit 1
+  # Check if package.json exists
+  if [ ! -f "package.json" ]; then
+    echo "ERROR: package.json not found in /var/www/html"
+    echo "Installation incomplete - missing package.json"
+    exit 1
+  fi
+
+  # Install dependencies
+  if ! npm install; then
+    echo "ERROR: npm install failed"
+    echo "Check your internet connection and npm configuration"
+    exit 1
+  fi
+
+  echo "✓ Dependencies installed"
+
+  # Build TypeScript
+  echo "Building TypeScript..."
+  if ! npm run build; then
+    echo "ERROR: TypeScript build failed"
+    echo "Check the build output above for errors"
+    exit 1
+  fi
+
+  echo "✓ TypeScript compiled successfully"
+  echo "✓ 314Sign Node.js server ready"
+else
+  echo "Skipping Node.js dependencies installation (Node.js not available)"
+  echo "⚠️  To complete the installation later:"
+  echo "   1. Install Node.js manually"
+  echo "   2. Run: cd /var/www/html && npm install && npm run build"
+  echo "   3. Run: pm2 start ecosystem.config.js"
 fi
-
-# Install dependencies
-if ! npm install; then
-  echo "ERROR: npm install failed"
-  echo "Check your internet connection and npm configuration"
-  exit 1
-fi
-
-echo "✓ Dependencies installed"
-
-# Build TypeScript
-echo "Building TypeScript..."
-if ! npm run build; then
-  echo "ERROR: TypeScript build failed"
-  echo "Check the build output above for errors"
-  exit 1
-fi
-
-echo "✓ TypeScript compiled successfully"
-echo "✓ 314Sign Node.js server ready"
 
 # === 4. Create required directories ===
 sudo mkdir -p /var/www/html/logs
@@ -324,28 +342,29 @@ fi
 
 # === 6. Install and configure PM2 for Node.js service management ===
 echo ""
-echo "Installing PM2 process manager..."
+if [ "$NODEJS_INSTALLED" = true ] && command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+  echo "Installing PM2 process manager..."
 
-# Install PM2 globally
-if ! sudo npm install -g pm2; then
-  echo "ERROR: Failed to install PM2"
-  echo "Please install PM2 manually: sudo npm install -g pm2"
-  exit 1
-fi
+  # Install PM2 globally
+  if ! sudo npm install -g pm2; then
+    echo "ERROR: Failed to install PM2"
+    echo "Please install PM2 manually: sudo npm install -g pm2"
+    exit 1
+  fi
 
-echo "✓ PM2 installed successfully"
+  echo "✓ PM2 installed successfully"
 
-# Configure PM2 startup (creates systemd service)
-echo "Configuring PM2 startup..."
-if ! pm2 startup; then
-  echo "⚠️  PM2 startup configuration failed"
-  echo "You may need to run: sudo env PATH=\$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $(whoami) --hp /home/$(whoami)"
-else
-  echo "✓ PM2 startup configured"
-fi
+  # Configure PM2 startup (creates systemd service)
+  echo "Configuring PM2 startup..."
+  if ! pm2 startup; then
+    echo "⚠️  PM2 startup configuration failed"
+    echo "You may need to run: sudo env PATH=\$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $(whoami) --hp /home/$(whoami)"
+  else
+    echo "✓ PM2 startup configured"
+  fi
 
-# Create PM2 ecosystem file for 314Sign (ES module syntax)
-cat > /var/www/html/ecosystem.config.js << 'EOF'
+  # Create PM2 ecosystem file for 314Sign (ES module syntax)
+  cat > /var/www/html/ecosystem.config.js << 'EOF'
 export default {
   apps: [{
     name: '314sign',
@@ -366,29 +385,37 @@ export default {
 };
 EOF
 
-echo "✓ PM2 ecosystem configuration created"
+  echo "✓ PM2 ecosystem configuration created"
 
-# Create logs directory
-sudo mkdir -p /var/www/html/logs
-sudo chown www-data:www-data /var/www/html/logs
+  # Create logs directory
+  sudo mkdir -p /var/www/html/logs
+  sudo chown www-data:www-data /var/www/html/logs
 
-# Start 314Sign with PM2
-echo "Starting 314Sign server with PM2..."
-cd /var/www/html
-if pm2 start ecosystem.config.js; then
-  echo "✓ 314Sign server started successfully"
-  pm2 save
-  echo "✓ PM2 configuration saved"
+  # Start 314Sign with PM2
+  echo "Starting 314Sign server with PM2..."
+  cd /var/www/html
+  if pm2 start ecosystem.config.js; then
+    echo "✓ 314Sign server started successfully"
+    pm2 save
+    echo "✓ PM2 configuration saved"
+  else
+    echo "⚠️  Failed to start 314Sign with PM2"
+    echo "You can try starting manually:"
+    echo "  cd /var/www/html && npm start"
+  fi
+
+  # Show PM2 status
+  echo ""
+  echo "PM2 Status:"
+  pm2 list
 else
-  echo "⚠️  Failed to start 314Sign with PM2"
-  echo "You can try starting manually:"
-  echo "  cd /var/www/html && npm start"
+  echo "Skipping PM2 installation and server startup (Node.js not available)"
+  echo "⚠️  To complete the server setup later:"
+  echo "   1. Install Node.js and npm"
+  echo "   2. Install PM2: sudo npm install -g pm2"
+  echo "   3. Configure PM2: pm2 startup"
+  echo "   4. Start server: cd /var/www/html && pm2 start ecosystem.config.js"
 fi
-
-# Show PM2 status
-echo ""
-echo "PM2 Status:"
-pm2 list
 
 # === 7. Generate QR codes ===
 echo "Generating QR codes..."
@@ -509,7 +536,13 @@ fi
 rm -rf "$TEMP_DIR"
 
 echo ""
-echo "✅ 314Sign installed successfully!"
+if [ "$NODEJS_INSTALLED" = true ] && command -v node >/dev/null 2>&1; then
+  echo "✅ 314Sign installed successfully!"
+  echo "   Node.js server is running and ready to use."
+else
+  echo "⚠️  314Sign files installed, but Node.js server setup incomplete!"
+  echo "   Install Node.js manually to complete the setup."
+fi
 echo ""
 
 # Check if kiosk mode was set up (check common user directories)
@@ -527,7 +560,11 @@ if [ "$KIOSK_CONFIGURED" = true ]; then
   echo "   ⚠️  sudo reboot required to activate"
 else
   echo "📺 Kiosk display mode: NOT CONFIGURED"
-  echo "   Web server is running, but Pi won't display on HDMI"
+  if [ "$NODEJS_INSTALLED" = true ]; then
+    echo "   Web server is running, but Pi won't display on HDMI"
+  else
+    echo "   Web server not started (Node.js not available)"
+  fi
   echo "   Run kiosk setup later if needed:"
   echo "   curl -sSL https://raw.githubusercontent.com/UnderhillForge/314Sign/main/scripts/os-lite-kiosk.sh | sudo bash"
 fi
