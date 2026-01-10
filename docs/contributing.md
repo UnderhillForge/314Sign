@@ -5,8 +5,8 @@ Help improve 314Sign! This guide covers development setup, coding standards, and
 ## Development Setup
 
 ### Prerequisites
-- **Node.js 18+** (LTS recommended)
-- **npm 8+**
+- **Node.js 24+** (LTS recommended)
+- **npm 10+**
 - **Git**
 - **VS Code** (recommended)
 

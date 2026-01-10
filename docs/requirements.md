@@ -38,8 +38,8 @@ Hardware and software requirements for running 314Sign.
 - **macOS 12+** or **Windows 10+** (development only)
 
 ### Node.js & Tools
-- **Node.js 18+** (LTS recommended)
-- **npm 8+**
+- **Node.js 24+** (LTS recommended)
+- **npm 10+**
 - **PM2** (process manager)
 - **SQLite3** (database)
 - **Git** (for updates)
@@ -141,7 +141,7 @@ npm start
 ```
 
 ### Required Development Tools
-- **Node.js 18+** with npm
+- **Node.js 24+** with npm
 - **Git** for version control
 - **VS Code** (recommended editor)
 - **Chrome/Firefox** for testing
