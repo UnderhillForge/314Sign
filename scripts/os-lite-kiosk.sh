@@ -301,9 +301,9 @@ echo "Detecting Raspberry Pi model for GPU driver configuration..."
 PI_MODEL=$(tr -d '\0' < /proc/device-tree/model 2>/dev/null | grep -o "Raspberry Pi [0-9]" | grep -o "[0-9]" || echo "unknown")
 
 if [ "$PI_MODEL" = "5" ]; then
-  GPU_DRIVER="v3d"
-  GPU_DEVICE="/dev/dri/card1"
-  echo "✓ Detected Raspberry Pi 5 - using v3d driver"
+  GPU_DRIVER="fbdev"
+  GPU_DEVICE="/dev/fb0"
+  echo "✓ Detected Raspberry Pi 5 - using fbdev driver"
 elif [ "$PI_MODEL" = "4" ] || [ "$PI_MODEL" = "3" ] || [ "$PI_MODEL" = "2" ] || [ "$PI_MODEL" = "1" ]; then
   GPU_DRIVER="vc4"
   GPU_DEVICE="/dev/dri/card0"
@@ -334,7 +334,23 @@ case "$ROTATION_HDMI2" in
   *) XROTATE_HDMI2="normal" ;;
 esac
 
-sudo tee /etc/X11/xorg.conf.d/99-gpu.conf > /dev/null <<XCONF
+if [ "$GPU_DRIVER" = "fbdev" ]; then
+  # fbdev driver configuration
+  sudo tee /etc/X11/xorg.conf.d/99-gpu.conf > /dev/null <<XCONF
+Section "Device"
+  Identifier "Raspberry Pi FB"
+  Driver "fbdev"
+  Option "fbdev" "$GPU_DEVICE"
+EndSection
+
+Section "Screen"
+  Identifier "Default Screen"
+  Device "Raspberry Pi FB"
+EndSection
+XCONF
+else
+  # KMS driver configuration (vc4/modesetting)
+  sudo tee /etc/X11/xorg.conf.d/99-gpu.conf > /dev/null <<XCONF
 Section "ServerFlags"
   Option "AutoAddGPU" "false"
 EndSection
@@ -359,9 +375,10 @@ EndSection
 Section "Screen"
   Identifier "Default Screen"
   Device "$GPU_DRIVER"
-  Monitor "HDMI-2"
+  Monitor "HDMI-1"
 EndSection
 XCONF
+fi
 
 echo "Setting up X11 auto-start..."
 cat > "$TARGET_HOME/.xinitrc" <<'EOF'
