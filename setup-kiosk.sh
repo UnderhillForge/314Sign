@@ -229,6 +229,12 @@ if [ "$NODEJS_INSTALLED" = true ] && command -v node >/dev/null 2>&1 && command 
 
   echo "✓ Dependencies installed"
 
+  # Ensure dist directory has proper permissions for build
+  echo "Ensuring dist directory permissions..."
+  if [ -d "dist" ]; then
+    sudo chown -R $(whoami):$(whoami) dist/ 2>/dev/null || true
+  fi
+
   # Fix permissions for locally installed binaries
   echo "Fixing permissions for installed binaries..."
   chmod +x node_modules/.bin/* 2>/dev/null || true
