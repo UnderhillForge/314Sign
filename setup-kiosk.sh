@@ -366,11 +366,15 @@ if [ "$NODEJS_INSTALLED" = true ] && command -v node >/dev/null 2>&1 && command 
 
   # Configure PM2 startup (creates systemd service)
   echo "Configuring PM2 startup..."
-  if ! pm2 startup; then
+  # Get the actual user (not root when running with sudo)
+  PM2_USER=${SUDO_USER:-$(whoami)}
+  PM2_HOME_DIR=$(eval echo ~$PM2_USER 2>/dev/null || echo "/home/$PM2_USER")
+
+  if ! pm2 startup systemd -u "$PM2_USER" --hp "$PM2_HOME_DIR"; then
     echo "⚠️  PM2 startup configuration failed"
-    echo "You may need to run: sudo env PATH=\$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $(whoami) --hp /home/$(whoami)"
+    echo "You may need to run: sudo env PATH=\$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $PM2_USER --hp $PM2_HOME_DIR"
   else
-    echo "✓ PM2 startup configured"
+    echo "✓ PM2 startup configured for user: $PM2_USER"
   fi
 
   # Create PM2 ecosystem file for 314Sign (CommonJS syntax with .cjs extension)
@@ -423,7 +427,7 @@ else
   echo "⚠️  To complete the server setup later:"
   echo "   1. Install Node.js and npm"
   echo "   2. Install PM2: sudo npm install -g pm2"
-  echo "   3. Configure PM2: pm2 startup"
+  echo "   3. Configure PM2: sudo env PATH=\$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u pi --hp /home/pi"
   echo "   4. Start server: cd /var/www/html && pm2 start ecosystem.config.cjs"
 fi
 
