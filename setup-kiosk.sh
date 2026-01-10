@@ -227,6 +227,14 @@ if [ "$NODEJS_INSTALLED" = true ] && command -v node >/dev/null 2>&1 && command 
     exit 1
   fi
 
+  # Rebuild native modules for current Node.js version
+  echo "Rebuilding native modules for Node.js compatibility..."
+  if ! npm rebuild; then
+    echo "⚠️  npm rebuild failed, but continuing (some native modules may need manual rebuild)"
+  else
+    echo "✓ Native modules rebuilt successfully"
+  fi
+
   echo "✓ Dependencies installed"
 
   # Ensure dist directory has proper permissions for build
