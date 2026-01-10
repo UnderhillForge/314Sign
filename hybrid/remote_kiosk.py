@@ -5,6 +5,12 @@ Lightweight display-only application optimized for minimal hardware
 Efficient framebuffer rendering with network content synchronization
 """
 
+import sys
+import os
+
+# Add current directory to Python path for imports
+sys.path.insert(0, os.path.dirname(__file__))
+
 import pygame
 import json
 import time
