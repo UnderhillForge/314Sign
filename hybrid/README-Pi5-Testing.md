@@ -23,7 +23,13 @@ This guide covers everything needed to test the 314Sign system on Raspberry Pi 5
 ```bash
 # Clone repository
 git clone https://github.com/UnderhillForge/314Sign.git
-cd 314Sign/hybrid
+cd 314Sign
+
+# Switch to the hybrid system branch (contains all Pi 5 optimizations)
+git checkout feature/hybrid-markup-system
+
+# Now enter the hybrid directory
+cd hybrid
 
 # Run Pi 5 optimizations
 sudo bash pi5_optimization.sh
