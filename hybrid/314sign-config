@@ -1,6 +1,6 @@
 #!/bin/bash
 # 314Sign Configuration Manager
-# Whiptail-based configuration interface with dark mode
+# Whiptail-based configuration interface with light mode
 # Provides comprehensive system and application configuration
 
 set -e
@@ -12,26 +12,26 @@ REMOTE_CONFIG="${CONFIG_DIR}/remote_kiosk.json"
 SYSTEM_CONFIG="${CONFIG_DIR}/system.json"
 BACKUP_DIR="${CONFIG_DIR}/backups"
 
-# Color scheme for dark mode
+# Color scheme for light mode (readable)
 setup_colors() {
     export NEWT_COLORS='
-    root=,black
-    window=,black
-    shadow=,darkgray
-    title=white,black
+    root=white,blue
+    window=white,blue
+    shadow=black,gray
+    title=blue,white
     button=black,white
-    actbutton=white,blue
+    actbutton=white,red
     compactbutton=black,white
-    listbox=white,black
-    actlistbox=black,white
+    listbox=black,white
+    actlistbox=white,red
     actsellistbox=white,blue
-    textbox=white,black
-    acttextbox=blue,white
-    entry=white,black
-    disentry=gray,black
-    label=white,black
-    checkbox=white,black
-    actcheckbox=blue,white
+    textbox=black,white
+    acttextbox=white,blue
+    entry=black,white
+    disentry=gray,white
+    label=black,white
+    checkbox=black,white
+    actcheckbox=white,blue
     '
 }
 
@@ -132,7 +132,7 @@ with open(config_file, 'w') as f:
 # Show main menu
 show_main_menu() {
     local CHOICE
-    CHOICE=$(whiptail --title "314Sign Configuration Manager (Dark Mode)" \
+    CHOICE=$(whiptail --title "314Sign Configuration Manager (Light Mode)" \
                      --menu "Choose a configuration category:" \
                      --cancel-button "Exit" \
                      22 70 12 \
