@@ -34,8 +34,16 @@ echo "Cleaning up any problematic NodeSource repositories..."
 sudo rm -f /etc/apt/sources.list.d/nodesource.list
 sudo rm -f /etc/apt/sources.list.d/nodesource*.list
 
-# Update package lists
-sudo apt update
+# Clear apt cache for NodeSource repositories
+echo "Clearing apt cache for NodeSource..."
+sudo rm -rf /var/lib/apt/lists/*nodesource*
+sudo rm -rf /var/lib/apt/lists/*node*
+
+# Update package lists (with timeout to prevent hanging)
+echo "Updating package lists..."
+timeout 300 sudo apt update || {
+  echo "Warning: apt update timed out or failed, but continuing with installation..."
+}
 
 # Install Node.js (NodeSource repository for latest LTS)
 echo "Installing Node.js..."
