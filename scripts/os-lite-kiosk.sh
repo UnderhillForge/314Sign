@@ -296,7 +296,25 @@ else
   echo "Warning: Boot config not found, skipping console rotation"
 fi
 
-echo "Configuring X11 to use correct GPU..."
+# Detect Raspberry Pi model for GPU driver selection
+echo "Detecting Raspberry Pi model for GPU driver configuration..."
+PI_MODEL=$(tr -d '\0' < /proc/device-tree/model 2>/dev/null | grep -o "Raspberry Pi [0-9]" | grep -o "[0-9]" || echo "unknown")
+
+if [ "$PI_MODEL" = "5" ]; then
+  GPU_DRIVER="v3d"
+  GPU_DEVICE="/dev/dri/card1"
+  echo "✓ Detected Raspberry Pi 5 - using v3d driver"
+elif [ "$PI_MODEL" = "4" ] || [ "$PI_MODEL" = "3" ] || [ "$PI_MODEL" = "2" ] || [ "$PI_MODEL" = "1" ]; then
+  GPU_DRIVER="vc4"
+  GPU_DEVICE="/dev/dri/card0"
+  echo "✓ Detected Raspberry Pi $PI_MODEL - using vc4 driver"
+else
+  GPU_DRIVER="modesetting"
+  GPU_DEVICE="/dev/dri/card0"
+  echo "⚠️  Could not detect Pi model (got: $PI_MODEL) - using generic modesetting driver"
+fi
+
+echo "Configuring X11 to use $GPU_DRIVER driver..."
 sudo mkdir -p /etc/X11/xorg.conf.d
 
 # Map display_rotate values to X11 rotation names for each port
@@ -316,15 +334,15 @@ case "$ROTATION_HDMI2" in
   *) XROTATE_HDMI2="normal" ;;
 esac
 
-sudo tee /etc/X11/xorg.conf.d/99-v3d.conf > /dev/null <<XCONF
+sudo tee /etc/X11/xorg.conf.d/99-gpu.conf > /dev/null <<XCONF
 Section "ServerFlags"
   Option "AutoAddGPU" "false"
 EndSection
 
 Section "Device"
-  Identifier "vc4"
-  Driver "modesetting"
-  Option "kmsdev" "/dev/dri/card1"
+  Identifier "$GPU_DRIVER"
+  Driver "$GPU_DRIVER"
+  Option "kmsdev" "$GPU_DEVICE"
   BusID "platform:axi:gpu"
 EndSection
 
@@ -340,7 +358,7 @@ EndSection
 
 Section "Screen"
   Identifier "Default Screen"
-  Device "vc4"
+  Device "$GPU_DRIVER"
   Monitor "HDMI-2"
 EndSection
 XCONF
