@@ -16,6 +16,10 @@ fi
 
 echo "✓ Detected Raspberry Pi 5"
 
+# Ensure 314sign configuration directory exists
+echo "Creating 314sign configuration directory..."
+sudo mkdir -p /etc/314sign
+
 # Pi 5 specific kernel parameters for better performance
 echo "Configuring Pi 5 kernel parameters..."
 sudo tee -a /boot/firmware/cmdline.txt > /dev/null << 'EOF'
