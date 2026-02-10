@@ -250,6 +250,10 @@ export function validateDisplayConfig(config: any): { valid: boolean; errors: st
   if (config.hdmi_port !== undefined && ![0, 1].includes(config.hdmi_port)) {
     errors.push('hdmi_port must be 0 or 1');
   }
+
+  if (config.guest_facing !== undefined && ![0, 1, true, false].includes(config.guest_facing)) {
+    errors.push('guest_facing must be boolean');
+  }
   
   if (config.orientation !== undefined && ![0, 1, 2, 3].includes(config.orientation)) {
     errors.push('orientation must be 0-3 (0°, 90°, 180°, 270°)');

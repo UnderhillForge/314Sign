@@ -127,6 +127,9 @@
     let lastConfig = {};
     let reloadTriggerValue = null;
     let currentOrientation = 'portrait-primary'; // Track current locked orientation
+    const urlParams = new URLSearchParams(window.location.search);
+    const isGuestView = urlParams.get('guest') === '1';
+    const slideshowParam = urlParams.get('slideshow');
 
     const headerEl = document.getElementById('header');
     const clockEl = document.getElementById('clock');
@@ -170,6 +173,24 @@
         .catch(() => {});
     }
 
+    window.updateQrVisibility = function updateQrVisibility(cfg = lastConfig) {
+      const defaultUrl = 'http://' + window.location.hostname + '/';
+      const qrEnabled = cfg.qrBadgeEnabled !== false && !isGuestView && !slideshowParam && !isPlayingSlideshow;
+
+      if (qrEnabled) {
+        qrBadgeEl.style.display = 'flex';
+        qrTitleEl.textContent = cfg.qrBadgeTitle || 'Scan for menu';
+        qrUrlEl.textContent = cfg.qrBadgeUrl || defaultUrl;
+        if (cfg.qrBadgeImage) {
+          qrImageEl.src = cfg.qrBadgeImage;
+        } else {
+          qrImageEl.src = 'qr-menu.png';
+        }
+      } else {
+        qrBadgeEl.style.display = 'none';
+      }
+    }
+
     function applyConfig(cfg) {
       const bgUrl = resolveBgUrl(cfg.bg);
       if (bgUrl) {
@@ -202,20 +223,7 @@
 
       applyResponsiveSizing(cfg);
 
-      const defaultUrl = 'http://' + window.location.hostname + '/';
-      const qrEnabled = cfg.qrBadgeEnabled !== false;
-      if (qrEnabled) {
-        qrBadgeEl.style.display = 'flex';
-        qrTitleEl.textContent = cfg.qrBadgeTitle || 'Scan for menu';
-        qrUrlEl.textContent = cfg.qrBadgeUrl || defaultUrl;
-        if (cfg.qrBadgeImage) {
-          qrImageEl.src = cfg.qrBadgeImage;
-        } else {
-          qrImageEl.src = 'qr-menu.png';
-        }
-      } else {
-        qrBadgeEl.style.display = 'none';
-      }
+      updateQrVisibility(cfg);
     }
 
     // Screen Orientation API - Lock display orientation

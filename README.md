@@ -73,6 +73,27 @@ npm start
 
 Runs the built Electron app in production mode.
 
+### One-Command Install (systemd service)
+
+```bash
+bash scripts/install-kiosk.sh
+```
+
+This installs dependencies, builds the app, and registers a `314sign-kiosk` systemd service that starts on boot.
+By default, the admin UI is at `http://314sign.local/start` (port 80).
+
+Optional flags:
+
+```bash
+bash scripts/install-kiosk.sh --port 80 --user pi
+```
+
+Uninstall:
+
+```bash
+bash scripts/uninstall-kiosk.sh
+```
+
 ### Packaging
 
 ```bash

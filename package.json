@@ -8,9 +8,10 @@
   "type": "module",
   "scripts": {
     "dev": "cross-env NODE_ENV=development vite",
-    "build": "npm run build:renderer && npm run build:main",
+    "build": "npm run build:renderer && npm run build:main && npm run build:314sign",
     "build:renderer": "vite build",
     "build:main": "tsc --project tsconfig.main.json",
+    "build:314sign": "npm --prefix packages/314Sign run build",
     "start": "electron dist/main.js",
     "start:dev": "npm run build:main && electron dist/main.js",
     "pack": "npm run build && electron-builder --dir",
@@ -36,6 +37,7 @@
     "productName": "314Sign Kiosk",
     "files": [
       "dist/**/*",
+      "packages/314Sign/**/*",
       "node_modules/**/*"
     ],
     "directories": {

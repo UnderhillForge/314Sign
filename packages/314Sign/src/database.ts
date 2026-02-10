@@ -126,6 +126,7 @@ export async function initializeDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       hdmi_port INTEGER UNIQUE NOT NULL, -- 0 or 1 for Pi 5 dual HDMI
       enabled BOOLEAN DEFAULT 1,
+      guest_facing BOOLEAN DEFAULT 0,
       orientation INTEGER DEFAULT 0, -- 0 (normal), 1 (90°), 2 (180°), 3 (270°)
       mode TEXT NOT NULL DEFAULT 'main', -- 'main' (kiosk menu), 'slideshow', 'disabled'
       slideshow_name TEXT, -- Slideshow to display if mode is 'slideshow'
@@ -149,6 +150,12 @@ export async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_remotes_last_seen ON remotes(last_seen);
     CREATE INDEX IF NOT EXISTS idx_displays_hdmi_port ON displays(hdmi_port);
   `);
+
+  const displayColumns = db.prepare('PRAGMA table_info(displays)').all() as any[];
+  const hasGuestFacing = displayColumns.some((col) => col.name === 'guest_facing');
+  if (!hasGuestFacing) {
+    db.exec('ALTER TABLE displays ADD COLUMN guest_facing BOOLEAN DEFAULT 0');
+  }
 
   // Insert default admin user if no users exist
   const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
@@ -264,6 +271,7 @@ We look forward to serving you soon.
       {
         hdmi_port: 0,
         enabled: 1,
+        guest_facing: 1,
         orientation: 1, // 90° for portrait
         mode: 'main',
         slideshow_name: null,
@@ -276,6 +284,7 @@ We look forward to serving you soon.
       {
         hdmi_port: 1,
         enabled: 0, // Disabled by default
+        guest_facing: 0,
         orientation: 0, // Normal landscape
         mode: 'slideshow',
         slideshow_name: null,
@@ -288,14 +297,15 @@ We look forward to serving you soon.
     ];
 
     const insertDisplay = db.prepare(`
-      INSERT INTO displays (hdmi_port, enabled, orientation, mode, slideshow_name, resolution, xrandr_output, position_x, position_y, refresh_rate)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO displays (hdmi_port, enabled, guest_facing, orientation, mode, slideshow_name, resolution, xrandr_output, position_x, position_y, refresh_rate)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     for (const display of defaultDisplays) {
       insertDisplay.run(
         display.hdmi_port,
         display.enabled,
+        display.guest_facing,
         display.orientation,
         display.mode,
         display.slideshow_name,
@@ -308,6 +318,14 @@ We look forward to serving you soon.
     }
 
     console.log('Created default display configurations for HDMI-1 and HDMI-2');
+  }
+
+  const guestDisplayCount = db.prepare('SELECT COUNT(*) as count FROM displays WHERE guest_facing = 1').get() as { count: number };
+  if (guestDisplayCount.count === 0) {
+    const firstDisplay = db.prepare('SELECT hdmi_port FROM displays ORDER BY hdmi_port ASC LIMIT 1').get() as { hdmi_port: number } | undefined;
+    if (firstDisplay) {
+      db.prepare('UPDATE displays SET guest_facing = CASE WHEN hdmi_port = ? THEN 1 ELSE 0 END').run(firstDisplay.hdmi_port);
+    }
   }
 
   // Initialize prepared statements after tables are created
@@ -528,6 +546,7 @@ export const dbHelpers = {
   getDisplayByPort: (hdmiPort: number) => db.prepare('SELECT * FROM displays WHERE hdmi_port = ?').get(hdmiPort) as any,
   updateDisplay: (hdmiPort: number, config: {
     enabled?: number;
+    guest_facing?: number;
     orientation?: number;
     mode?: string;
     slideshow_name?: string | null;
@@ -541,6 +560,7 @@ export const dbHelpers = {
     const values: any[] = [];
 
     if (config.enabled !== undefined) { updates.push('enabled = ?'); values.push(config.enabled); }
+    if (config.guest_facing !== undefined) { updates.push('guest_facing = ?'); values.push(config.guest_facing); }
     if (config.orientation !== undefined) { updates.push('orientation = ?'); values.push(config.orientation); }
     if (config.mode !== undefined) { updates.push('mode = ?'); values.push(config.mode); }
     if (config.slideshow_name !== undefined) { updates.push('slideshow_name = ?'); values.push(config.slideshow_name); }
@@ -561,6 +581,7 @@ export const dbHelpers = {
   createDisplay: (config: {
     hdmi_port: number;
     enabled?: number;
+    guest_facing?: number;
     orientation?: number;
     mode?: string;
     slideshow_name?: string | null;
@@ -571,11 +592,12 @@ export const dbHelpers = {
     refresh_rate?: number | null;
   }) => {
     return db.prepare(`
-      INSERT INTO displays (hdmi_port, enabled, orientation, mode, slideshow_name, resolution, xrandr_output, position_x, position_y, refresh_rate)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO displays (hdmi_port, enabled, guest_facing, orientation, mode, slideshow_name, resolution, xrandr_output, position_x, position_y, refresh_rate)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       config.hdmi_port,
       config.enabled ?? 1,
+      config.guest_facing ?? 0,
       config.orientation ?? 0,
       config.mode ?? 'main',
       config.slideshow_name ?? null,
@@ -585,7 +607,9 @@ export const dbHelpers = {
       config.position_y ?? 0,
       config.refresh_rate ?? 60.0
     );
-  }
+  },
+  setGuestFacingExclusive: (hdmiPort: number) =>
+    db.prepare('UPDATE displays SET guest_facing = CASE WHEN hdmi_port = ? THEN 1 ELSE 0 END').run(hdmiPort)
 };
 
 // Cleanup expired sessions periodically

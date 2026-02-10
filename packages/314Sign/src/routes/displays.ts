@@ -110,6 +110,9 @@ router.put('/:port', requireAdmin, (req: AuthenticatedRequest, res: Response) =>
     // Update the display configuration
     dbHelpers.updateDisplay(port, {
       enabled: req.body.enabled ?? display.enabled,
+      guest_facing: req.body.guest_facing !== undefined
+        ? (req.body.guest_facing ? 1 : 0)
+        : display.guest_facing,
       orientation: req.body.orientation ?? display.orientation,
       mode: req.body.mode ?? display.mode,
       slideshow_name: req.body.slideshow_name !== undefined ? req.body.slideshow_name : display.slideshow_name,
@@ -119,6 +122,10 @@ router.put('/:port', requireAdmin, (req: AuthenticatedRequest, res: Response) =>
       position_y: req.body.position_y ?? display.position_y,
       refresh_rate: req.body.refresh_rate ?? display.refresh_rate
     });
+
+    if (req.body.guest_facing) {
+      dbHelpers.setGuestFacingExclusive(port);
+    }
     
     const updatedDisplay = dbHelpers.getDisplayByPort(port);
     

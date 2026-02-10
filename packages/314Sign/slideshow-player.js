@@ -29,6 +29,9 @@ window.initializeSlideshowModule = function() {
         if (data && data.slides && data.slides.length > 0) {
           window.slideshowData = data;
           window.isPlayingSlideshow = true;
+          if (typeof window.updateQrVisibility === 'function') {
+            window.updateQrVisibility();
+          }
 
           // Hide header and clock
           if (window.headerEl) window.headerEl.style.display = 'none';
@@ -41,7 +44,10 @@ window.initializeSlideshowModule = function() {
       })
       .catch(err => {
         console.error('Failed to load slideshow:', err);
-        window.isPlayingSlideshow = false;
+          window.isPlayingSlideshow = false;
+          if (typeof window.updateQrVisibility === 'function') {
+            window.updateQrVisibility();
+          }
       });
   };
 
@@ -170,6 +176,10 @@ window.initializeSlideshowModule = function() {
     if (window.currentSplide) {
       window.currentSplide.destroy();
       window.currentSplide = null;
+    }
+    window.isPlayingSlideshow = false;
+    if (typeof window.updateQrVisibility === 'function') {
+      window.updateQrVisibility();
     }
   };
 };

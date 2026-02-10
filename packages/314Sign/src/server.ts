@@ -26,9 +26,9 @@ import backgroundsRoutes from './routes/backgrounds.js';
 import authRoutes, { authenticateToken, requireAdmin } from './routes/auth.js';
 import remotesRoutes from './routes/remotes.js';
 import displaysRoutes from './routes/displays.js';
+import kioskRoutes from './routes/kiosk.js';
 import { requireAuthPage } from './middleware/auth.js';
-import { initializeDatabase } from './database.js';
-import db from './database.js';
+import db, { dbHelpers, initializeDatabase } from './database.js';
 
 // Debug log capture
 let logBuffer: string[] = [];
@@ -193,6 +193,26 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get(['/guest', '/guest/'], (req, res) => {
+  try {
+    const displays = dbHelpers.getAllDisplays();
+    const guestDisplay = displays.find((display: any) => display.guest_facing);
+    if (!guestDisplay) {
+      return res.redirect('/');
+    }
+
+    if (guestDisplay.mode === 'slideshow' && guestDisplay.slideshow_name) {
+      const slideshow = encodeURIComponent(guestDisplay.slideshow_name);
+      return res.redirect(`/?slideshow=${slideshow}&guest=1`);
+    }
+
+    return res.redirect('/?guest=1');
+  } catch (error) {
+    console.error('Failed to resolve guest display:', error);
+    return res.redirect('/');
+  }
+});
+
 
 
 // Static file serving (after authentication checks)
@@ -217,6 +237,7 @@ app.use('/api/fonts', fontsRoutes);
 app.use('/api/backgrounds', backgroundsRoutes);
 app.use('/api/remotes', remotesRoutes);
 app.use('/api/displays', displaysRoutes);
+app.use('/api/kiosk', kioskRoutes);
 
 // Debug logs endpoint (admin only)
 app.get('/api/debug/logs', authenticateToken, requireAdmin, (req, res) => {

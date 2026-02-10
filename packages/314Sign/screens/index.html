@@ -92,6 +92,17 @@
             color: #aaa;
         }
 
+        .display-badge {
+            font-size: 11px;
+            background: #2b6cb0;
+            padding: 3px 8px;
+            border-radius: 999px;
+            color: #e0e0e0;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-left: 8px;
+        }
+
         .toggle-switch {
             position: relative;
             display: inline-block;
@@ -149,6 +160,12 @@
             margin-bottom: 6px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+        }
+
+        .helper-text {
+            font-size: 12px;
+            color: #9aa3b2;
+            margin-top: 6px;
         }
 
         .form-group select,
@@ -611,7 +628,9 @@
                 return `
                     <div class="display-card ${isDisabled ? 'disabled' : ''}">
                         <div class="display-header">
-                            <h2>HDMI ${display.hdmi_port + 1}</h2>
+                            <h2>HDMI ${display.hdmi_port + 1}
+                                ${display.guest_facing ? '<span class="display-badge">Guest</span>' : ''}
+                            </h2>
                             <span class="display-port">${display.xrandr_output}</span>
                         </div>
 
@@ -647,6 +666,16 @@
                                 <option value="slideshow" ${display.mode === 'slideshow' ? 'selected' : ''}>Slideshow</option>
                                 <option value="disabled" ${display.mode === 'disabled' ? 'selected' : ''}>Disabled</option>
                             </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Guest-Facing Display</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" ${display.guest_facing ? 'checked' : ''}
+                                       onchange="setGuestFacing(${display.hdmi_port}, this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                            <div class="helper-text">Guests use http://314sign.local/guest from the QR code on this display.</div>
                         </div>
 
                         ${display.mode === 'slideshow' ? `
@@ -746,6 +775,23 @@
             if (display) {
                 display.mode = mode;
                 changes[port] = true;
+                updatePendingChanges();
+                renderDisplays();
+            }
+        }
+
+        function setGuestFacing(port, enabled) {
+            let changed = false;
+            displays.forEach(display => {
+                const nextValue = enabled && display.hdmi_port === port ? 1 : 0;
+                if (display.guest_facing !== nextValue) {
+                    display.guest_facing = nextValue;
+                    changes[display.hdmi_port] = true;
+                    changed = true;
+                }
+            });
+
+            if (changed) {
                 updatePendingChanges();
                 renderDisplays();
             }
