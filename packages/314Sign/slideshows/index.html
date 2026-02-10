@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Slideshow Gallery Editor</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      overflow: hidden;
+    }
+    .app-container {
+      display: grid;
+      grid-template-columns: 220px 1fr 280px;
+      grid-template-rows: auto 1fr;
+      height: 100vh;
+      gap: 1rem;
+      padding: 1rem;
+    }
+    header {
+      grid-column: 1 / -1;
+      background: #161b22;
+      padding: 1.5rem;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid #30363d;
+    }
+    h1 {
+      font-size: 1.8rem;
+      color: #e6edf3;
+    }
+    .header-actions {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+    .btn {
+      padding: 0.6rem 1.2rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: #238636;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #2ea043;
+    }
+    .btn-secondary {
+      background: #21262d;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+    }
+    .btn-secondary:hover {
+      background: #30363d;
+    }
+    .btn-danger {
+      background: #da3633;
+      color: white;
+    }
+    .btn-danger:hover {
+      background: #f85149;
+    }
+    .btn-sm {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.85rem;
+    }
+    .sidebar {
+      background: #161b22;
+      border-radius: 8px;
+      padding: 1rem;
+      border: 1px solid #30363d;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar h3 {
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+      color: #79c0ff;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .sidebar-input {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .sidebar-input input {
+      flex: 1;
+      padding: 0.6rem;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-size: 0.9rem;
+    }
+    .sidebar-input input:focus {
+      outline: none;
+      border-color: #79c0ff;
+      box-shadow: 0 0 0 3px rgba(121, 192, 255, 0.1);
+    }
+    .slideshow-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .slideshow-item {
+      padding: 0.6rem;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      user-select: none;
+    }
+    .slideshow-item:hover {
+      background: #21262d;
+      border-color: #58a6ff;
+    }
+    .slideshow-item.active {
+      background: #1f6feb;
+      border-color: #58a6ff;
+      color: white;
+    }
+    .slideshow-item .name {
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+    }
+    .slideshow-item .meta {
+      font-size: 0.75rem;
+      color: #8b949e;
+    }
+    .slideshow-item.active .meta {
+      color: #c9d1d9;
+    }
+    .gallery {
+      background: #161b22;
+      border-radius: 8px;
+      padding: 1rem;
+      border: 1px solid #30363d;
+      overflow-y: auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 1rem;
+      align-content: flex-start;
+    }
+    .gallery-empty {
+      grid-column: 1 / -1;
+      text-align: center;
+      color: #6e7681;
+      padding: 2rem;
+    }
+    .slide-thumbnail {
+      position: relative;
+      aspect-ratio: 4/3;
+      background: #0d1117;
+      border: 2px solid #30363d;
+      border-radius: 6px;
+      cursor: move;
+      transition: all 0.2s;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem;
+    }
+    .slide-thumbnail:hover {
+      border-color: #58a6ff;
+      box-shadow: 0 0 8px rgba(88, 166, 255, 0.2);
+    }
+    .slide-thumbnail.selected {
+      border-color: #79c0ff;
+      background: #1f6feb;
+      box-shadow: 0 0 12px rgba(121, 192, 255, 0.3);
+    }
+    .slide-thumbnail.drag-over {
+      background: #21262d;
+      border-color: #79c0ff;
+    }
+    .slide-thumbnail-content {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      color: #8b949e;
+      text-align: center;
+      word-break: break-word;
+      line-height: 1.2;
+    }
+    .slide-thumbnail-image {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .slide-number {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: rgba(0, 0, 0, 0.7);
+      color: #79c0ff;
+      font-size: 0.7rem;
+      padding: 2px 4px;
+      border-radius: 3px;
+      z-index: 10;
+    }
+    .slide-actions {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      display: flex;
+      gap: 2px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .slide-thumbnail:hover .slide-actions {
+      opacity: 1;
+    }
+    .slide-action-btn {
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      border: none;
+      border-radius: 3px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      cursor: pointer;
+      font-size: 0.7rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .slide-action-btn:hover {
+      background: rgba(0, 0, 0, 0.9);
+    }
+    .editor-panel {
+      background: #161b22;
+      border-radius: 8px;
+      padding: 1rem;
+      border: 1px solid #30363d;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .editor-panel-empty {
+      color: #6e7681;
+      text-align: center;
+      padding: 2rem;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .form-label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #79c0ff;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    input[type="text"],
+    input[type="number"],
+    select,
+    textarea {
+      padding: 0.6rem;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-size: 0.9rem;
+      font-family: inherit;
+    }
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #79c0ff;
+      box-shadow: 0 0 0 3px rgba(121, 192, 255, 0.1);
+    }
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+      font-family: 'Courier New', monospace;
+    }
+    .radio-group {
+      display: flex;
+      gap: 1rem;
+    }
+    .radio-group label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .radio-group input[type="radio"] {
+      cursor: pointer;
+    }
+    .duration-presets {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .preset-btn {
+      padding: 0.4rem 0.8rem;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      color: #c9d1d9;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .preset-btn:hover {
+      background: #30363d;
+      border-color: #58a6ff;
+    }
+    .media-picker-btn {
+      padding: 0.6rem;
+      background: #1f6feb;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .media-picker-btn:hover {
+      background: #388bfd;
+    }
+    .preview-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .preview-toggle input {
+      cursor: pointer;
+    }
+    .preview-pane {
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #0d1117;
+      display: none;
+    }
+    .preview-pane.show {
+      display: block;
+    }
+    .preview-content {
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      overflow: hidden;
+      color: #c9d1d9;
+      font-size: 0.9rem;
+    }
+    .preview-image {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .preview-text {
+      padding: 2rem;
+      white-space: pre-wrap;
+      line-height: 1.6;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal.show {
+      display: flex;
+    }
+    .modal-content {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 2rem;
+      max-width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+      width: 600px;
+    }
+    .modal-header {
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-header h2 {
+      color: #e6edf3;
+      margin: 0;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      color: #8b949e;
+      cursor: pointer;
+      font-size: 1.5rem;
+    }
+    .modal-close:hover {
+      color: #c9d1d9;
+    }
+    .media-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 1rem;
+    }
+    .media-item {
+      aspect-ratio: 4/3;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      cursor: pointer;
+      overflow: hidden;
+      transition: all 0.2s;
+    }
+    .media-item:hover {
+      border-color: #79c0ff;
+      box-shadow: 0 0 8px rgba(121, 192, 255, 0.2);
+    }
+    .media-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .media-upload {
+      margin-bottom: 1.5rem;
+      padding: 1rem;
+      background: #0d1117;
+      border: 2px dashed #30363d;
+      border-radius: 6px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .media-upload:hover {
+      border-color: #79c0ff;
+      background: #21262d;
+    }
+    .media-upload.dragging {
+      border-color: #79c0ff;
+      background: #1b2533;
+      box-shadow: 0 0 12px rgba(121, 192, 255, 0.2);
+    }
+    .media-upload-input {
+      display: none;
+    }
+    .gallery-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .panel-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: auto;
+    }
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 1rem 1.5rem;
+      color: #c9d1d9;
+      z-index: 2000;
+      animation: slideIn 0.3s ease-out;
+    }
+    .toast.success {
+      border-left: 4px solid #238636;
+    }
+    .toast.error {
+      border-left: 4px solid #da3633;
+    }
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    .spinner {
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid #30363d;
+      border-top-color: #79c0ff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header>
+      <h1>📽️ Slideshow Gallery</h1>
+      <div class="header-actions">
+        <button class="btn btn-primary" id="saveBtn">Save Slideshow</button>
+        <button class="btn btn-secondary" id="testBtn">Test Playback</button>
+      </div>
+    </header>
+
+    <!-- Left Sidebar: Slideshow List -->
+    <div class="sidebar">
+      <h3>Slideshows</h3>
+      <div class="sidebar-input">
+        <input type="text" id="newSlideshowInput" placeholder="New slideshow...">
+        <button class="btn btn-sm btn-primary" id="createSlideshowBtn">+</button>
+      </div>
+      <div class="slideshow-list" id="slideshowList"></div>
+    </div>
+
+    <!-- Center: Gallery -->
+    <div>
+      <div class="gallery-actions">
+        <button class="btn btn-sm btn-secondary" id="addSlideBtn">+ Add Slide</button>
+        <button class="btn btn-sm btn-secondary" id="duplicateSlideBtn">Duplicate</button>
+        <button class="btn btn-sm btn-danger" id="deleteSlideBtn">Delete</button>
+      </div>
+      <div class="gallery" id="gallery"></div>
+    </div>
+
+    <!-- Right Sidebar: Editor Panel -->
+    <div class="editor-panel">
+      <div id="editorEmpty" class="editor-panel-empty">
+        Select a slide to edit
+      </div>
+      <div id="editorContent" style="display: none; flex: 1; overflow-y: auto;">
+        <!-- Slide Type Selector -->
+        <div class="form-group">
+          <label class="form-label">Slide Type</label>
+          <select id="slideType">
+            <option value="image">Image</option>
+            <option value="text">Formatted Text</option>
+          </select>
+        </div>
+
+        <!-- Duration -->
+        <div class="form-group">
+          <label class="form-label">Duration (ms)</label>
+          <input type="number" id="slideDuration" min="100" step="100">
+          <div class="duration-presets">
+            <button class="preset-btn" data-duration="3000">3s</button>
+            <button class="preset-btn" data-duration="5000">5s</button>
+            <button class="preset-btn" data-duration="10000">10s</button>
+            <button class="preset-btn" data-duration="15000">15s</button>
+          </div>
+        </div>
+
+        <!-- Transition -->
+        <div class="form-group">
+          <label class="form-label">Transition</label>
+          <select id="slideTransition">
+            <option value="fade">Fade</option>
+            <option value="slide-left">Slide Left</option>
+            <option value="slide-right">Slide Right</option>
+            <option value="slide-up">Slide Up</option>
+            <option value="slide-down">Slide Down</option>
+            <option value="zoom">Zoom</option>
+            <option value="none">None</option>
+          </select>
+        </div>
+
+        <!-- Image Slide Options -->
+        <div id="imageOptions">
+          <div class="form-group">
+            <label class="form-label">Media</label>
+            <button class="btn btn-sm btn-primary media-picker-btn" id="openMediaPickerBtn">Select Media...</button>
+            <div id="selectedMedia" style="margin-top: 0.5rem; color: #8b949e; font-size: 0.85rem;"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Caption (optional)</label>
+            <input type="text" id="slideCaption" placeholder="Add a caption...">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Caption Position</label>
+            <div class="radio-group">
+              <label><input type="radio" name="captionPos" value="top"> Top</label>
+              <label><input type="radio" name="captionPos" value="bottom" checked> Bottom</label>
+              <label><input type="radio" name="captionPos" value="center"> Center</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Text Slide Options -->
+        <div id="textOptions" style="display: none;">
+          <div class="form-group">
+            <label class="form-label">Content (Markdown)</label>
+            <textarea id="slideContent" placeholder="# Heading&#10;&#10;**Bold** text&#10;Supports markdown..."></textarea>
+          </div>
+          <div class="preview-toggle">
+            <input type="checkbox" id="previewToggle">
+            <label for="previewToggle">Live Preview</label>
+          </div>
+          <div class="preview-pane" id="previewPane">
+            <div class="preview-content preview-text" id="previewContent"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Media Picker Modal -->
+  <div class="modal" id="mediaModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Select Media</h2>
+        <button class="modal-close" id="closeMediaModal">&times;</button>
+      </div>
+      <div class="media-upload" id="uploadArea">
+        <input type="file" id="mediaInput" class="media-upload-input" accept="image/jpeg,image/png,image/gif,image/svg+xml,image/avif">
+        <div>📤 Drag & drop images or click to upload</div>
+        <small style="color: #8b949e;">Supported: JPG, PNG, GIF, SVG, AVIF</small>
+      </div>
+      <div class="media-grid" id="mediaGrid"></div>
+    </div>
+  </div>
+
+  <script>
+    // API call helper
+    async function apiCall(url, options = {}) {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers
+        }
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || `API error: ${response.status}`);
+      }
+      return response.json();
+    }
+
+    // Toast notification
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    // State management
+    const state = {
+      slideshows: [],
+      currentSlideshow: null,
+      currentSlideIndex: null,
+      selectedMedia: null
+    };
+
+    // Load slideshows list
+    async function loadSlideshows() {
+      try {
+        const response = await apiCall('/api/slideshows');
+        state.slideshows = response.data;
+        renderSlideshowList();
+      } catch (error) {
+        showToast(`Failed to load slideshows: ${error.message}`, 'error');
+      }
+    }
+
+    // Render slideshow list in sidebar
+    function renderSlideshowList() {
+      const list = document.getElementById('slideshowList');
+      list.innerHTML = state.slideshows.map((ss, i) => `
+        <div class="slideshow-item ${state.currentSlideshow?.name === ss.name ? 'active' : ''}" data-index="${i}">
+          <div class="name">${ss.name}</div>
+          <div class="meta">${ss.slideCount} slides</div>
+        </div>
+      `).join('');
+
+      list.querySelectorAll('.slideshow-item').forEach(el => {
+        el.addEventListener('click', () => selectSlideshow(parseInt(el.dataset.index)));
+      });
+    }
+
+    // Select slideshow
+    async function selectSlideshow(index) {
+      try {
+        const ss = state.slideshows[index];
+        const response = await apiCall(`/api/slideshows/${ss.name}`);
+        state.currentSlideshow = response.data;
+        state.currentSlideIndex = null;
+        renderGallery();
+        renderSlideshowList();
+        updateEditorPanel();
+      } catch (error) {
+        showToast(`Failed to load slideshow: ${error.message}`, 'error');
+      }
+    }
+
+    // Render gallery
+    function renderGallery() {
+      const gallery = document.getElementById('gallery');
+      if (!state.currentSlideshow) {
+        gallery.innerHTML = '<div class="gallery-empty">No slideshow selected</div>';
+        return;
+      }
+
+      const slides = state.currentSlideshow.slides || [];
+      if (slides.length === 0) {
+        gallery.innerHTML = '<div class="gallery-empty">No slides yet. Click "Add Slide" to get started.</div>';
+        return;
+      }
+
+      gallery.innerHTML = slides.map((slide, i) => {
+        let preview = '';
+        if (slide.type === 'image') {
+          preview = `<img src="${slide.media}" class="slide-thumbnail-image" alt="Slide">`;
+        } else if (slide.type === 'text') {
+          preview = `<div class="slide-thumbnail-content">${(slide.content || '').substring(0, 50)}...</div>`;
+        }
+
+        return `
+          <div class="slide-thumbnail ${state.currentSlideIndex === i ? 'selected' : ''}" data-index="${i}" draggable="true">
+            <div class="slide-actions">
+              <button class="slide-action-btn delete-slide-btn" title="Delete">×</button>
+            </div>
+            ${preview}
+            <div class="slide-number">${i + 1}</div>
+          </div>
+        `;
+      }).join('');
+
+      // Event listeners
+      gallery.querySelectorAll('.slide-thumbnail').forEach(el => {
+        el.addEventListener('click', () => selectSlide(parseInt(el.dataset.index)));
+        el.addEventListener('dragstart', handleDragStart);
+        el.addEventListener('dragover', handleDragOver);
+        el.addEventListener('drop', handleDrop);
+        el.addEventListener('dragleave', handleDragLeave);
+      });
+
+      gallery.querySelectorAll('.delete-slide-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteSlide(parseInt(btn.parentElement.parentElement.dataset.index));
+        });
+      });
+    }
+
+    // Select slide
+    function selectSlide(index) {
+      state.currentSlideIndex = index;
+      renderGallery();
+      updateEditorPanel();
+    }
+
+    // Update editor panel
+    function updateEditorPanel() {
+      const empty = document.getElementById('editorEmpty');
+      const content = document.getElementById('editorContent');
+
+      if (!state.currentSlideshow || state.currentSlideIndex === null) {
+        empty.style.display = 'block';
+        content.style.display = 'flex';
+        return;
+      }
+
+      const slide = state.currentSlideshow.slides[state.currentSlideIndex];
+      empty.style.display = 'none';
+      content.style.display = 'flex';
+
+      document.getElementById('slideType').value = slide.type || 'image';
+      document.getElementById('slideDuration').value = slide.duration || 5000;
+      document.getElementById('slideTransition').value = slide.transition || 'fade';
+
+      if (slide.type === 'image') {
+        document.getElementById('imageOptions').style.display = 'block';
+        document.getElementById('textOptions').style.display = 'none';
+        state.selectedMedia = slide.media;
+        updateSelectedMediaDisplay();
+        document.getElementById('slideCaption').value = slide.caption || '';
+        document.querySelector(`input[name="captionPos"][value="${slide.captionPosition || 'bottom'}"]`).checked = true;
+      } else {
+        document.getElementById('imageOptions').style.display = 'none';
+        document.getElementById('textOptions').style.display = 'block';
+        document.getElementById('slideContent').value = slide.content || '';
+      }
+
+      updatePreview();
+    }
+
+    // Add slide
+    function addSlide() {
+      if (!state.currentSlideshow) {
+        showToast('Select or create a slideshow first', 'error');
+        return;
+      }
+      const newSlide = {
+        type: 'image',
+        duration: 5000,
+        transition: 'fade',
+        media: '/slideshows/media/placeholder.jpg',
+        caption: '',
+        captionPosition: 'bottom'
+      };
+      state.currentSlideshow.slides.push(newSlide);
+      selectSlide(state.currentSlideshow.slides.length - 1);
+      renderGallery();
+    }
+
+    // Delete slide
+    function deleteSlide(index) {
+      if (!confirm('Delete this slide?')) return;
+      state.currentSlideshow.slides.splice(index, 1);
+      state.currentSlideIndex = null;
+      renderGallery();
+      updateEditorPanel();
+      markModified();
+    }
+
+    // Duplicate slide
+    function duplicateSlide() {
+      if (state.currentSlideIndex === null) return;
+      const slide = state.currentSlideshow.slides[state.currentSlideIndex];
+      const copy = JSON.parse(JSON.stringify(slide));
+      state.currentSlideshow.slides.splice(state.currentSlideIndex + 1, 0, copy);
+      selectSlide(state.currentSlideIndex + 1);
+    }
+
+    // Drag and drop
+    let draggedIndex = null;
+    function handleDragStart(e) {
+      draggedIndex = parseInt(e.target.closest('.slide-thumbnail').dataset.index);
+      e.dataTransfer.effectAllowed = 'move';
+    }
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      e.currentTarget.classList.add('drag-over');
+    }
+    function handleDragLeave(e) {
+      e.currentTarget.classList.remove('drag-over');
+    }
+    function handleDrop(e) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('drag-over');
+      const dropIndex = parseInt(e.currentTarget.dataset.index);
+      if (draggedIndex !== dropIndex) {
+        const [slide] = state.currentSlideshow.slides.splice(draggedIndex, 1);
+        state.currentSlideshow.slides.splice(dropIndex, 0, slide);
+        selectSlide(dropIndex);
+        markModified();
+      }
+    }
+
+    // Save slideshow
+    async function saveSlideshow() {
+      if (!state.currentSlideshow) return;
+      try {
+        const data = {
+          description: state.currentSlideshow.description || '',
+          slides: state.currentSlideshow.slides,
+          defaultDuration: state.currentSlideshow.defaultDuration || 5000,
+          defaultTransition: state.currentSlideshow.defaultTransition || 'fade'
+        };
+        await apiCall(`/api/slideshows/${state.currentSlideshow.name}`, {
+          method: 'PUT',
+          body: JSON.stringify(data)
+        });
+        showToast('Slideshow saved successfully');
+      } catch (error) {
+        showToast(`Failed to save: ${error.message}`, 'error');
+      }
+    }
+
+    // Test playback
+    function testPlayback() {
+      if (!state.currentSlideshow) return;
+      saveSlideshow().then(() => {
+        window.open(`/?slideshow=${state.currentSlideshow.name}`, '_blank');
+      });
+    }
+
+    // Create slideshow
+    async function createSlideshow() {
+      const name = document.getElementById('newSlideshowInput').value.trim();
+      if (!name) return;
+      try {
+        await apiCall('/api/slideshows', {
+          method: 'POST',
+          body: JSON.stringify({
+            name,
+            description: '',
+            slides: [],
+            defaultDuration: 5000,
+            defaultTransition: 'fade'
+          })
+        });
+        document.getElementById('newSlideshowInput').value = '';
+        await loadSlideshows();
+        selectSlideshow(state.slideshows.length - 1);
+        showToast('Slideshow created');
+      } catch (error) {
+        showToast(`Failed to create: ${error.message}`, 'error');
+      }
+    }
+
+    // Media picker
+    function openMediaPicker() {
+      document.getElementById('mediaModal').classList.add('show');
+      loadMediaFiles();
+    }
+
+    async function loadMediaFiles() {
+      try {
+        const response = await apiCall('/api/slideshows/media/list');
+        const grid = document.getElementById('mediaGrid');
+        grid.innerHTML = response.data.map(media => `
+          <div class="media-item" data-path="${media.path}" title="${media.filename}">
+            <img src="${media.path}" alt="${media.filename}">
+          </div>
+        `).join('');
+
+        grid.querySelectorAll('.media-item').forEach(el => {
+          el.addEventListener('click', () => selectMedia(el.dataset.path));
+        });
+      } catch (error) {
+        showToast(`Failed to load media: ${error.message}`, 'error');
+      }
+    }
+
+    async function uploadMediaFile(file) {
+      if (!file) return;
+      const allowedTypes = [
+        'image/jpeg',
+        'image/png',
+        'image/gif',
+        'image/svg+xml',
+        'image/avif'
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        showToast('Unsupported file type. Use JPG, PNG, GIF, SVG, or AVIF.', 'error');
+        return;
+      }
+
+      try {
+        const formData = new FormData();
+        formData.append('media', file);
+
+        const response = await fetch('/api/slideshows/media/upload', {
+          method: 'POST',
+          body: formData
+        });
+
+        const payload = await response.json();
+        if (!response.ok || !payload.success) {
+          throw new Error(payload.message || 'Upload failed');
+        }
+
+        showToast('Media uploaded successfully');
+        await loadMediaFiles();
+        if (payload.data && payload.data.path) {
+          selectMedia(payload.data.path);
+        }
+      } catch (error) {
+        showToast(`Upload failed: ${error.message}`, 'error');
+      }
+    }
+
+    function handleMediaFiles(files) {
+      if (!files || files.length === 0) return;
+      uploadMediaFile(files[0]);
+    }
+
+    function selectMedia(path) {
+      if (state.currentSlideIndex !== null) {
+        state.selectedMedia = path;
+        state.currentSlideshow.slides[state.currentSlideIndex].media = path;
+        updateSelectedMediaDisplay();
+        document.getElementById('mediaModal').classList.remove('show');
+        renderGallery();
+        markModified();
+      }
+    }
+
+    function updateSelectedMediaDisplay() {
+      const display = document.getElementById('selectedMedia');
+      if (state.selectedMedia) {
+        const filename = state.selectedMedia.split('/').pop();
+        display.textContent = `✓ ${filename}`;
+      } else {
+        display.textContent = 'No media selected';
+      }
+    }
+
+    // Update slide when form changes
+    function updateSlide() {
+      if (state.currentSlideIndex === null) return;
+      const slide = state.currentSlideshow.slides[state.currentSlideIndex];
+      slide.type = document.getElementById('slideType').value;
+      slide.duration = parseInt(document.getElementById('slideDuration').value);
+      slide.transition = document.getElementById('slideTransition').value;
+
+      if (slide.type === 'image') {
+        slide.media = state.selectedMedia || '/slideshows/media/placeholder.jpg';
+        slide.caption = document.getElementById('slideCaption').value;
+        slide.captionPosition = document.querySelector('input[name="captionPos"]:checked').value;
+      } else {
+        slide.content = document.getElementById('slideContent').value;
+      }
+
+      renderGallery();
+      updatePreview();
+      markModified();
+    }
+
+    // Preview text slide
+    function updatePreview() {
+      if (state.currentSlideIndex === null) return;
+      const slide = state.currentSlideshow.slides[state.currentSlideIndex];
+      if (slide.type === 'text' && document.getElementById('previewToggle').checked) {
+        const preview = document.getElementById('previewPane');
+        preview.classList.add('show');
+        const content = document.getElementById('previewContent');
+        try {
+          content.innerHTML = marked.parse(slide.content || '');
+        } catch (error) {
+          content.textContent = 'Preview error';
+        }
+      }
+    }
+
+    function markModified() {
+      // Could add visual indicator here
+    }
+
+    // Event listeners
+    document.getElementById('createSlideshowBtn').addEventListener('click', createSlideshow);
+    document.getElementById('addSlideBtn').addEventListener('click', addSlide);
+    document.getElementById('duplicateSlideBtn').addEventListener('click', duplicateSlide);
+    document.getElementById('deleteSlideBtn').addEventListener('click', () => {
+      if (state.currentSlideIndex !== null) deleteSlide(state.currentSlideIndex);
+    });
+    document.getElementById('saveBtn').addEventListener('click', saveSlideshow);
+    document.getElementById('testBtn').addEventListener('click', testPlayback);
+    document.getElementById('openMediaPickerBtn').addEventListener('click', openMediaPicker);
+    document.getElementById('closeMediaModal').addEventListener('click', () => {
+      document.getElementById('mediaModal').classList.remove('show');
+    });
+    const uploadArea = document.getElementById('uploadArea');
+    const mediaInput = document.getElementById('mediaInput');
+    uploadArea.addEventListener('click', () => mediaInput.click());
+    mediaInput.addEventListener('change', (event) => {
+      handleMediaFiles(event.target.files);
+      mediaInput.value = '';
+    });
+    uploadArea.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      uploadArea.classList.add('dragging');
+    });
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.classList.remove('dragging');
+    });
+    uploadArea.addEventListener('drop', (event) => {
+      event.preventDefault();
+      uploadArea.classList.remove('dragging');
+      handleMediaFiles(event.dataTransfer.files);
+    });
+    document.getElementById('slideType').addEventListener('change', () => {
+      updateEditorPanel();
+      updateSlide();
+    });
+    document.getElementById('slideDuration').addEventListener('change', updateSlide);
+    document.getElementById('slideTransition').addEventListener('change', updateSlide);
+    document.getElementById('slideCaption').addEventListener('input', updateSlide);
+    document.getElementById('slideContent').addEventListener('input', updateSlide);
+    document.getElementById('previewToggle').addEventListener('change', updatePreview);
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById('slideDuration').value = btn.dataset.duration;
+        updateSlide();
+      });
+    });
+    document.querySelectorAll('input[name="captionPos"]').forEach(radio => {
+      radio.addEventListener('change', updateSlide);
+    });
+
+    // Initialize
+    loadSlideshows();
+  </script>
+</body>
+</html>

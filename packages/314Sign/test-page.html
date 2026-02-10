@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Page</title>
+    <style>
+        body { 
+            background: red; 
+            color: white; 
+            font-size: 48px; 
+            padding: 50px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Static Content Visible</h1>
+    <div id="test">Waiting for JavaScript...</div>
+    <script>
+        console.log('JavaScript is running!');
+        document.getElementById('test').textContent = 'JavaScript works!';
+        document.body.style.background = 'green';
+        
+        // Make an API call
+        fetch('/api/config')
+            .then(r => r.json())
+            .then(data => {
+                console.log('API call successful:', data);
+                document.getElementById('test').textContent = 'JavaScript AND API work!';
+            })
+            .catch(err => {
+                console.error('API call failed:', err);
+                document.getElementById('test').textContent = 'JS works but API failed: ' + err.message;
+            });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Daily Specials</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <script src="marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.0.7/dist/splide.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.0.7/dist/splide.min.js"><\/script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { height:100%; overflow:hidden; }
+    body {
+      font-family: 'Comic Sans MS', 'Marker Felt', 'Apple Chancery', cursive;
+      color: #fff;
+      background: #333; /* Fallback background so page is visible */
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    /* Background with brightness filter support */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      /* No default background - applied dynamically from config */
+      z-index: -1;
+      filter: brightness(1);
+    }
+    header {
+      background: rgba(0,0,0,0.5);
+      padding: 1rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      /* Responsive header font: scales with viewport width (5vw) between 1.5rem-4rem */
+      /* Larger screens get proportionally larger text; clamp() prevents extremes */
+      font-size: clamp(1.5rem, 5vw, 4rem);
+      font-weight: bold;
+    }
+    #clock {
+      position: absolute;
+      right: 1rem;
+      font-size: clamp(1rem, 3vw, 2.5rem);
+      font-weight: normal;
+    }
+    #clock.hidden {
+      display: none;
+    }
+    #specials {
+      flex: 1;
+      /* Responsive padding: scales with viewport width between 1rem-3rem */
+      padding: clamp(1rem, 2vw, 3rem);
+      /* Responsive specials text: scales with viewport width (3vw) between 1rem-6rem */
+      /* 3vw means 3% of screen width; larger TVs get bigger fonts automatically */
+      font-size: clamp(1rem, 3vw, 6rem);
+      line-height: 1.1;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      -webkit-overflow-scrolling: touch;
+    }
+    /* Fix bullet point spacing and indentation */
+    #specials ul {
+      margin: 0.5em 0 0.5em 2em;
+      padding-left: 0;
+    }
+    #specials ul li {
+      margin-bottom: 0;
+      line-height: 1.3;
+    }
+    #specials ul li p {
+      margin: 0;
+      display: inline;
+    }
+    #specials ol {
+      margin: 0.5em 0 0.5em 2em;
+      padding-left: 0;
+    }
+    #specials ol li {
+      margin-bottom: 0;
+      line-height: 1.3;
+    }
+    #specials ol li p {
+      margin: 0;
+      display: inline;
+    }
+    .version {
+      position: fixed;
+      bottom: 0.5rem;
+      right: 0.5rem;
+      font-size: 0.7rem;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    /* Reload indicator overlay */
+    #reloadIndicator {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(74, 158, 255, 0.95);
+      color: white;
+      padding: 2rem 3rem;
+      border-radius: 1rem;
+      font-size: 2rem;
+      font-weight: bold;
+      z-index: 10000;
+      display: none;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    /* Logo overlay */
+    #logo {
+      position: fixed;
+      z-index: 5; /* Above background (0-1) but below text (default/auto) */
+      display: none; /* Hidden until configured */
+      pointer-events: none;
+    }
+    #logo.top-left {
+      top: 2rem;
+      left: 2rem;
+    }
+    #logo.bottom-left {
+      bottom: 2rem;
+      left: 2rem;
+    }
+    #logo.bottom-right {
+      bottom: 2rem;
+      right: 2rem;
+    }
+    .qr-badge {
+      position: fixed;
+      right: 1.2rem;
+      bottom: 2.2rem;
+      background: rgba(0,0,0,0.55);
+      border: 2px solid rgba(255,255,255,0.55);
+      border-radius: 0.8rem;
+      padding: 0.6rem 0.7rem;
+      display: flex;
+      gap: 0.6rem;
+      align-items: center;
+      z-index: 5;
+      backdrop-filter: blur(4px);
+    }
+    .qr-badge img {
+      width: 86px;
+      height: 86px;
+      background: #fff;
+      padding: 4px;
+      border-radius: 0.4rem;
+    }
+    .qr-text {
+      font-size: 0.9rem;
+      line-height: 1.1;
+    }
+    .qr-url {
+      display: inline-block;
+      font-size: 0.85rem;
+      opacity: 0.85;
+      margin-top: 0.2rem;
+    }
+    @media (max-width: 900px) {
+      .qr-badge {
+        transform: scale(0.85);
+        transform-origin: bottom right;
+      }
+    }
+  </style>
+</head>
+<body>
+  <img id="logo" src="" alt="" />
+  <header>
+    <span id="header">Specials</span>
+    <span id="clock">00:00</span>
+  </header>
+  <div id="specials">Loading…</div>
+  <div id="error-display" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:red;color:white;padding:20px;font-size:24px;max-width:80%;z-index:9999;display:none;"></div>
+  <div class="version">314Sign v1.0.2.83 | © 2025 J Stekervetz | CC BY-NC 4.0</div>
+  <div id="reloadIndicator">🔄 Reloading...</div>
+  <div class="qr-badge" id="customer-qr">
+    <img src="qr-menu.png" alt="Scan for menu" />
+    <div class="qr-text">
+      <div>Scan for menu</div>
+      <span class="qr-url" id="qr-url">http://314sign.local/</span>
+    </div>
+  </div>
+
+  <script>
+  // IMMEDIATE DEBUG - First thing that runs
+  alert('SCRIPT TAG REACHED');
+  console.log('[DEBUG] ===== SCRIPT EXECUTING =====');
+  
+  // Global error handler
+  window.onerror = function(msg, url, line, col, error) {
+    alert('ERROR: ' + msg + ' at line ' + line);
+    const errorDiv = document.getElementById('error-display');
+    if (errorDiv) {
+      errorDiv.style.display = 'block';
+      errorDiv.innerHTML = `<strong>JavaScript Error:</strong><br>${msg}<br>Line: ${line}, Col: ${col}<br>File: ${url || 'inline'}`;
+    }
+    console.error('Error:', msg, 'at', line + ':' + col);
+    return false;
+  };
+  
+  console.log('[DEBUG] Error handler installed');
+  
+  const specialsDiv = document.getElementById('specials');
+  const headerEl = document.getElementById('header');
+  const clockEl = document.getElementById('clock');
+  const versionEl = document.querySelector('.version');
+  const logoEl = document.getElementById('logo');
+  const qrUrlEl = document.getElementById('qr-url');
+  
+  console.log('[DEBUG] Elements found:', {
+    specials: !!specialsDiv,
+    header: !!headerEl,
+    clock: !!clockEl
+  });
+  
+  let currentMenu = localStorage.getItem('currentMenu') || 'menus/dinner.txt';
+  
+  // Debug: show visible confirmation script is running
+  console.log('[DEBUG] Script starting...');
+  if (specialsDiv) {
+    specialsDiv.textContent = 'Script is running...';
+    specialsDiv.style.fontSize = '48px';
+    specialsDiv.style.color = 'lime';
+  }
+
+  if (qrUrlEl) {
+    qrUrlEl.textContent = `http://${window.location.hostname}/`;
+  }
+  
+  // Initialize current-menu.json with the current menu
+  fetch('/api/menu', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: currentMenu.replace('menus/', '').replace('.txt', ''), content: '' })
+  }).catch(err => console.warn('Failed to initialize current menu:', err));
+  
+  let lastText = '';
+  let lastEtag = null;
+  let rulesCheckInterval = null;
+  let clockInterval = null;
+  let clock24Hour = true; // Default to 24-hour format
+
+  // Update clock display
+  function updateClock() {
+    const now = new Date();
+    let hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    
+    if (clock24Hour) {
+      clockEl.textContent = `${hours.toString().padStart(2, '0')}:${minutes}`;
+    } else {
+      // 12-hour format with AM/PM
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12; // Convert 0 to 12 for midnight
+      clockEl.textContent = `${hours}:${minutes} ${ampm}`;
+    }
+  }
+
+  // Poll interval in milliseconds. Default to 3000ms (3s).
+  // This value can be overridden from page.json using one of:
+  //  - pollIntervalMs: number (milliseconds)
+  //  - pollIntervalSeconds: number (seconds)
+  //  - pollInterval: number (seconds)  -- legacy/short key
+  let pollIntervalMs = 3000;
+  
+  // Font scale percentage. Default to 5% of viewport width.
+  // Can be overridden via fontScalePercent in page.json.
+  let fontScalePercent = 5;
+    let lastHeaderSizePercent = null;
+  // Check if demo mode is persisted from previous session
+  let demoModeActive = localStorage.getItem('demoModeActive') === 'true';
+
+  // Process color tags in text (used for both header and content)
+  function processColorTags(text) {
+    const colorMap = {
+      r: '#ff4444', y: '#ffdd44', g: '#44ff44', b: '#4488ff',
+      o: '#ff8844', p: '#ff44ff', w: '#ffffff', lg: '#aaaaaa'
+    };
+    
+    const colorPattern = /\{(r|y|g|b|o|p|w|lg)\}/gi;
+    let lastIndex = 0;
+    let result = '';
+    let currentColor = null;
+    
+    text.replace(colorPattern, (match, colorKey, offset) => {
+      const textBefore = text.substring(lastIndex, offset);
+      if (currentColor) {
+        result += '<span style="color:' + currentColor + '">' + textBefore + '</span>';
+      } else {
+        result += textBefore;
+      }
+      currentColor = colorMap[colorKey.toLowerCase()];
+      lastIndex = offset + match.length;
+      return '';
+    });
+    
+    const textAfter = text.substring(lastIndex);
+    if (currentColor) {
+      result += '<span style="color:' + currentColor + '">' + textAfter + '</span>';
+    } else {
+      result += textAfter;
+    }
+    
+    return result || text;
+  }    // Check schedule rules and auto-switch menu if enabled
+  
+  // After converting tags to spans, strip leading/trailing straight or curly quotes
+  // that were preserved inside color spans (e.g. <span ...>"text"</span> → <span ...>text</span>)
+  function stripQuotesInSpans(html) {
+    // Remove any quote character immediately after a span open tag
+    html = html.replace(/>(["'“”])/g, '>');
+    // Remove any quote character immediately before a span close tag
+    html = html.replace(/(["'“”])<\/span>/g, '</span>');
+    return html;
+  }
+    function checkScheduleRules() {
+      // Skip auto-switching if demo mode is active
+      if (demoModeActive) {
+        console.log('[Rules] Skipped - demo mode active');
+        return;
+      }
+      fetch('/api/rules?' + Date.now())
+        .then(r => r.ok ? r.json() : { data: [] })
+        .then(response => response.data || [])
+        .then(rules => {
+          if (!rules || rules.length === 0) return;
+
+          const now = new Date();
+          const currentDay = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][now.getDay()];
+          const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
+          // Find matching rule
+          for (const rule of rules) {
+            if (!rule.days.includes(currentDay)) continue;
+
+            // Handle time ranges that cross midnight
+            const startTime = rule.startTime || '00:00';
+            const endTime = rule.endTime || '23:59';
+
+            let matches = false;
+            if (startTime <= endTime) {
+              // Normal range (e.g., 09:00 - 17:00)
+              matches = currentTime >= startTime && currentTime < endTime;
+            } else {
+              // Crosses midnight (e.g., 22:00 - 07:00)
+              matches = currentTime >= startTime || currentTime < endTime;
+            }
+
+            if (matches) {
+              // Check if rule specifies a slideshow
+              if (rule.slideshow && !isPlayingSlideshow) {
+                console.log('Auto-starting slideshow:', rule.slideshow, 'based on rule:', rule.name);
+                loadSlideshowFromRule(rule.slideshow);
+                break;
+              } else if (rule.menu && rule.menu !== currentMenu && !isPlayingSlideshow) {
+                console.log('Auto-switching to', rule.menu, 'based on rule:', rule.name);
+                switchMenu(rule.menu);
+                break;
+              }
+            }
+          }
+        })
+        .catch(err => console.warn('Rules check failed:', err));
+    }
+
+    // Switch menu
+    function switchMenu(filename) {
+      currentMenu = filename;
+      localStorage.setItem('currentMenu', filename);
+      
+      // Update current menu via API for persistence and external control
+      fetch('/api/menu', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: filename.replace('menus/', '').replace('.txt', ''), content: '' })
+      }).catch(err => console.warn('Failed to update current menu:', err));
+      
+      // Load per-menu settings from menus-config.json
+      const menuName = filename.replace('menus/', '').replace('.txt', '');
+      fetch('menus-config.json?' + Date.now(), { cache: 'no-store' })
+        .then(r => r.ok ? r.json() : {})
+        .then(menusConfig => {
+          const specialsDiv = document.getElementById('specials');
+          
+          // Apply per-menu font scale
+          if (menusConfig[menuName] && Number.isFinite(menusConfig[menuName].fontScalePercent)) {
+            fontScalePercent = Number(menusConfig[menuName].fontScalePercent);
+            if (specialsDiv) {
+              specialsDiv.style.fontSize = `clamp(1rem, ${fontScalePercent}vw, 3rem)`;
+            }
+          }
+          
+          // Apply per-menu font
+          if (menusConfig[menuName] && menusConfig[menuName].font) {
+            if (specialsDiv) {
+              specialsDiv.style.fontFamily = menusConfig[menuName].font;
+            }
+          }
+        })
+        .catch(err => console.warn('Failed to load menu config:', err));
+      
+      // Reset state and poll immediately
+      lastText = '';
+      lastEtag = null;
+      pollSpecials();
+    }
+
+    // --------------------------------------------------------------------
+    // 1. Load config from API (once)
+    // --------------------------------------------------------------------
+
+    console.log('[INIT] Starting initialization...');
+    specialsDiv.textContent = 'Initializing...';
+    
+    // Load config directly without fonts (fonts can load in background)
+    fetch('/api/config?' + Date.now(), {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' }
+    })
+      .then(r => {
+        console.log('[INIT] Config fetch response:', r.ok, r.status);
+        return r;
+      })
+      .then(r => {
+        if (r.ok) {
+          return r.json();
+        } else {
+          const defaultConfig = {
+            bg: 'default.jpg',
+            headerFont: 'Arial, sans-serif',
+            headerText: 'Specials',
+            showClock: false,
+            clock24Hour: true
+          };
+          fetch('/api/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(defaultConfig)
+          }).catch(err => console.warn('Failed to create default page.json:', err));
+          return { data: {} };
+        }
+      })
+      .then(response => response.data || {})
+      .then(cfg => {
+        // Apply background/font from config if present (or default)
+        const bgImage = cfg.bg || 'backgd.jpg';
+        // Set background on body::before (where brightness filter is applied)
+        const bgStyle = document.createElement('style');
+        bgStyle.id = 'bg-image-style';
+        bgStyle.textContent = `body::before { background: url('bg/${bgImage}') center/cover no-repeat !important; }`;
+        const existing = document.getElementById('bg-image-style');
+        if (existing) existing.remove();
+        document.head.appendChild(bgStyle);
+        lastBgImage = bgImage;
+        if (cfg.font) document.body.style.fontFamily = cfg.font;
+        
+        // Apply header font separately if set (falls back to body font)
+        if (cfg.headerFont) {
+          const headerEl = document.querySelector('header');
+          if (headerEl) headerEl.style.fontFamily = cfg.headerFont;
+        }
+        
+        // Apply header text if set (default 'Specials')
+        if (cfg.headerText) {
+          // Use innerHTML to support color tags in header
+          headerEl.innerHTML = processColorTags(cfg.headerText);
+        }
+        
+        // Show/hide clock based on config (default hidden)
+        // Start by hiding it
+        clockEl.classList.add('hidden');
+        if (clockInterval) {
+          clearInterval(clockInterval);
+          clockInterval = null;
+        }
+        
+        // Then show if enabled
+        if (cfg.showClock) {
+          clockEl.classList.remove('hidden');
+          // Set clock format (default to 24-hour if not specified)
+          clock24Hour = cfg.clock24Hour !== false;
+          updateClock();
+          clockInterval = setInterval(updateClock, 1000);
+        }
+
+        // Configure poll interval from config (supports multiple keys)
+        if (cfg && typeof cfg === 'object') {
+          // Prefer explicit milliseconds value if provided
+          if (Number.isFinite(cfg.pollIntervalMs)) {
+            pollIntervalMs = Number(cfg.pollIntervalMs);
+          } else if (Number.isFinite(cfg.pollIntervalSeconds)) {
+            pollIntervalMs = Number(cfg.pollIntervalSeconds) * 1000;
+          } else if (Number.isFinite(cfg.pollInterval)) {
+            // legacy shorthand interpreted as seconds
+            pollIntervalMs = Number(cfg.pollInterval) * 1000;
+          }
+
+          // Validate sensible range; fall back to default on invalid values
+          if (!Number.isFinite(pollIntervalMs) || pollIntervalMs <= 0) {
+            pollIntervalMs = 3000;
+          }
+          
+          // Load font scale percentage from config if provided
+          if (Number.isFinite(cfg.fontScalePercent)) {
+            fontScalePercent = Number(cfg.fontScalePercent);
+          }
+          
+          // Apply font scale by updating CSS custom property
+          if (fontScalePercent > 0) {
+            const specials = document.getElementById('specials');
+            if (specials) {
+              specials.style.fontSize = 'clamp(1rem, ' + fontScalePercent + 'vw, 6rem)';
+            }
+          }
+          
+          // Load per-menu font scale from menus-config.json (overrides global setting)
+          const menuName = currentMenu.replace('menus/', '').replace('.txt', '');
+          fetch('menus-config.json?' + Date.now(), { cache: 'no-store' })
+            .then(r => r.ok ? r.json() : {})
+            .then(menusConfig => {
+              const specials = document.getElementById('specials');
+              
+              // Apply per-menu font scale
+              if (menusConfig[menuName] && Number.isFinite(menusConfig[menuName].fontScalePercent)) {
+                fontScalePercent = Number(menusConfig[menuName].fontScalePercent);
+                if (specials) {
+                  specials.style.fontSize = 'clamp(1rem, ' + fontScalePercent + 'vw, 6rem)';
+                }
+              }
+              
+              // Apply per-menu font
+              if (menusConfig[menuName] && menusConfig[menuName].font) {
+                if (specials) {
+                  specials.style.fontFamily = menusConfig[menuName].font;
+                }
+              }
+            })
+            .catch(err => console.warn('Failed to load menu config:', err));
+          
+          // Load and apply header size
+          if (Number.isFinite(cfg.headerSizePercent)) {
+            const header = document.querySelector('header');
+            if (header) {
+              header.style.fontSize = 'clamp(1.5rem, ' + cfg.headerSizePercent + 'vw, 8rem)';
+              lastHeaderSizePercent = cfg.headerSizePercent;
+            }
+          }
+          
+          // Load and apply background brightness
+          if (Number.isFinite(cfg.bgBrightness)) {
+            const style = document.createElement('style');
+            style.id = 'bg-brightness-style';
+            style.textContent = 'body::before { filter: brightness(' + cfg.bgBrightness + ') !important; }';
+            const existing = document.getElementById('bg-brightness-style');
+            if (existing) existing.remove();
+            document.head.appendChild(style);
+            lastBgBrightness = cfg.bgBrightness;
+          }
+          
+          // Load and apply logo settings
+          if (cfg.logoFile) {
+            logoEl.src = 'media/' + cfg.logoFile;
+            logoEl.style.display = 'block';
+            
+            // Apply position
+            logoEl.className = cfg.logoPosition || 'bottom-right';
+            
+            // Apply size (percentage of viewport width)
+            if (Number.isFinite(cfg.logoSize)) {
+              logoEl.style.width = cfg.logoSize + 'vw';
+              logoEl.style.height = 'auto'; // Maintain aspect ratio
+            } else {
+              logoEl.style.width = '15vw'; // Default size
+              logoEl.style.height = 'auto';
+            }
+            
+            // Apply opacity
+            if (Number.isFinite(cfg.logoOpacity)) {
+              logoEl.style.opacity = cfg.logoOpacity;
+            } else {
+              logoEl.style.opacity = '1'; // Default fully opaque
+            }
+          } else {
+            // No logo configured, hide it
+            logoEl.style.display = 'none';
+          }
+        }
+      })
+      .catch(() => console.warn('page.json missing – using defaults'))
+      .finally(startPolling);
+
+    // --------------------------------------------------------------------
+    // 2. Poll specials.txt – ETag-aware, fallback to text compare
+    // --------------------------------------------------------------------
+    function startPolling() {
+      // Check rules after a brief delay to allow user's manual selection to load first
+      // (localStorage currentMenu should take precedence on initial page load)
+      setTimeout(checkScheduleRules, 2000);
+      rulesCheckInterval = setInterval(checkScheduleRules, 300000);
+      
+      // Check config, reload triggers, and demo commands every 60 seconds (reduced frequency)
+      setInterval(checkConfigChanges, 60000);
+      
+      pollSpecials();
+    }
+    
+  let lastReloadToken = null;
+  let lastDemoCommand = 'idle';
+  let currentVersion = null;
+  let lastHeaderFont = null;
+  let lastBgImage = null;
+  let lastRequestedMenu = null;
+  let lastBgBrightness = null;
+    async function checkConfigChanges() {
+      try {
+        // Run all checks in parallel with timeout protection
+        await Promise.race([
+          Promise.all([
+            // Check for reload.txt changes (triggered by editor saves)
+            fetch('reload.txt?' + Date.now(), { cache: 'no-store' })
+              .then(r => r.ok ? r.text() : '')
+              .then(token => {
+                token = token.trim();
+                if (!token) return;
+                
+                if (lastReloadToken === null) {
+                  lastReloadToken = token;
+                  console.log('[Reload] Baseline set:', token);
+                } else if (token !== lastReloadToken) {
+                  console.log('[Reload] Token changed:', lastReloadToken, '->', token);
+                  lastReloadToken = token;
+                  showReloadIndicator();
+                  setTimeout(() => location.reload(true), 1000);
+                }
+              })
+              .catch(() => {}),
+            
+            // Check for current-menu.json changes (external menu control)
+            fetch('current-menu.json?' + Date.now(), { cache: 'no-store' })
+              .then(r => r.ok ? r.json() : null)
+              .then(data => {
+                if (!data || !data.menu) return;
+                const requestedMenu = data.menu;
+                
+                // Only switch if not in demo mode and menu is different
+                if (!demoModeActive && requestedMenu !== currentMenu) {
+                  if (lastRequestedMenu === null) {
+                    lastRequestedMenu = requestedMenu;
+                    console.log('[Current Menu] Baseline set:', requestedMenu);
+                  } else if (requestedMenu !== lastRequestedMenu) {
+                    console.log('[Current Menu] Switching from', currentMenu, 'to', requestedMenu);
+                    lastRequestedMenu = requestedMenu;
+                    switchMenu(requestedMenu);
+                  }
+                } else if (lastRequestedMenu === null) {
+                  lastRequestedMenu = requestedMenu;
+                }
+              })
+              .catch(() => {}),
+            
+            // Check for demo commands (remote control from demo panel)
+            fetch('demo-command.txt?' + Date.now(), { cache: 'no-store' })
+              .then(r => r.ok ? r.text() : '')
+              .then(command => {
+                command = command.trim();
+                if (command && command !== 'idle' && command !== lastDemoCommand) {
+                  lastDemoCommand = command;
+                  console.log('[Demo] Command received:', command);
+                  executeDemoCommand(command);
+                  
+                  // Reset command file to 'idle' after executing
+                  fetch('demo-command.txt', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: 'idle'
+                  }).catch(() => {});
+                }
+              })
+              .catch(() => {}),
+            
+            // Check for version changes (force reload on updates)
+            fetch('version.txt?' + Date.now(), { cache: 'no-store' })
+              .then(r => r.ok ? r.text() : '')
+              .then(version => {
+                version = version.trim();
+                if (!version) return;
+                
+                if (currentVersion === null) {
+                  currentVersion = version;
+                  console.log('[Version] Current version:', version);
+                  // Update the displayed version
+                  if (versionEl) {
+                    versionEl.textContent = `314Sign v${version} | © 2025 J Stekervetz | CC BY-NC 4.0`;
+                  }
+                } else if (version !== currentVersion) {
+                  console.log('[Version] Update detected:', currentVersion, '->', version);
+                  currentVersion = version;
+                  showReloadIndicator();
+                  setTimeout(() => location.reload(true), 1000);
+                }
+              })
+              .catch(() => {}),
+            
+
+            
+            // Check for brightness changes (force reload for immediate effect)
+            fetch('/api/config?' + Date.now(), { cache: 'no-store' })
+              .then(r => r.ok ? r.json() : { data: {} })
+              .then(response => response.data || {})
+              .then(cfg => {
+                if (Number.isFinite(cfg.bgBrightness) && cfg.bgBrightness !== lastBgBrightness) {
+                  console.log('[Brightness] Changed from', lastBgBrightness, 'to', cfg.bgBrightness, '- reloading for immediate effect');
+                  lastBgBrightness = cfg.bgBrightness;
+                  showReloadIndicator();
+                  setTimeout(() => location.reload(true), 1000);
+                } else if (lastBgBrightness === null && Number.isFinite(cfg.bgBrightness)) {
+                  lastBgBrightness = cfg.bgBrightness;
+                }
+              })
+              .catch(() => {}),
+
+            // Check for config changes (font scale, header size, brightness)
+            fetch('/api/config?' + Date.now(), { cache: 'no-store' })
+              .then(r => r.ok ? r.json() : { data: {} })
+              .then(response => response.data || {})
+              .then(cfg => {
+                // NOTE: Don't check fontScalePercent here!
+                // Per-menu font scales (from menus-page.json) override global config
+                // and are only applied during boot/menu switching.
+                // Checking here would cause global config to overwrite per-menu scales.
+                
+                // Check if header font changed
+                if (cfg.headerFont && cfg.headerFont !== lastHeaderFont) {
+                  const header = document.querySelector('header');
+                  if (header) {
+                    header.style.fontFamily = cfg.headerFont;
+                    lastHeaderFont = cfg.headerFont;
+                    console.log('[Config] Header font updated:', cfg.headerFont);
+                  }
+                }
+                
+                // Check if header size changed
+                if (Number.isFinite(cfg.headerSizePercent) && cfg.headerSizePercent !== lastHeaderSizePercent) {
+                  const header = document.querySelector('header');
+                  if (header) {
+                    header.style.fontSize = 'clamp(1.5rem, ' + cfg.headerSizePercent + 'vw, 8rem)';
+                    lastHeaderSizePercent = cfg.headerSizePercent;
+                  }
+                }
+                
+                // Check if background image changed
+                const currentBg = cfg.bg || 'backgd.jpg';
+                if (currentBg !== lastBgImage) {
+                  const bgStyle = document.createElement('style');
+                  bgStyle.id = 'bg-image-style';
+                  bgStyle.textContent = `body::before { background: url('bg/${currentBg}') center/cover no-repeat !important; }`;
+                  const existing = document.getElementById('bg-image-style');
+                  if (existing) existing.remove();
+                  document.head.appendChild(bgStyle);
+                  lastBgImage = currentBg;
+                  console.log('[Config] Background updated:', currentBg);
+                }
+                
+                  // Check for config to allow external control of which top-level page is served
+                  // Example config contents: { "page": "index" } or { "page": "start" } or { "page": "slideshows" }
+                  if (cfg.page) {
+                    try {
+                      // Determine current top-level path ('' for root/index)
+                      const pathParts = window.location.pathname.replace(/^\//, '').split('/');
+                      const currentTop = pathParts[0] || 'index';
+                      const requested = String(cfg.page || 'index');
+                      if (requested && requested !== currentTop) {
+                        console.log('[PageJSON] Requested page:', requested, 'current:', currentTop);
+                        // Navigate to the requested page directory (assumes a trailing slash index page exists)
+                        // Special-case 'index' to point to root
+                        const target = requested === 'index' ? '/' : ('/' + requested + '/');
+                        // Only navigate if different
+                        if (location.pathname !== target && !location.pathname.startsWith(target)) {
+                          // Respect demo mode: if demo mode is active, do not auto-navigate unless requested explicitly
+                          // (config updates are assumed authoritative; demo mode will be overridden)
+                          // Navigate after a short delay to allow other checks to complete
+                          setTimeout(() => { window.location.href = target; }, 100);
+                        }
+                      }
+                    } catch (e) { console.warn('[PageJSON] parse error', e); }
+                  }
+
+                // Check if background brightness changed
+                if (Number.isFinite(cfg.bgBrightness) && cfg.bgBrightness !== lastBgBrightness) {
+                  const style = document.createElement('style');
+                  style.id = 'bg-brightness-style';
+                  style.textContent = 'body::before { filter: brightness(' + cfg.bgBrightness + ') !important; }';
+                  const existing = document.getElementById('bg-brightness-style');
+                  if (existing) existing.remove();
+                  document.head.appendChild(style);
+                  lastBgBrightness = cfg.bgBrightness;
+                }
+                
+                // Check if logo settings changed
+                if (cfg.logoFile) {
+                  const needsUpdate = 
+                    logoEl.src !== location.origin + '/media/' + cfg.logoFile ||
+                    logoEl.className !== (cfg.logoPosition || 'bottom-right') ||
+                    parseFloat(logoEl.style.width) !== (cfg.logoSize || 15) ||
+                    parseFloat(logoEl.style.opacity) !== (cfg.logoOpacity || 1);
+                  
+                  if (needsUpdate) {
+                    logoEl.src = 'media/' + cfg.logoFile;
+                    logoEl.style.display = 'block';
+                    logoEl.className = cfg.logoPosition || 'bottom-right';
+                    logoEl.style.width = (cfg.logoSize || 15) + 'vw';
+                    logoEl.style.height = 'auto';
+                    logoEl.style.opacity = cfg.logoOpacity || 1;
+                  }
+                } else if (logoEl.style.display !== 'none') {
+                  logoEl.style.display = 'none';
+                }
+              })
+              .catch(() => {})
+          ]),
+          // Timeout after 5 seconds to prevent blocking
+          new Promise((_, reject) => setTimeout(() => reject('timeout'), 5000))
+        ]);
+      } catch (err) {
+        if (err === 'timeout') {
+          console.warn('[Config] Check timed out after 5s');
+        }
+      }
+    }
+    
+    function showReloadIndicator() {
+      // Hide the reloading indicator - users don't want to see it
+      // const indicator = document.getElementById('reloadIndicator');
+      // if (indicator) {
+      //   indicator.style.display = 'block';
+      //   console.log('[UI] Reload indicator shown - page will reload in 1 second');
+      // }
+    }
+
+    function executeDemoCommand(command) {
+      // Parse command format: "menu:breakfast" or "slideshow:example" or "page:edit" or "reload" or "auto"
+      console.log('[Demo] Executing command:', command);
+      
+      if (command === 'reload') {
+        // Keep demo mode active through reload
+        console.log('[Demo] Reloading kiosk (demo mode will persist)...');
+        showReloadIndicator();
+        setTimeout(() => location.reload(true), 500);
+        return;
+      }
+      
+      if (command === 'auto') {
+        // Re-enable automatic schedule-based switching
+        demoModeActive = false;
+        localStorage.removeItem('demoModeActive');
+        console.log('[Demo] Auto-switching re-enabled - rules will apply');
+        // Immediately check rules to switch to scheduled menu
+        checkScheduleRules();
+        return;
+      }
+
+      const [type, value] = command.split(':');
+      
+      if (type === 'menu' && value) {
+        // Stop any running slideshow
+        if (isSlideshow) {
+          stopSlideshow();
+        }
+        // Enable demo mode to disable auto-switching
+        demoModeActive = true;
+        localStorage.setItem('demoModeActive', 'true');
+        // Switch to menu
+        const menuFile = 'menus/' + value + '.txt';
+        currentMenu = menuFile;
+        localStorage.setItem('selectedMenu', value);
+        localStorage.setItem('currentMenu', currentMenu);
+        console.log('[Demo] Switching to menu:', menuFile, '(demo mode active)');
+        // Force immediate fetch and display
+        lastEtag = null; // Clear ETag to force refresh
+        pollSpecials();
+      } else if (type === 'slideshow' && value) {
+        // Enable demo mode to disable auto-switching
+        demoModeActive = true;
+        localStorage.setItem('demoModeActive', 'true');
+        // Load slideshow
+        loadSlideshow('slideshows/sets/' + value + '.json');
+        console.log('[Demo] Loading slideshow:', value, '(auto-switching disabled)');
+      } else if (type === 'page' && value) {
+        // Load a different page (editor, start menu, etc)
+        console.log('[Demo] Loading page:', value);
+        window.location.href = value + '/';
+      }
+    }
+
+    function pollSpecials() {
+      // Load menu content from database API instead of file
+      const menuName = currentMenu.replace('menus/', '').replace('.txt', '');
+      fetch('/api/menu/' + menuName + '?' + Date.now(), {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      })
+        .then(r => {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(response => {
+          if (!response.success || !response.data) {
+            throw new Error('Invalid API response');
+          }
+
+          const menuData = response.data;
+          const newText = menuData.content || '';
+
+          if (newText === lastText) {
+            // No change → skip DOM update
+            return null;
+          }
+
+          lastText = newText;
+          return newText;
+        })
+        .then(newText => {
+          if (newText !== null && newText !== undefined) {
+            lastText = newText;
+            // Parse Markdown and render as HTML
+            let trimmed = newText.trim() || 'No specials today.';
+            
+            // Check for embedded font scale at the top of the file [FONTSCALE:X]
+            const fontScaleMatch = trimmed.match(/^\[FONTSCALE:(\d+(?:\.\d+)?)\]\n?/i);
+            if (fontScaleMatch) {
+              const menuFontScale = parseFloat(fontScaleMatch[1]);
+              // Remove the fontscale directive from display
+              trimmed = trimmed.replace(/^\[FONTSCALE:\d+(?:\.\d+)?\]\n?/i, '');
+              // Apply font scale to specials div
+              const specials = document.getElementById('specials');
+              if (specials && menuFontScale > 0 && menuFontScale <= 20) {
+                specials.style.fontSize = 'clamp(1rem, ' + menuFontScale + 'vw, 6rem)';
+              }
+            }
+            
+            // Convert custom bullet syntax first (before markdown)
+            const withBullets = trimmed.replace(/^- /gm, '• ');
+            
+            // Parse Markdown FIRST to convert **bold**, *italic*, etc.
+            let html = marked.parse(withBullets);
+            
+            // Now apply custom tags to the HTML output
+            // Process color tags
+            const lines = html.split('\n');
+            const colorProcessedLines = lines.map(line => processColorTags(line));
+            html = colorProcessedLines.join('\n');
+            // Strip quotes that may have been left inside color spans
+            html = stripQuotesInSpans(html);
+            
+            // Check for font size override tags [sX]...[/s] where X is percentage
+            const sizeRegex = /\[s(\d+(?:\.\d+)?)\]([\s\S]*?)\[\/s\]/gi;
+            html = html.replace(sizeRegex, (match, percent, content) => {
+              return `<span style="font-size: ${percent}vw">${content}</span>`;
+            });
+            
+            // Check for alignment tags [center]...[/center] and [right]...[/right]
+            html = html.replace(/\[center\]([\s\S]*?)\[\/center\]/gi, '<div style="text-align: center">$1</div>');
+            html = html.replace(/\[right\]([\s\S]*?)\[\/right\]/gi, '<div style="text-align: right">$1</div>');
+            
+            specialsDiv.innerHTML = html;
+          }
+        })
+        .catch(err => {
+          console.error('Specials load failed:', err);
+          specialsDiv.textContent = 'Error loading specials – retrying…';
+        })
+        .finally(() => {
+          // Use configured poll interval (ms). This keeps a single timeout
+          // chain to avoid overlapping polls.
+          setTimeout(pollSpecials, pollIntervalMs);
+        });
+    }
+
+    // --------------------------------------------------------------------
+    // 3. Full reload every 5 minutes (catches config/background changes)
+    // --------------------------------------------------------------------
+    setInterval(() => location.reload(true), 5 * 60 * 1000);
+
+    // ====================================================================
+    // SLIDESHOW PLAYER
+    // ====================================================================
+    
+    let slideshowData = null;
+    let currentSlideIndex = 0;
+    let slideTimeout = null;
+    let isPlayingSlideshow = false;
+
+    // Check if URL has slideshow parameter or if rule specifies slideshow
+    function checkForSlideshow() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const slideshowPath = urlParams.get('slideshow');
+      
+      if (slideshowPath) {
+        loadSlideshow(slideshowPath);
+      }
+    }
+
+    // Load slideshow from database API
+    function loadSlideshow(slideshowName) {
+      // If slideshowName is a path, extract the name
+      if (slideshowName.includes('/')) {
+        slideshowName = slideshowName.split('/').pop().replace('.json', '');
+      }
+
+      fetch('/api/slideshows/' + slideshowName)
+        .then(r => r.ok ? r.json() : null)
+        .then(response => response ? response.data : null)
+        .then(data => {
+          if (data && data.slides && data.slides.length > 0) {
+            slideshowData = data;
+            isPlayingSlideshow = true;
+
+            // Hide header and specials div
+            if (headerEl) headerEl.style.display = 'none';
+            if (clockEl) clockEl.style.display = 'none';
+            if (specialsDiv) specialsDiv.style.display = 'none';
+
+            // Start slideshow
+            currentSlideIndex = 0;
+            playSlide(0);
+          }
+        })
+        .catch(err => {
+          console.error('Failed to load slideshow:', err);
+        });
+    }
+
+    // Load slideshow from rule
+    function loadSlideshowFromRule(slideshowPath) {
+      if (!slideshowPath) return;
+      
+      // Stop regular menu polling
+      if (isPlayingSlideshow) return; // Already playing
+      
+      loadSlideshow(slideshowPath);
+    }
+
+    // Play a specific slide
+    function playSlide(index) {
+      if (!slideshowData || !slideshowData.slides[index]) {
+        console.error('Invalid slide index:', index);
+        return;
+      }
+
+      const slide = slideshowData.slides[index];
+      currentSlideIndex = index;
+
+      // Clear existing slide content
+      specialsDiv.innerHTML = '';
+      specialsDiv.style.display = 'flex';
+      specialsDiv.style.alignItems = 'center';
+      specialsDiv.style.justifyContent = 'center';
+      specialsDiv.style.overflow = 'hidden';
+      
+      // Create slide container
+      const slideContainer = document.createElement('div');
+      slideContainer.style.width = '100%';
+      slideContainer.style.height = '100%';
+      slideContainer.style.position = 'relative';
+      slideContainer.style.display = 'flex';
+      slideContainer.style.alignItems = 'center';
+      slideContainer.style.justifyContent = 'center';
+
+      // Apply transition
+      applyTransition(slideContainer, slide.transition || 'fade');
+
+      // Render slide based on type
+      if (slide.type === 'text') {
+        renderTextSlide(slideContainer, slide);
+      } else if (slide.type === 'image') {
+        renderImageSlide(slideContainer, slide);
+      } else if (slide.type === 'video') {
+        renderVideoSlide(slideContainer, slide);
+      }
+
+      specialsDiv.appendChild(slideContainer);
+
+      // Schedule next slide
+      const duration = slide.duration || slideshowData.defaultDuration || 5000;
+      
+      if (slide.type === 'video' && duration === 0) {
+        // Wait for video to finish
+        const video = slideContainer.querySelector('video');
+        if (video) {
+          video.addEventListener('ended', () => {
+            nextSlide();
+          });
+        }
+      } else {
+        // Use specified duration
+        if (slideTimeout) clearTimeout(slideTimeout);
+        slideTimeout = setTimeout(() => {
+          nextSlide();
+        }, duration);
+      }
+    }
+
+    // Render text slide
+    function renderTextSlide(container, slide) {
+      // Set background
+      if (slide.background) {
+        container.style.backgroundImage = `url('${slide.background}')`;
+        container.style.backgroundSize = 'cover';
+        container.style.backgroundPosition = 'center';
+      } else {
+        container.style.background = '#000';
+      }
+
+      // Create text overlay
+      const textDiv = document.createElement('div');
+      textDiv.style.padding = '2rem';
+      textDiv.style.textAlign = 'center';
+      textDiv.style.color = 'white';
+      textDiv.style.textShadow = '2px 2px 4px rgba(0,0,0,0.8)';
+      textDiv.style.fontFamily = slide.font || 'Lato, sans-serif';
+      textDiv.style.fontSize = `${slide.fontSize || 5}vw`;
+      textDiv.style.maxWidth = '90%';
+
+      // Parse markdown content with color tags
+      let content = slide.content || '';
+      
+      // Process color tags
+      const colorMap = {
+        r: '#ff4444', y: '#ffdd44', g: '#44ff44', b: '#4488ff',
+        o: '#ff8844', p: '#ff44ff', w: '#ffffff'
+      };
+      
+      const lines = content.split('\n');
+      const processedLines = lines.map(line => {
+        let processed = line;
+        Object.keys(colorMap).forEach(colorKey => {
+          const color = colorMap[colorKey];
+          const regex = new RegExp('\\{' + colorKey + '\\}(.*)$', 'i');
+          processed = processed.replace(regex, '<span style="color:' + color + '">$1</span>');
+        });
+        return processed;
+      });
+      
+      content = processedLines.join('\n');
+      
+      // Convert markdown
+      textDiv.innerHTML = marked.parse(content);
+      
+      container.appendChild(textDiv);
+    }
+
+    // Render image slide
+    function renderImageSlide(container, slide) {
+      container.style.background = '#000';
+      
+      const img = document.createElement('img');
+      img.src = slide.media;
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '100%';
+      img.style.objectFit = 'contain';
+      
+      container.appendChild(img);
+      
+      // Add caption if present
+      if (slide.caption) {
+        const caption = document.createElement('div');
+        caption.textContent = slide.caption;
+        caption.style.position = 'absolute';
+        caption.style.width = '100%';
+        caption.style.padding = '1rem 2rem';
+        caption.style.background = 'rgba(0,0,0,0.7)';
+        caption.style.color = 'white';
+        caption.style.textAlign = 'center';
+        caption.style.fontSize = 'clamp(1rem, 3vw, 2.5rem)';
+        
+        if (slide.captionPosition === 'top') {
+          caption.style.top = '0';
+        } else if (slide.captionPosition === 'center') {
+          caption.style.top = '50%';
+          caption.style.transform = 'translateY(-50%)';
+        } else {
+          caption.style.bottom = '0';
+        }
+        
+        container.appendChild(caption);
+      }
+    }
+
+    // Render video slide
+    function renderVideoSlide(container, slide) {
+      container.style.background = '#000';
+      
+      const video = document.createElement('video');
+      video.src = slide.media;
+      video.style.maxWidth = '100%';
+      video.style.maxHeight = '100%';
+      video.style.objectFit = 'contain';
+      
+      if (slide.loop) video.loop = true;
+      if (slide.muted) video.muted = true;
+      
+      video.autoplay = true;
+      video.play().catch(err => console.warn('Video autoplay failed:', err));
+      
+      container.appendChild(video);
+    }
+
+    // Apply transition effect
+    function applyTransition(element, transition) {
+      element.style.animation = '';
+      
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes slide-fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slide-left-in {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slide-right-in {
+          from { transform: translateX(-100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slide-up-in {
+          from { transform: translateY(100%); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes slide-down-in {
+          from { transform: translateY(-100%); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes zoom-in {
+          from { transform: scale(0.8); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+      `;
+      if (!document.getElementById('slideshow-animations')) {
+        style.id = 'slideshow-animations';
+        document.head.appendChild(style);
+      }
+
+      switch (transition) {
+        case 'fade':
+          element.style.animation = 'slide-fade-in 0.8s ease-in-out';
+          break;
+        case 'slide-left':
+          element.style.animation = 'slide-left-in 0.8s ease-in-out';
+          break;
+        case 'slide-right':
+          element.style.animation = 'slide-right-in 0.8s ease-in-out';
+          break;
+        case 'slide-up':
+          element.style.animation = 'slide-up-in 0.8s ease-in-out';
+          break;
+        case 'slide-down':
+          element.style.animation = 'slide-down-in 0.8s ease-in-out';
+          break;
+        case 'zoom':
+          element.style.animation = 'zoom-in 0.8s ease-in-out';
+          break;
+        case 'none':
+        default:
+          element.style.animation = 'none';
+      }
+    }
+
+    // Next slide
+    function nextSlide() {
+      if (!slideshowData) return;
+      
+      currentSlideIndex++;
+      if (currentSlideIndex >= slideshowData.slides.length) {
+        currentSlideIndex = 0; // Loop back to start
+      }
+      
+      playSlide(currentSlideIndex);
+    }
+
+    // Enhanced schedule rules checking to support slideshows
+    const originalCheckScheduleRules = checkScheduleRules;
+    checkScheduleRules = function() {
+      // Don't auto-switch if demo mode is active
+      if (demoModeActive) {
+        console.log('[Rules] Skipping auto-switch check (demo mode active)');
+        return;
+      }
+
+      fetch('/api/rules?' + Date.now())
+        .then(r => r.ok ? r.json() : { data: [] })
+        .then(response => response.data || [])
+        .then(rules => {
+          if (!rules || rules.length === 0) return;
+
+          const now = new Date();
+          const currentDay = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][now.getDay()];
+          const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
+          // Find matching rule
+          for (const rule of rules) {
+            if (!rule.days.includes(currentDay)) continue;
+
+            const startTime = rule.startTime || '00:00';
+            const endTime = rule.endTime || '23:59';
+
+            let matches = false;
+            if (startTime <= endTime) {
+              matches = currentTime >= startTime && currentTime < endTime;
+            } else {
+              matches = currentTime >= startTime || currentTime < endTime;
+            }
+
+            if (matches) {
+              // Check if rule specifies a slideshow
+              if (rule.slideshow && !isPlayingSlideshow) {
+                console.log('Auto-starting slideshow:', rule.slideshow, 'based on rule:', rule.name);
+                loadSlideshowFromRule(rule.slideshow);
+                break;
+              } else if (rule.menu && rule.menu !== currentMenu && !isPlayingSlideshow) {
+                console.log('Auto-switching to', rule.menu, 'based on rule:', rule.name);
+                switchMenu(rule.menu);
+                break;
+              }
+            }
+          }
+        })
+        .catch(err => console.warn('Rules check failed:', err));
+    };
+
+    // Initialize: Clear any stale demo commands on page load
+    fetch('demo-command.txt', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'text/plain' },
+      body: 'idle'
+    }).catch(() => {
+      console.warn('Could not initialize demo-command.txt');
+    });
+
+    // Check for slideshow on load
+    checkForSlideshow();
+  </script>
+    <script src="slideshow-player.js"><\/script>
+</body>
+</html>

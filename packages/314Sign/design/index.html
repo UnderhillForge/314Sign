@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Design Kiosk Page</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&family=Permanent+Marker&family=Caveat&family=Dancing+Script&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { height:100%; font-family: -apple-system, sans-serif; background:#1a1a1a; color:#e0e0e0; }
+    .container {
+      display:flex; flex-direction:column; height:100vh;
+      padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
+      gap:1rem;
+    }
+    h1 { font-size:1.6rem; text-align:center; color:#e0e0e0; }
+    .section {
+      background:#2d2d2d; padding:1rem; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.3);
+    }
+    label { display:block; margin:0.5rem 0 0.3rem; font-weight:600; color:#e0e0e0; }
+    select, input[type="file"], input[type="text"], input[type="range"] {
+      width:100%; padding:0.5rem; font-size:0.9rem; border:2px solid #3a3a3a; border-radius:6px;
+      background:#2d2d2d; color:#e0e0e0;
+    }
+    input[type="range"] {
+      padding:0.4rem;
+    }
+    .bg-grid {
+      display:grid; grid-template-columns:repeat(3,1fr); gap:0.5rem; margin-top:0.5rem;
+    }
+    .bg-thumb {
+      width:100%; height:80px; object-fit:cover; border-radius:8px; cursor:pointer;
+      border:3px solid transparent; transition:border 0.2s; position:relative;
+    }
+    .bg-thumb.selected { border-color:#4a9eff; }
+    .bg-thumb .delete-btn {
+      position:absolute; top:2px; right:2px; width:20px; height:20px;
+      background:#dc3545; color:white; border:none; border-radius:50%;
+      font-size:12px; line-height:1; cursor:pointer; opacity:0; transition:opacity 0.2s;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .bg-thumb:hover .delete-btn { opacity:1; }
+    .bg-thumb .delete-btn:hover { background:#c82333; }
+    .preview-img {
+      width:100%; max-height:100px; object-fit:contain; border-radius:8px; margin-top:0.5rem;
+      border:2px dashed #3a3a3a; display:none; background:#1a1a1a;
+    }
+    .actions { display:flex; gap:1rem; }
+    button {
+      flex:1; padding:1rem; font-size:1.1rem; font-weight:600; color:white;
+      background:#4a9eff; border:none; border-radius:12px; cursor:pointer;
+    }
+    button:active { background:#3a8edd; }
+    button.secondary { background:#6c757d; }
+    button.secondary:active { background:#5a6268; }
+    button.danger { background:#dc3545; }
+    button.danger:active { background:#c82333; }
+    .status { text-align:center; font-size:0.9rem; color:#b0b0b0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+
+    <div class="section">
+      <label>1. Background Image</label>
+      <div id="bg-grid" class="bg-grid"></div>
+      <label style="margin-top:1rem">Or Upload New Image:</label>
+      <input type="file" id="upload" accept="image/*" />
+      <img id="preview" class="preview-img" src="" />
+    </div>
+
+    <div class="section">
+      <label>2. Header Font Style</label>
+      <select id="headerFont">
+        <!-- Populated dynamically from page.json availableFonts -->
+      </select>
+    </div>
+
+    <div class="section">
+      <label>3. Header Text</label>
+      <input type="text" id="headerText" placeholder="Specials" maxlength="50" />
+    </div>
+    
+    <div class="section">
+      <label for="headerSize">4. Header Size (% of screen): <span id="headerSizeValue">20%</span></label>
+      <input type="range" id="headerSize" min="20" max="60" value="20" step="1" style="width: 100%" />
+    </div>
+    
+    <div class="section">
+      <label for="bgBrightness">5. Background Brightness: <span id="bgBrightnessValue">100%</span></label>
+      <input type="range" id="bgBrightness" min="20" max="150" value="100" step="5" style="width: 100%" />
+      <small style="color: #666; display: block; margin-top: 0.25rem;">Lower values darken, higher values brighten</small>
+    </div>
+
+    <div class="section">
+      <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+        <input type="checkbox" id="showClock" style="width:auto;margin:0" />
+        <span>Show Clock</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;margin-top:0.5rem;margin-left:1.5rem">
+        <input type="checkbox" id="clock24Hour" style="width:auto;margin:0" />
+        <span>24-Hour Format</span>
+      </label>
+    </div>
+
+    <div class="section">
+      <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+        <input type="checkbox" id="qrBadgeEnabled" style="width:auto;margin:0" />
+        <span>Show QR Badge</span>
+      </label>
+      <label style="margin-top:0.75rem">QR Badge Title</label>
+      <input type="text" id="qrBadgeTitle" placeholder="Scan for menu" maxlength="60" />
+      <label style="margin-top:0.75rem">QR Badge URL</label>
+      <input type="text" id="qrBadgeUrl" placeholder="http://314sign.local/" maxlength="200" />
+      <label style="margin-top:0.75rem">QR Badge Image Path</label>
+      <input type="text" id="qrBadgeImage" placeholder="qr-menu.png" maxlength="200" />
+      <label style="margin-top:0.75rem">Or Upload QR Image</label>
+      <input type="file" id="qrUpload" accept="image/*" />
+      <label style="margin-top:0.75rem">Or Choose From Library</label>
+      <div style="display:flex; gap:0.5rem; align-items:center;">
+        <select id="qrLibrarySelect" style="flex:1">
+          <option value="">Loading...</option>
+        </select>
+        <button type="button" class="secondary" id="qrLibraryReload" style="flex:0 0 auto; padding:0.5rem 0.75rem; font-size:0.85rem;">Reload</button>
+      </div>
+      <img id="qrPreview" class="preview-img" src="" alt="QR preview" />
+      <small style="color:#999; display:block; margin-top:0.5rem;">
+        Use a relative path like qr-menu.png or bg/qr.png, or a full URL.
+      </small>
+    </div>
+
+    <div class="section">
+      <label>6. Auto-Format Colors</label>
+      <small style="color: #999; display: block; margin-bottom: 0.75rem;">Choose colors for the ✨ Auto-Format button in the editor</small>
+      
+      <label style="font-size: 0.9rem; margin-top: 0.5rem;">Item Names:</label>
+      <select id="autoFormatItemColor">
+        <option value="w">⚪ White</option>
+        <option value="r">🔴 Red</option>
+        <option value="y">🟡 Yellow</option>
+        <option value="g">🟢 Green</option>
+        <option value="b">🔵 Blue</option>
+        <option value="o">🟠 Orange</option>
+        <option value="p">🟣 Pink</option>
+        <option value="lg">⚫ Light Grey</option>
+      </select>
+      
+      <label style="font-size: 0.9rem; margin-top: 0.5rem;">Prices:</label>
+      <select id="autoFormatPriceColor">
+        <option value="w">⚪ White</option>
+        <option value="r">🔴 Red</option>
+        <option value="y">🟡 Yellow</option>
+        <option value="g">🟢 Green</option>
+        <option value="b">🔵 Blue</option>
+        <option value="o">🟠 Orange</option>
+        <option value="p">🟣 Pink</option>
+        <option value="lg">⚫ Light Grey</option>
+      </select>
+      
+      <label style="font-size: 0.9rem; margin-top: 0.5rem;">Descriptions:</label>
+      <select id="autoFormatDescColor">
+        <option value="w">⚪ White</option>
+        <option value="r">🔴 Red</option>
+        <option value="y">🟡 Yellow</option>
+        <option value="g">🟢 Green</option>
+        <option value="b">🔵 Blue</option>
+        <option value="o">🟠 Orange</option>
+        <option value="p">🟣 Pink</option>
+        <option value="lg">⚫ Light Grey</option>
+      </select>
+    </div>
+
+    <div class="actions">
+      <button onclick="saveDesign()">Save & Update Kiosk</button>
+      <button class="secondary" onclick="location.reload()">Cancel</button>
+    </div>
+    
+    <div class="status" id="status"></div>
+    <!-- Toast notification (mobile friendly) -->
+    <div id="toast" class="toast" aria-live="polite" role="status" style="display:none"></div>
+    <div class="version" style="position:fixed;bottom:0.5rem;right:0.5rem;font-size:0.7rem;color:#999;opacity:0.6;pointer-events:none">314Sign v1.0.2.32 | © 2025 J Stekervetz | CC BY-NC 4.0</div>
+  </div>
+
+  <script>
+    const bgGrid = document.getElementById('bg-grid');
+    const upload = document.getElementById('upload');
+    const preview = document.getElementById('preview');
+    // const logoUpload = document.getElementById('logoUpload');
+    // const logoPreview = document.getElementById('logoPreview');
+    const headerFontSelect = document.getElementById('headerFont');
+    const headerTextInput = document.getElementById('headerText');
+    const headerSizeInput = document.getElementById('headerSize');
+    const headerSizeValue = document.getElementById('headerSizeValue');
+    const bgBrightnessInput = document.getElementById('bgBrightness');
+    const bgBrightnessValue = document.getElementById('bgBrightnessValue');
+    const showClockCheckbox = document.getElementById('showClock');
+    const clock24HourCheckbox = document.getElementById('clock24Hour');
+    const qrBadgeEnabledCheckbox = document.getElementById('qrBadgeEnabled');
+    const qrBadgeTitleInput = document.getElementById('qrBadgeTitle');
+    const qrBadgeUrlInput = document.getElementById('qrBadgeUrl');
+    const qrBadgeImageInput = document.getElementById('qrBadgeImage');
+    const qrUpload = document.getElementById('qrUpload');
+    const qrLibrarySelect = document.getElementById('qrLibrarySelect');
+    const qrLibraryReload = document.getElementById('qrLibraryReload');
+    const qrPreview = document.getElementById('qrPreview');
+    const autoFormatItemColor = document.getElementById('autoFormatItemColor');
+    const autoFormatPriceColor = document.getElementById('autoFormatPriceColor');
+    const autoFormatDescColor = document.getElementById('autoFormatDescColor');
+    // const logoFileSelect = document.getElementById('logoFile');
+    // const logoPositionSelect = document.getElementById('logoPosition');
+    // const logoSizeInput = document.getElementById('logoSize');
+    // const logoSizeValue = document.getElementById('logoSizeValue');
+    // const logoOpacityInput = document.getElementById('logoOpacity');
+    // const logoOpacityValue = document.getElementById('logoOpacityValue');
+    const status = document.getElementById('status');
+    
+    // Update header size display
+    headerSizeInput.addEventListener('input', () => {
+      headerSizeValue.textContent = headerSizeInput.value + '%';
+    });
+
+    // Update background brightness display
+    bgBrightnessInput.addEventListener('input', () => {
+      bgBrightnessValue.textContent = bgBrightnessInput.value + '%';
+    });
+    
+    // Update logo size display
+    // logoSizeInput.addEventListener('input', () => {
+    //   logoSizeValue.textContent = logoSizeInput.value + '%';
+    // });
+    
+    // Update logo opacity display
+    // logoOpacityInput.addEventListener('input', () => {
+    //   logoOpacityValue.textContent = logoOpacityInput.value + '%';
+    // });
+    
+    // Handle logo file selection from dropdown
+    // logoFileSelect.addEventListener('change', () => {
+    //   if (logoFileSelect.value) {
+    //     selectedLogo = logoFileSelect.value;
+    //     uploadedLogoDataUrl = null;
+    //     logoPreview.style.display = 'none';
+    //   } else {
+    //     selectedLogo = null;
+    //     uploadedLogoDataUrl = null;
+    //     logoPreview.style.display = 'none';
+    //   }
+    // });
+
+  let backgrounds = [];        // Filled from server
+  let selectedBg = null;       // Filename or 'uploaded'
+  let uploadedDataUrl = null;
+  let uploadedFileName = null; // original filename from file input
+  let uploadedQrDataUrl = null;
+  let uploadedQrFileName = null;
+  
+  // let selectedLogo = null;     // Logo filename or 'uploaded'
+  // let uploadedLogoDataUrl = null;
+  // let uploadedLogoFileName = null;
+
+    // === 1. Load existing images from /bg/ ===
+    function loadBackgrounds() {
+      fetch('../api/backgrounds')
+        .then(r => r.ok ? r.json() : { data: [] })
+        .then(response => {
+          backgrounds = response.data || [];
+          renderThumbs();
+          // loadLogoFiles();
+        })
+        .catch(err => {
+          console.error(err);
+          status.textContent = 'Warning: Could not load backgrounds.';
+          backgrounds = [];
+          renderThumbs();
+          // loadLogoFiles();
+        });
+    }
+    
+    // === Load logo files from media/ directory ===
+    /*
+    function loadLogoFiles() {
+      fetch('../media/index.php?' + Date.now())
+        .then(r => {
+          if (!r.ok) {
+            console.warn('media/index.php returned', r.status);
+            throw new Error('HTTP ' + r.status + ': ' + r.statusText);
+          }
+          return r.text();
+        })
+        .then(text => {
+          console.log('[Logo Files] Raw response from media/index.php:', text);
+          
+          // Check if response looks like JSON
+          if (!text.trim().startsWith('[') && !text.trim().startsWith('{')) {
+            console.error('[Logo Files] Response is not JSON:', text.substring(0, 100));
+            throw new Error('Invalid JSON response from media/index.php');
+          }
+          
+          return JSON.parse(text);
+        })
+        .then(files => {
+          console.log('[Logo Files] Successfully loaded:', files);
+          logoFileSelect.innerHTML = '<option value="">None</option>';
+          
+          if (Array.isArray(files) && files.length > 0) {
+            files.forEach(file => {
+              const option = document.createElement('option');
+              option.value = file;
+              option.textContent = file;
+              logoFileSelect.appendChild(option);
+            });
+            console.log('[Logo Files] Dropdown populated with', files.length, 'files:', files);
+          } else {
+            console.warn('[Logo Files] No logo files found in media/ directory (empty array)');
+          }
+          loadConfig();
+        })
+        .catch(err => {
+          console.error('[Logo Files] Failed to load:', err);
+          console.warn('[Logo Files] This is expected if testing locally without PHP server');
+          console.warn('[Logo Files] On production with PHP, check that media/index.php is accessible');
+          // Add "None" option even if fetch fails
+          logoFileSelect.innerHTML = '<option value="">None</option>';
+          loadConfig();
+        });
+    }
+    */
+
+    // === 2. Render thumbnails ===
+    function renderThumbs() {
+      bgGrid.innerHTML = '';
+      backgrounds.forEach(file => {
+        const container = document.createElement('div');
+        container.style.position = 'relative';
+
+        const img = document.createElement('img');
+        img.src = '../bg/' + file + '?' + Date.now();
+        img.className = 'bg-thumb';
+        img.dataset.file = file;
+        if (file === selectedBg) img.classList.add('selected');
+        img.onclick = () => selectBg(file, img);
+
+        container.appendChild(img);
+
+        // Add delete button for uploaded images (not default ones)
+        if (!['backgd.jpg', 'backgd2.avif'].includes(file)) {
+          const deleteBtn = document.createElement('button');
+          deleteBtn.className = 'delete-btn';
+          deleteBtn.innerHTML = '×';
+          deleteBtn.title = 'Delete image';
+          deleteBtn.onclick = (e) => {
+            e.stopPropagation(); // Prevent selecting the image
+            deleteBackgroundImage(file);
+          };
+          container.appendChild(deleteBtn);
+        }
+
+        bgGrid.appendChild(container);
+      });
+    }
+
+    function selectBg(file, thumb) {
+      selectedBg = file;
+      uploadedDataUrl = null;
+      preview.style.display = 'none';
+      document.querySelectorAll('.bg-thumb').forEach(t => t.classList.remove('selected'));
+      thumb.classList.add('selected');
+    }
+
+    // === 3. Handle file upload (preview only) ===
+    upload.onchange = () => {
+      const file = upload.files[0];
+      if (!file) return;
+      uploadedFileName = file.name || 'upload.jpg';
+      const reader = new FileReader();
+      reader.onload = e => {
+        uploadedDataUrl = e.target.result;
+        preview.src = uploadedDataUrl;
+        preview.style.display = 'block';
+        selectedBg = 'uploaded';
+        document.querySelectorAll('.bg-thumb').forEach(t => t.classList.remove('selected'));
+      };
+      reader.readAsDataURL(file);
+    };
+
+    // === QR upload (preview only) ===
+    qrUpload.onchange = () => {
+      const file = qrUpload.files[0];
+      if (!file) return;
+      uploadedQrFileName = file.name || 'qr.png';
+      const reader = new FileReader();
+      reader.onload = e => {
+        uploadedQrDataUrl = e.target.result;
+        qrPreview.src = uploadedQrDataUrl;
+        qrPreview.style.display = 'block';
+        qrBadgeImageInput.value = uploadedQrFileName;
+      };
+      reader.readAsDataURL(file);
+      if (qrLibrarySelect) qrLibrarySelect.value = '';
+    };
+
+    function resolvePreviewSrc(pathValue) {
+      if (!pathValue) return '';
+      if (pathValue.startsWith('data:')) return pathValue;
+      if (pathValue.startsWith('http://') || pathValue.startsWith('https://')) return pathValue;
+      if (pathValue.startsWith('/')) return '..' + pathValue;
+      return '../' + pathValue;
+    }
+
+    function populateQrLibrary(files, currentPath) {
+      if (!qrLibrarySelect) return;
+      qrLibrarySelect.innerHTML = '<option value="">Choose from library...</option>';
+      files.forEach(file => {
+        const option = document.createElement('option');
+        option.value = file;
+        option.textContent = file;
+        qrLibrarySelect.appendChild(option);
+      });
+
+      if (currentPath && currentPath.startsWith('media/')) {
+        const currentFile = currentPath.replace(/^media\//, '');
+        qrLibrarySelect.value = currentFile;
+      }
+    }
+
+    function loadQrLibrary(currentPath) {
+      if (!qrLibrarySelect) return;
+      fetch('../media/index.php?' + Date.now())
+        .then(r => r.ok ? r.json() : [])
+        .then(files => {
+          const list = Array.isArray(files) ? files : [];
+          populateQrLibrary(list, currentPath);
+        })
+        .catch(() => {
+          populateQrLibrary([], currentPath);
+        });
+    }
+
+    if (qrLibrarySelect) {
+      qrLibrarySelect.addEventListener('change', () => {
+        const file = qrLibrarySelect.value;
+        if (!file) return;
+        uploadedQrDataUrl = null;
+        qrBadgeImageInput.value = 'media/' + file;
+        const previewSrc = resolvePreviewSrc(qrBadgeImageInput.value);
+        if (previewSrc) {
+          qrPreview.src = previewSrc;
+          qrPreview.style.display = 'block';
+        }
+      });
+    }
+
+    if (qrLibraryReload) {
+      qrLibraryReload.addEventListener('click', () => {
+        loadQrLibrary(qrBadgeImageInput.value.trim());
+      });
+    }
+    
+    // === Handle logo upload (preview only) ===
+    /*
+    logoUpload.onchange = () => {
+      const file = logoUpload.files[0];
+      if (!file) return;
+      uploadedLogoFileName = file.name || 'logo.png';
+      const reader = new FileReader();
+      reader.onload = e => {
+        uploadedLogoDataUrl = e.target.result;
+        logoPreview.src = uploadedLogoDataUrl;
+        logoPreview.style.display = 'block';
+        selectedLogo = 'uploaded';
+        logoFileSelect.value = ''; // Deselect dropdown when uploading
+      };
+      reader.readAsDataURL(file);
+    };
+    */
+
+    // === 4. Load saved config and populate fonts ===
+    function loadConfig() {
+      console.log('[Config] loadConfig called');
+      
+      // Ensure form elements exist
+      if (!headerTextInput || !headerSizeInput || !bgBrightnessInput) {
+        console.error('[Config] Form elements not found, retrying in 500ms');
+        setTimeout(loadConfig, 500);
+        return;
+      }
+      
+      // Load fonts from API and config
+      Promise.all([
+        fetch('../api/fonts').then(r => r.ok ? r.json() : { data: { allFonts: {} } }),
+        fetch('../api/config?' + Date.now(), { cache: 'no-store' })
+          .then(r => r.ok ? r.json() : { data: {} })
+      ]).then(([fontsResponse, configResponse]) => {
+        const fontData = fontsResponse.data || {};
+        const cfg = configResponse.data || {};
+
+        console.log('[Fonts] Loaded web-safe fonts:', Object.keys(fontData.allFonts || {}).length);
+
+        // Use web-safe fonts from API
+        const fonts = fontData.allFonts || {
+          "Arial": "Arial, sans-serif",
+          "Times New Roman": "Times New Roman, serif"
+        };
+
+        // Populate font dropdown
+        headerFontSelect.innerHTML = '';
+        Object.entries(fonts).forEach(([name, value]) => {
+          const headerOption = document.createElement('option');
+          headerOption.value = value;
+          headerOption.textContent = name;
+          headerFontSelect.appendChild(headerOption);
+        });
+        console.log('Fonts loaded:', Object.keys(fonts).length + ' web-safe fonts');
+          
+          if (cfg.bg) {
+            if (cfg.bg.startsWith('data:')) {
+              // Uploaded image
+              selectedBg = 'uploaded';
+              uploadedDataUrl = cfg.bg;
+              preview.src = uploadedDataUrl;
+              preview.style.display = 'block';
+            } else {
+              selectedBg = cfg.bg;
+              const thumb = document.querySelector(`.bg-thumb[data-file="${cfg.bg}"]`);
+              if (thumb) thumb.classList.add('selected');
+            }
+          }
+          
+          // Set the header font (defaults to body font if not set)
+          if (cfg.headerFont) {
+            headerFontSelect.value = cfg.headerFont;
+            console.log('[Config] Header font from config:', cfg.headerFont);
+            console.log('[Config] Dropdown value after set:', headerFontSelect.value);
+            console.log('[Config] Selected option text:', headerFontSelect.options[headerFontSelect.selectedIndex]?.text);
+          } else if (cfg.font) {
+            headerFontSelect.value = cfg.font;
+            console.log('[Config] Header font defaulted to body font:', cfg.font);
+          }
+          
+          // Load header text
+          if (cfg.headerText) {
+            headerTextInput.value = cfg.headerText;
+            console.log('[Config] Set headerText:', cfg.headerText);
+          } else {
+            headerTextInput.value = 'Specials'; // default
+            console.log('[Config] Set headerText default: Specials');
+          }
+          
+          // Load header size
+          if (Number.isFinite(cfg.headerSizePercent)) {
+            headerSizeInput.value = cfg.headerSizePercent;
+            headerSizeValue.textContent = cfg.headerSizePercent + '%';
+            console.log('[Config] Set headerSizePercent:', cfg.headerSizePercent);
+          } else {
+            headerSizeInput.value = 20; // default (was 5)
+            headerSizeValue.textContent = '20%';
+            console.log('[Config] Set headerSizePercent default: 5');
+          }
+          
+          // Load clock setting
+          if (cfg.showClock) {
+            showClockCheckbox.checked = true;
+          } else {
+            showClockCheckbox.checked = false; // default
+          }
+          
+          // Load clock format (default to 24-hour)
+          clock24HourCheckbox.checked = cfg.clock24Hour !== false;
+
+          // Load QR badge settings
+          qrBadgeEnabledCheckbox.checked = cfg.qrBadgeEnabled !== false;
+          qrBadgeTitleInput.value = cfg.qrBadgeTitle || 'Scan for menu';
+          qrBadgeUrlInput.value = cfg.qrBadgeUrl || `http://${window.location.hostname}/`;
+          qrBadgeImageInput.value = cfg.qrBadgeImage || 'qr-menu.png';
+          const qrPreviewSrc = resolvePreviewSrc(qrBadgeImageInput.value);
+          if (qrPreviewSrc) {
+            qrPreview.src = qrPreviewSrc;
+            qrPreview.style.display = 'block';
+          } else {
+            qrPreview.style.display = 'none';
+          }
+          loadQrLibrary(qrBadgeImageInput.value);
+          
+          // Load background brightness
+          if (Number.isFinite(cfg.bgBrightness)) {
+            bgBrightnessInput.value = cfg.bgBrightness * 100;
+            bgBrightnessValue.textContent = Math.round(cfg.bgBrightness * 100) + '%';
+          } else {
+            bgBrightnessInput.value = 100; // default 100%
+            bgBrightnessValue.textContent = '100%';
+          }
+          
+          // Load auto-format colors (defaults: white for items, yellow for prices, light grey for descriptions)
+          if (cfg.autoFormatItemColor) {
+            autoFormatItemColor.value = cfg.autoFormatItemColor;
+          } else {
+            autoFormatItemColor.value = 'w'; // default white
+          }
+          if (cfg.autoFormatPriceColor) {
+            autoFormatPriceColor.value = cfg.autoFormatPriceColor;
+          } else {
+            autoFormatPriceColor.value = 'y'; // default yellow
+          }
+          if (cfg.autoFormatDescColor) {
+            autoFormatDescColor.value = cfg.autoFormatDescColor;
+          } else {
+            autoFormatDescColor.value = 'lg'; // default light grey
+          }
+          
+          // Load logo settings
+          /*
+          if (cfg.logoFile) {
+            logoFileSelect.value = cfg.logoFile;
+            selectedLogo = cfg.logoFile; // Initialize selectedLogo variable
+            console.log('[Config] Logo file loaded:', cfg.logoFile);
+          }
+          if (cfg.logoPosition) {
+            logoPositionSelect.value = cfg.logoPosition;
+          } else {
+            logoPositionSelect.value = 'bottom-right'; // default
+          }
+          if (Number.isFinite(cfg.logoSize)) {
+            logoSizeInput.value = cfg.logoSize;
+            logoSizeValue.textContent = cfg.logoSize + '%';
+          }
+          if (Number.isFinite(cfg.logoOpacity)) {
+            logoOpacityInput.value = cfg.logoOpacity * 100;
+            logoOpacityValue.textContent = Math.round(cfg.logoOpacity * 100) + '%';
+          }
+          */
+        })
+        .catch(err => {
+          console.error('Failed to load config:', err);
+          // Provide fallback fonts if config fails
+          headerFontSelect.innerHTML = '<option value="Arial, sans-serif">Arial</option>' +
+                                       '<option value="Georgia, serif">Georgia</option>' +
+                                       '<option value="\'Comic Sans MS\', cursive">Comic Sans</option>';
+        });
+    }
+
+    // === 5. Save design ===
+    function saveDesign() {
+      if (!selectedBg) {
+        status.textContent = 'Please select a background.';
+        return;
+      }
+
+      // Disable actions while saving
+      const saveBtn = document.querySelector('.actions button');
+      const cancelBtn = document.querySelector('.actions button.secondary');
+      if (saveBtn) saveBtn.disabled = true;
+      if (cancelBtn) cancelBtn.disabled = true;
+
+      status.textContent = 'Saving...';
+
+      // Get form elements
+      const headerFontSelect = document.getElementById('headerFont');
+      const headerTextInput = document.getElementById('headerText');
+      const headerSizeInput = document.getElementById('headerSize');
+      const bgBrightnessInput = document.getElementById('bgBrightness');
+      const showClockCheckbox = document.getElementById('showClock');
+      const clock24HourCheckbox = document.getElementById('clock24Hour');
+      const qrBadgeEnabledCheckbox = document.getElementById('qrBadgeEnabled');
+      const qrBadgeTitleInput = document.getElementById('qrBadgeTitle');
+      const qrBadgeUrlInput = document.getElementById('qrBadgeUrl');
+      const qrBadgeImageInput = document.getElementById('qrBadgeImage');
+      const autoFormatItemColor = document.getElementById('autoFormatItemColor');
+      const autoFormatPriceColor = document.getElementById('autoFormatPriceColor');
+      const autoFormatDescColor = document.getElementById('autoFormatDescColor');
+      // const logoFileSelect = document.getElementById('logoFile');
+      // const logoPositionSelect = document.getElementById('logoPosition');
+      // const logoSizeInput = document.getElementById('logoSize');
+      // const logoOpacityInput = document.getElementById('logoOpacity');
+
+      // Determine selected background and logo
+      // selectedBg and selectedLogo are already set globally from user interactions
+
+      let configPromise;
+
+      // Handle uploads first
+      const uploadPromises = [];
+
+      if (selectedBg === 'uploaded' && uploadedDataUrl) {
+        uploadPromises.push(uploadImageIfNeeded().then(result => ({ type: 'bg', filename: result.filename })));
+      }
+
+      if (uploadedQrDataUrl) {
+        uploadPromises.push(uploadQrIfNeeded().then(result => ({ type: 'qr', filename: result.filename })));
+      }
+
+      // if (selectedLogo === 'uploaded' && uploadedLogoDataUrl) {
+      //   uploadPromises.push(uploadLogoIfNeeded().then(result => ({ type: 'logo', filename: result.filename })));
+      // }
+
+      configPromise = Promise.all(uploadPromises).then(uploadResults => {
+        const qrUploadResult = uploadResults.find(r => r.type === 'qr');
+        const qrImageValue = qrUploadResult
+          ? ('media/' + qrUploadResult.filename)
+          : (qrBadgeImageInput.value.trim() || 'qr-menu.png');
+
+        // Build updated config with uploaded filenames
+        const updatedConfig = {
+          bg: selectedBg === 'uploaded' ?
+            ('bg/' + (uploadResults.find(r => r.type === 'bg')?.filename || selectedBg)) :
+            selectedBg,
+          headerFont: headerFontSelect.value.includes(',') ? headerFontSelect.value : headerFontSelect.value + ', sans-serif',
+          headerText: headerTextInput.value.trim() || 'Specials',
+          headerSizePercent: parseFloat(headerSizeInput.value),
+          bgBrightness: parseFloat(bgBrightnessInput.value) / 100,
+          showClock: showClockCheckbox.checked,
+          clock24Hour: clock24HourCheckbox.checked,
+          qrBadgeEnabled: qrBadgeEnabledCheckbox.checked,
+          qrBadgeTitle: qrBadgeTitleInput.value.trim() || 'Scan for menu',
+          qrBadgeUrl: qrBadgeUrlInput.value.trim() || `http://${window.location.hostname}/`,
+          qrBadgeImage: qrImageValue,
+          autoFormatItemColor: autoFormatItemColor.value,
+          autoFormatPriceColor: autoFormatPriceColor.value,
+          autoFormatDescColor: autoFormatDescColor.value,
+        };
+
+        // Save page.json via API endpoint
+        const apiUrl = '../api/config';
+        console.log('[Save] Saving config to:', apiUrl);
+        console.log('[Save] Config data:', updatedConfig);
+
+        return fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedConfig)
+        });
+      });
+
+      return configPromise
+        .then(r => {
+          console.log('[Save] Response status:', r.status, r.statusText);
+          if (!r.ok) {
+            return r.text().then(t => {
+              console.error('[Save] Error response:', t.substring(0, 200));
+              return Promise.reject('Config save failed: ' + (t.substring(0, 100) || r.statusText));
+            });
+          }
+          return r.json();
+        })
+        .then(() => {
+          // Success - show message and reload
+          status.textContent = 'Configuration saved successfully!';
+          showToast('Configuration saved! Reloading...', 'success');
+          const triggerValue = Date.now().toString();
+          fetch('../api/config/reload-trigger', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ trigger: triggerValue })
+          }).catch(() => {});
+          setTimeout(() => location.reload(true), 1500);
+        })
+        .catch(err => {
+          console.error('[Save] Error:', err);
+          status.textContent = 'Save failed: ' + (err.message || err);
+          showToast('Save failed: ' + (err.message || err), 'error');
+
+          // Re-enable buttons
+          const saveBtn = document.querySelector('.actions button');
+          const cancelBtn = document.querySelector('.actions button.secondary');
+          if (saveBtn) saveBtn.disabled = false;
+          if (cancelBtn) cancelBtn.disabled = false;
+        });
+    }
+function uploadImageIfNeeded() {
+  if (selectedBg !== 'uploaded' || !uploadedDataUrl) return Promise.resolve();
+
+  // Convert dataURL to Blob (use helper) to preserve MIME and avoid
+  // potential CORS issues fetching data: URLs.
+  const blob = dataURLtoBlob(uploadedDataUrl);
+  const form = new FormData();
+  // Use original filename when available
+  const name = uploadedFileName || 'upload.jpg';
+  form.append('background', blob, name);
+
+  console.log('[Upload] Attempting upload:', name, blob);
+
+  // Get auth token from URL query parameter
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('token');
+
+  return fetch('../api/upload', {
+    method: 'POST',
+    headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+    body: form
+  })
+  .then(r => {
+    // Try to parse JSON even on non-OK to surface server-side messages
+    return r.text().then(text => {
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch(e) { /* ignore */ }
+      console.log('[Upload] Server response:', text);
+      if (!r.ok) {
+        const errMsg = data && (data.error || data.detail) ? (data.error + (data.detail ? (': ' + data.detail) : '')) : (text || r.statusText);
+        return Promise.reject(errMsg);
+      }
+      return data;
+    });
+  })
+  .then(data => {
+    // Handle nested response structure from API
+    const uploadData = data && data.data ? data.data : data;
+    if (uploadData && uploadData.filename) {
+      console.log('[Upload] Upload successful, filename:', uploadData.filename);
+      selectedBg = uploadData.filename;
+      backgrounds.push(uploadData.filename);
+      renderThumbs();
+      const thumb = document.querySelector(`.bg-thumb[data-file="${uploadData.filename}"]`);
+      if (thumb) thumb.classList.add('selected');
+      return updateConfigWithNewFilename(uploadData.filename);
+    }
+    const err = data && (data.error || data.detail) ? (data.error + (data.detail ? (': ' + data.detail) : '')) : 'Upload failed (no filename returned)';
+    return Promise.reject(err);
+  })
+  .catch(err => {
+    console.error('[Upload] Upload error:', err);
+    status.textContent = 'Upload error: ' + (err && err.message ? err.message : err);
+    return Promise.reject(err);
+  });
+}
+
+function uploadQrIfNeeded() {
+  if (!uploadedQrDataUrl) return Promise.resolve();
+
+  const blob = dataURLtoBlob(uploadedQrDataUrl);
+  const form = new FormData();
+  const name = uploadedQrFileName || 'qr.png';
+  form.append('media', blob, name);
+
+  console.log('[QR Upload] Attempting upload:', name, blob);
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('token');
+
+  return fetch('../api/upload/media', {
+    method: 'POST',
+    headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+    body: form
+  })
+  .then(r => r.text().then(text => {
+    let data = null;
+    try { data = text ? JSON.parse(text) : null; } catch (e) { /* ignore */ }
+    if (!r.ok) {
+      const errMsg = data && (data.error || data.detail)
+        ? (data.error + (data.detail ? (': ' + data.detail) : ''))
+        : (text || r.statusText);
+      return Promise.reject(errMsg);
+    }
+    return data;
+  }))
+  .then(data => {
+    const uploadData = data && data.data ? data.data : data;
+    if (uploadData && uploadData.filename) {
+      console.log('[QR Upload] Upload successful, filename:', uploadData.filename);
+      return uploadData;
+    }
+    const err = data && (data.error || data.detail)
+      ? (data.error + (data.detail ? (': ' + data.detail) : ''))
+      : 'QR upload failed (no filename returned)';
+    return Promise.reject(err);
+  })
+  .catch(err => {
+    console.error('[QR Upload] Upload error:', err);
+    status.textContent = 'QR upload error: ' + (err && err.message ? err.message : err);
+    return Promise.reject(err);
+  });
+}
+
+    function deleteBackgroundImage(filename) {
+      if (!confirm(`Delete background image "${filename}"? This cannot be undone.`)) {
+        return;
+      }
+
+      // Get auth token from URL query parameter
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+
+      console.log('[Delete] Deleting background image:', filename);
+
+      fetch(`../api/upload/bg/${filename}`, {
+        method: 'DELETE',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      })
+      .then(r => {
+        if (!r.ok) {
+          return r.text().then(text => {
+            let data = null;
+            try { data = text ? JSON.parse(text) : null; } catch(e) { /* ignore */ }
+            const errMsg = data && data.message ? data.message : text || r.statusText;
+            return Promise.reject(errMsg);
+          });
+        }
+        return r.json();
+      })
+      .then(data => {
+        console.log('[Delete] Successfully deleted:', filename);
+
+        // Remove from backgrounds array
+        backgrounds = backgrounds.filter(bg => bg !== filename);
+
+        // If this was the currently selected background, switch to default
+        if (selectedBg === filename) {
+          selectedBg = 'backgd.jpg'; // Default fallback
+          document.querySelectorAll('.bg-thumb').forEach(t => t.classList.remove('selected'));
+          const defaultThumb = document.querySelector(`.bg-thumb[data-file="backgd.jpg"]`);
+          if (defaultThumb) defaultThumb.classList.add('selected');
+        }
+
+        // Re-render thumbnails
+        renderThumbs();
+
+        showToast(`Deleted "${filename}"`, 'success');
+      })
+      .catch(err => {
+        console.error('[Delete] Error:', err);
+        showToast('Delete failed: ' + (err.message || err), 'error');
+      });
+    }
+
+    function updateConfigWithNewFilename(filename) {
+      // POST partial update to API endpoint to avoid destructive overwrite
+      const patch = { bg: 'bg/' + filename };
+      return fetch('../api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch)
+      }).then(r => {
+        if (!r.ok) return Promise.reject('Failed to update config with filename');
+        return r;
+      });
+    }
+    
+    // === 6b. Upload new logo via PHP ===
+    /*
+    function uploadLogoIfNeeded() {
+      if (selectedLogo !== 'uploaded' || !uploadedLogoDataUrl) return Promise.resolve();
+
+      // Convert dataURL to Blob
+      const blob = dataURLtoBlob(uploadedLogoDataUrl);
+      const form = new FormData();
+      const name = uploadedLogoFileName || 'logo.png';
+      form.append('image', blob, name);
+      form.append('type', 'logo');
+
+      return fetch('upload.php', {
+        method: 'POST',
+        body: form
+      })
+      .then(r => {
+        return r.text().then(text => {
+          let data = null;
+          try { data = text ? JSON.parse(text) : null; } catch(e) { }
+          if (!r.ok) {
+            const errMsg = data && (data.error || data.detail) ? (data.error + (data.detail ? (': ' + data.detail) : '')) : (text || r.statusText);
+            return Promise.reject(errMsg);
+          }
+          return data;
+        });
+      })
+      .then(data => {
+        if (data && data.filename) {
+          selectedLogo = data.filename;
+          return { filename: data.filename };
+        }
+        const err = data && (data.error || data.detail) ? (data.error + (data.detail ? (': ' + data.detail) : '')) : 'Logo upload failed (no filename returned)';
+        return Promise.reject(err);
+      })
+      .catch(err => {
+        console.error('Logo upload error:', err);
+        status.textContent = 'Logo upload error: ' + (err && err.message ? err.message : err);
+        return Promise.reject(err);
+      });
+    }
+    */
+    
+    function dataURLtoBlob(dataurl) {
+      const [meta, base64] = dataurl.split(',');
+      const mime = meta.match(/:(.*?);/)[1];
+      const bstr = atob(base64);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) u8arr[n] = bstr.charCodeAt(n);
+      return new Blob([u8arr], { type: mime });
+    }
+
+    // === 7. Generate index.html ===
+    function generateIndexHTML() {
+      const bgUrl = selectedBg === 'uploaded' ? uploadedDataUrl : 'bg/' + selectedBg;
+      const font = fontSelect.value;
+
+      // Escape double quotes in bgUrl for safe insertion into url("...")
+      const safeBg = String(bgUrl).replace(/"/g, '\\"');
+
+      // Note: This generator creates a simplified version of index.html
+      // The full production version has more features (ETag polling, rules checking, etc.)
+      // Consider just updating page.json instead of regenerating the entire file
+      
+      var html = '';
+      html += '<!DOCTYPE html>\n';
+      html += '<html lang="en">\n';
+      html += '<head>\n';
+      html += '  <meta charset="UTF-8" />\n';
+      html += '  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>\n';
+      html += '  <title>Daily Specials</title>\n';
+      html += '  <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"><\/script>\n';
+      html += '  <style>\n';
+      html += '    * { margin:0; padding:0; box-sizing:border-box; }\n';
+      html += '    html, body { height:100%; overflow:hidden; }\n';
+      html += '    body {\n';
+      html += '      font-family: ' + font + ';\n';
+      html += '      color: #fff;\n';
+      html += '      text-shadow: 2px 2px 4px rgba(0,0,0,0.7);\n';
+      html += '      display: flex;\n';
+      html += '      flex-direction: column;\n';
+      html += '      position: relative;\n';
+      html += '    }\n';
+      html += '    /* Background with brightness filter support */\n';
+      html += '    body::before {\n';
+      html += '      content: \\\'\\\';\n';
+      html += '      position: fixed;\n';
+      html += '      top: 0;\n';
+      html += '      left: 0;\n';
+      html += '      width: 100%;\n';
+      html += '      height: 100%;\n';
+      html += '      background: url("' + safeBg + '") center/cover no-repeat;\n';
+      html += '      z-index: -1;\n';
+      html += '      filter: brightness(1);\n';
+      html += '    }\n';
+      html += '    header {\n';
+      html += '      background: rgba(0,0,0,0.5);\n';
+      html += '      padding: 1rem;\n';
+      html += '      text-align: center;\n';
+      html += '      font-size: clamp(1.5rem, 5vw, 4rem);\n';
+      html += '      font-weight: bold;\n';
+      html += '    }\n';
+      html += '    #specials {\n';
+      html += '      flex: 1;\n';
+      html += '      padding: clamp(1rem, 2vw, 3rem);\n';
+      html += '      font-size: clamp(1rem, 3vw, 3rem);\n';
+      html += '      line-height: 1.6;\n';
+      html += '      overflow-y: auto;\n';
+      html += '      white-space: pre-wrap;\n';
+      html += '      -webkit-overflow-scrolling: touch;\n';
+      html += '    }\n';
+      html += '    .version { position: fixed; bottom: 0.5rem; right: 0.5rem; font-size: 0.7rem; opacity: 0.5; }\n';
+      html += '  </style>\n';
+      html += '</head>\n';
+      html += '<body>\n';
+      html += '  <header>Specials</header>\n';
+      html += '  <div id="specials">Loading…</div>\n';
+      html += '  <div class="version">314Sign v1.0.2.4 | © 2025 J Stekervetz | CC BY-NC 4.0</div>\n';
+      html += '  <script>\n';
+      html += '    const specialsDiv = document.getElementById("specials");\n';
+      html += '    let currentMenu = localStorage.getItem("currentMenu") || "menus/dinner.txt";\n';
+      html += '    function switchMenu(f) {\n';
+      html += '      currentMenu = f;\n';
+      html += '      localStorage.setItem("currentMenu", f);\n';
+      html += '      fetch(f + "?" + Date.now()).then(r => r.text()).then(t => {\n';
+      html += '        specialsDiv.innerHTML = marked.parse(t);\n';
+      html += '      });\n';
+      html += '    }\n';
+      html += '    function checkScheduleRules() {\n';
+      html += '      fetch("rules.json?" + Date.now()).then(r => r.ok ? r.json() : null).then(data => {\n';
+      html += '        if (!data || !data.enabled || !data.rules) return;\n';
+      html += '        const now = new Date();\n';
+      html += '        const currentDay = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"][now.getDay()];\n';
+      html += '        const currentTime = now.getHours().toString().padStart(2,"0")+":"+now.getMinutes().toString().padStart(2,"0");\n';
+      html += '        for (const rule of data.rules) {\n';
+      html += '          if (!rule.days.includes(currentDay)) continue;\n';
+      html += '          const startTime = rule.startTime || "00:00";\n';
+      html += '          const endTime = rule.endTime || "23:59";\n';
+      html += '          let matches = startTime <= endTime ? (currentTime >= startTime && currentTime < endTime) : (currentTime >= startTime || currentTime < endTime);\n';
+      html += '          if (matches && rule.menu && rule.menu !== currentMenu) {\n';
+      html += '            switchMenu(rule.menu);\n';
+      html += '            break;\n';
+      html += '          }\n';
+      html += '        }\n';
+      html += '      });\n';
+      html += '    }\n';
+      html += '    checkScheduleRules();\n';
+      html += '    setInterval(checkScheduleRules, 60000);\n';
+      html += '    fetch(currentMenu + "?" + Date.now()).then(r => r.text()).then(t => {\n';
+      html += '      let html = marked.parse(t);\n';
+      html += '      html = html.replace(/\\\\{r\\\\}(.*?)(<\\\\/|\\\\{[rygbopw]\\\\}|$)/g, \'<span style="color:#ff4444">$1</span>$2\');\n';
+      html += '      html = html.replace(/\\\\{y\\\\}(.*?)(<\\\\/|\\\\{[rygbopw]\\\\}|$)/g, \'<span style="color:#ffdd44">$1</span>$2\');\n';
+      html += '      html = html.replace(/\\\\{g\\\\}(.*?)(<\\\\/|\\\\{[rygbopw]\\\\}|$)/g, \'<span style="color:#44ff44">$1</span>$2\');\n';
+      html += '      html = html.replace(/\\\\{b\\\\}(.*?)(<\\\\/|\\\\{[rygbopw]\\\\}|$)/g, \'<span style="color:#4488ff">$1</span>$2\');\n';
+      html += '      html = html.replace(/\\\\{o\\\\}(.*?)(<\\\\/|\\\\{[rygbopw]\\\\}|$)/g, \'<span style="color:#ff8844">$1</span>$2\');\n';
+      html += '      html = html.replace(/\\\\{p\\\\}(.*?)(<\\\\/|\\\\{[rygbopw]\\\\}|$)/g, \'<span style="color:#ff44ff">$1</span>$2\');\n';
+      html += '      html = html.replace(/\\\\{w\\\\}(.*?)(<\\\\/|\\\\{[rygbopw]\\\\}|$)/g, \'<span style="color:#ffffff">$1</span>$2\');\n';
+      html += '      specialsDiv.innerHTML = html;\n';
+      html += '    });\n';
+      html += '    setInterval(() => fetch(currentMenu + "?" + Date.now()).then(r => r.text()).then(t => {\n';
+      html += '      let html = marked.parse(t);\n';
+      html += '      html = html.replace(/\\\\{r\\\\}(.*?)(<\\\\/|\\\\{[rygbopw]\\\\}|$)/g, \'<span style="color:#ff4444">$1</span>$2\');\n';
+      html += '      html = html.replace(/\\\\{y\\\\}(.*?)(<\\\\/|\\\\{[rygbopw]\\\\}|$)/g, \'<span style="color:#ffdd44">$1</span>$2\');\n';
+      html += '      html = html.replace(/\\\\{g\\\\}(.*?)(<\\\\/|\\\\{[rygbopw]\\\\}|$)/g, \'<span style="color:#44ff44">$1</span>$2\');\n';
+      html += '      html = html.replace(/\\\\{b\\\\}(.*?)(<\\\\/|\\\\{[rygbopw]\\\\}|$)/g, \'<span style="color:#4488ff">$1</span>$2\');\n';
+      html += '      html = html.replace(/\\\\{o\\\\}(.*?)(<\\\\/|\\\\{[rygbopw]\\\\}|$)/g, \'<span style="color:#ff8844">$1</span>$2\');\n';
+      html += '      html = html.replace(/\\\\{p\\\\}(.*?)(<\\\\/|\\\\{[rygbopw]\\\\}|$)/g, \'<span style="color:#ff44ff">$1</span>$2\');\n';
+      html += '      html = html.replace(/\\\\{w\\\\}(.*?)(<\\\\/|\\\\{[rygbopw]\\\\}|$)/g, \'<span style="color:#ffffff">$1</span>$2\');\n';
+      html += '      specialsDiv.innerHTML = html;\n';
+      html += '    }), 3000);\n';
+      html += '    setInterval(() => location.reload(), 300000);\n';
+      html += '  <\/script>\n';
+      html += '</body>\n';
+      html += '</html>\n';
+
+      return fetch('../index.html', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'text/html' },
+        body: html
+      });
+    }
+
+    // === Start ===
+    // Load backgrounds and then config (which populates fonts)
+    loadBackgrounds();
+    
+    // Also load config on DOMContentLoaded as fallback
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log('[Config] DOMContentLoaded - calling loadConfig');
+      setTimeout(loadConfig, 100); // Small delay to ensure elements are ready
+    });
+    
+    // Check for version updates and force reload
+    let currentVersion = null;
+    function checkVersion() {
+      fetch('../version.txt?' + Date.now(), { cache: 'no-store' })
+        .then(r => r.ok ? r.text() : '')
+        .then(version => {
+          version = version.trim();
+          if (!version) return;
+          
+          if (currentVersion === null) {
+            currentVersion = version;
+            console.log('[Version] Current version:', version);
+          } else if (version !== currentVersion) {
+            console.log('[Version] Update detected:', currentVersion, '->', version);
+            showToast('Update detected - reloading...', 'info');
+            setTimeout(() => location.reload(true), 1500);
+          }
+        })
+        .catch(() => {});
+    }
+    checkVersion();
+    setInterval(checkVersion, 30000); // Check every 30 seconds
+    
+    // Also load fonts immediately as a backup to ensure they're available
+    setTimeout(() => {
+      const fontSelect = document.getElementById('headerFont');
+      fetch('../api/config')
+        .then(r => r.ok ? r.json() : { data: {} })
+        .then(response => response.data || {})
+        .then(cfg => {
+          if (cfg.availableFonts && fontSelect.children.length === 0) {
+            Object.entries(cfg.availableFonts).forEach(([name, value]) => {
+              const option = document.createElement('option');
+              option.value = value;
+              option.textContent = name;
+              fontSelect.appendChild(option);
+            });
+            if (cfg.font) fontSelect.value = cfg.font;
+          }
+        })
+        .catch(err => console.error('Fallback font load failed:', err));
+    }, 100);
+
+    // === Toast helper ===
+    (function(){
+      // Create styles for toast
+      const css = `
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: max(1.25rem, env(safe-area-inset-bottom));
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.85);
+        color: #fff;
+        padding: 0.75rem 1rem;
+        border-radius: 10px;
+        font-size: 1rem;
+        min-width: 160px;
+        max-width: 92%;
+        text-align: center;
+        z-index: 9999;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+        -webkit-backdrop-filter: blur(6px);
+        backdrop-filter: blur(6px);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .toast.show { animation: toast-in 240ms ease-out; }
+      }
+      @keyframes toast-in { from { transform: translateX(-50%) translateY(8px); opacity: 0 } to { transform: translateX(-50%) translateY(0); opacity: 1 }}
+      `;
+      const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
+
+      let toastTimer = null;
+      window.showToast = function(msg, ms=3000) {
+        const el = document.getElementById('toast');
+        if (!el) return;
+        el.textContent = msg;
+        el.style.display = 'block';
+        el.classList.add('show');
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          el.classList.remove('show');
+          el.style.display = 'none';
+        }, ms);
+      };
+    })();
+    
+    // Load version dynamically
+    const versionEl = document.querySelector('.version');
+    
+    function loadVersion() {
+      fetch('../version.txt?' + Date.now(), { cache: 'no-store' })
+        .then(response => response.text())
+        .then(version => {
+          version = version.trim();
+          if (!version) return;
+          
+          if (currentVersion === null) {
+            currentVersion = version;
+            console.log('[Version] Current version:', version);
+          }
+          
+          // Update the displayed version
+          if (versionEl) {
+            versionEl.textContent = `314Sign v${version} | © 2025 J Stekervetz | CC BY-NC 4.0`;
+          }
+        })
+        .catch(error => {
+          console.warn('[Version] Failed to load version:', error);
+        });
+    }
+    
+    // Load version on page load
+    window.addEventListener('DOMContentLoaded', loadVersion);
+  </script>
+</body>
+</html>

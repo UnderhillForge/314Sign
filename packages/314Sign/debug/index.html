@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Server Debug Logs</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      font-family: 'Monaco', 'Courier New', monospace;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      overscroll-behavior: none;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 1rem;
+      gap: 1rem;
+    }
+    h1 {
+      font-size: clamp(1.2rem, 4vw, 1.8rem);
+      color: #e0e0e0;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .controls {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      background: #2d2d2d;
+      padding: 0.75rem;
+      border-radius: 8px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+    .controls button {
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .controls .refresh-btn {
+      background: #007bff;
+      color: white;
+      border: none;
+    }
+    .controls .refresh-btn:hover { background: #0056b3; }
+    .controls .pause-btn {
+      background: #ffc107;
+      color: #212529;
+      border: none;
+    }
+    .controls .pause-btn:hover { background: #e0a800; }
+    .controls .pause-btn.paused {
+      background: #28a745;
+    }
+    .controls .pause-btn.paused:hover { background: #218838; }
+    .controls .clear-btn {
+      background: #dc3545;
+      color: white;
+      border: none;
+    }
+    .controls .clear-btn:hover { background: #c82333; }
+    .controls .status {
+      margin-left: auto;
+      font-size: 0.85rem;
+      color: #b0b0b0;
+    }
+    .log-container {
+      flex: 1;
+      background: #2d2d2d;
+      border: 2px solid #3a3a3a;
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+    .log-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0.75rem;
+      background: #1a1a1a;
+      border-bottom: 1px solid #3a3a3a;
+      font-size: 0.9rem;
+      color: #b0b0b0;
+    }
+    .log-content {
+      height: calc(100% - 40px);
+      padding: 0.75rem;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+    .log-entry {
+      margin-bottom: 0.25rem;
+      padding: 0.25rem;
+      border-radius: 3px;
+      word-wrap: break-word;
+    }
+    .log-entry.log { background: rgba(255,255,255,0.02); }
+    .log-entry.error { background: rgba(220,53,69,0.1); color: #ff6b7d; }
+    .log-entry.warn { background: rgba(255,193,7,0.1); color: #ffe066; }
+    .log-entry.auth { background: rgba(0,123,255,0.1); color: #66b3ff; }
+
+    .version {
+      position: fixed;
+      bottom: 0.5rem;
+      right: 0.5rem;
+      font-size: 0.7rem;
+      color: #666;
+      opacity: 0.6;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Server Debug Logs</h1>
+    <div class="controls">
+      <button class="refresh-btn" onclick="refreshLogs()">🔄 Refresh</button>
+      <button class="pause-btn" id="pauseBtn" onclick="togglePause()">⏸️ Pause</button>
+      <button class="clear-btn" onclick="clearLogs()">🗑️ Clear</button>
+      <div class="status" id="status">Ready</div>
+    </div>
+    <div class="log-container">
+      <div class="log-header">
+        <span>Recent Server Logs (last 100 entries)</span>
+        <span id="logCount">0 entries</span>
+      </div>
+      <div class="log-content" id="logContent">
+        <div style="text-align: center; color: #666; padding: 2rem;">
+          Loading logs...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let autoRefreshInterval;
+    let isPaused = false;
+    const logContent = document.getElementById('logContent');
+    const statusDiv = document.getElementById('status');
+    const logCount = document.getElementById('logCount');
+    const pauseBtn = document.getElementById('pauseBtn');
+
+    // Load logs on page load
+    window.addEventListener('load', () => {
+      refreshLogs();
+      // Auto-refresh every 3 seconds
+      autoRefreshInterval = setInterval(refreshLogs, 3000);
+    });
+
+    // Clean up interval when page unloads
+    window.addEventListener('beforeunload', () => {
+      if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+      }
+    });
+
+    function refreshLogs() {
+      statusDiv.textContent = 'Loading...';
+
+      fetch('../api/debug/logs')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.success && data.logs) {
+            displayLogs(data.logs);
+            statusDiv.textContent = `Updated ${new Date().toLocaleTimeString()}`;
+          } else {
+            throw new Error('Invalid response format');
+          }
+        })
+        .catch(error => {
+          console.error('Failed to load logs:', error);
+          logContent.innerHTML = `
+            <div style="text-align: center; color: #ff6b7d; padding: 2rem;">
+              <strong>Error loading logs:</strong><br>
+              ${error.message}<br><br>
+              <small>Make sure you're logged in as an admin</small>
+            </div>
+          `;
+          statusDiv.textContent = 'Error';
+          logCount.textContent = '0 entries';
+        });
+    }
+
+    function displayLogs(logs) {
+      if (!logs || logs.length === 0) {
+        logContent.innerHTML = `
+          <div style="text-align: center; color: #666; padding: 2rem;">
+            No logs available yet
+          </div>
+        `;
+        logCount.textContent = '0 entries';
+        return;
+      }
+
+      const logHtml = logs.map(log => {
+        let logClass = 'log';
+        let displayText = log;
+
+        // Classify log entries
+        if (log.includes('ERROR:')) {
+          logClass = 'error';
+        } else if (log.includes('WARN:')) {
+          logClass = 'warn';
+        } else if (log.includes('[Auth]')) {
+          logClass = 'auth';
+        }
+
+        return `<div class="log-entry ${logClass}">${displayText}</div>`;
+      }).join('');
+
+      logContent.innerHTML = logHtml;
+      logCount.textContent = `${logs.length} entries`;
+
+      // Auto-scroll to bottom
+      logContent.scrollTop = logContent.scrollHeight;
+    }
+
+    function togglePause() {
+      isPaused = !isPaused;
+
+      if (isPaused) {
+        // Pause auto-refresh
+        if (autoRefreshInterval) {
+          clearInterval(autoRefreshInterval);
+          autoRefreshInterval = null;
+        }
+        pauseBtn.textContent = '▶️ Resume';
+        pauseBtn.classList.add('paused');
+        statusDiv.textContent = 'Paused - Manual refresh only';
+      } else {
+        // Resume auto-refresh
+        autoRefreshInterval = setInterval(refreshLogs, 3000);
+        pauseBtn.textContent = '⏸️ Pause';
+        pauseBtn.classList.remove('paused');
+        statusDiv.textContent = `Updated ${new Date().toLocaleTimeString()}`;
+        // Immediate refresh when resuming
+        refreshLogs();
+      }
+    }
+
+    function clearLogs() {
+      if (!confirm('Clear all log entries from display? (Server logs will continue accumulating)')) {
+        return;
+      }
+
+      logContent.innerHTML = `
+        <div style="text-align: center; color: #666; padding: 2rem;">
+          Logs cleared from display
+        </div>
+      `;
+      logCount.textContent = '0 entries';
+      statusDiv.textContent = 'Cleared';
+    }
+
+    // Handle visibility change to pause/resume auto-refresh
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        if (autoRefreshInterval) {
+          clearInterval(autoRefreshInterval);
+          autoRefreshInterval = null;
+        }
+        statusDiv.textContent = 'Paused (tab hidden)';
+      } else {
+        autoRefreshInterval = setInterval(refreshLogs, 3000);
+        refreshLogs(); // Immediate refresh when tab becomes visible
+      }
+    });
+  </script>
+
+  <div class="version">314Sign Debug v1.0</div>
+</body>
+</html>
