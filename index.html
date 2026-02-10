@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Daily Specials</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --content-size: clamp(1rem, 2.6vw, 2.2rem);
+    }
+    html, body { height:100%; width:100%; overflow:hidden; }
+    body {
+      background: #333;
+      color: white;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: var(--bg-image, none);
+      background-position: center;
+      background-size: cover;
+      background-repeat: no-repeat;
+      z-index: -1;
+      filter: brightness(var(--bg-brightness, 1));
+    }
+    header {
+      background: rgba(0,0,0,0.5);
+      padding: 1rem;
+      font-size: clamp(1.5rem, 5vw, 4rem);
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #clock { font-size: clamp(1rem, 3vw, 2.5rem); }
+    #specials {
+      flex: 1;
+      overflow: auto;
+      padding: 2rem;
+      font-size: var(--content-size, clamp(1rem, 2.6vw, 2.2rem));
+      line-height: 1.8;
+    }
+    .version {
+      text-align: center;
+      font-size: 0.85rem;
+      opacity: 0.6;
+      padding: 0.5rem;
+    }
+    .qr-badge {
+      position: fixed;
+      right: 1.2rem;
+      bottom: 2.2rem;
+      background: rgba(0,0,0,0.55);
+      border: 2px solid rgba(255,255,255,0.55);
+      border-radius: 0.8rem;
+      padding: 0.6rem 0.7rem;
+      display: flex;
+      gap: 0.6rem;
+      align-items: center;
+      z-index: 5;
+      backdrop-filter: blur(4px);
+    }
+    .qr-badge img {
+      width: 86px;
+      height: 86px;
+      background: #fff;
+      padding: 4px;
+      border-radius: 0.4rem;
+    }
+    .qr-text {
+      font-size: 0.9rem;
+      line-height: 1.1;
+    }
+    .qr-url {
+      display: inline-block;
+      font-size: 0.85rem;
+      opacity: 0.85;
+      margin-top: 0.2rem;
+    }
+    @media (max-width: 900px) {
+      .qr-badge {
+        transform: scale(0.85);
+        transform-origin: bottom right;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span id="header">Specials</span>
+    <span id="clock">00:00</span>
+  </header>
+  <div id="specials">Loading menu...</div>
+  <div class="version">314Sign - © 2026 J Stekervetz. All Rights Reserved</div>
+
+  <div class="qr-badge" id="qr-badge" style="display:none">
+    <img id="qr-image" src="qr-menu.png" alt="Scan for menu" />
+    <div class="qr-text">
+      <div id="qr-title">Scan for menu</div>
+      <span class="qr-url" id="qr-url">http://314sign.local/</span>
+    </div>
+  </div>
+
+  <script>
+    // TypeScript interface for ScreenOrientation API (for type safety)
+    /**
+     * @typedef {object} ScreenOrientation
+     * @property {string} type - The current orientation type ('portrait-primary', 'portrait-secondary', 'landscape-primary', 'landscape-secondary')
+     * @property {number} angle - Current angle (0, 90, 180, 270)
+     * @property {function(string|string[]): Promise<void>} lock - Lock the orientation
+     * @property {function(): void} unlock - Unlock the orientation
+     */
+
+    let currentMenu = 'dinner';
+    let isPlayingSlideshow = false;
+    let clock24Hour = true;
+    let lastConfig = {};
+    let reloadTriggerValue = null;
+    let currentOrientation = 'portrait-primary'; // Track current locked orientation
+
+    const headerEl = document.getElementById('header');
+    const clockEl = document.getElementById('clock');
+    const specialsEl = document.getElementById('specials');
+    const qrBadgeEl = document.getElementById('qr-badge');
+    const qrTitleEl = document.getElementById('qr-title');
+    const qrUrlEl = document.getElementById('qr-url');
+    const qrImageEl = document.getElementById('qr-image');
+
+    function resolveBgUrl(bg) {
+      if (!bg) return null;
+      if (bg.startsWith('data:')) return bg;
+      if (bg.startsWith('http://') || bg.startsWith('https://')) return bg;
+      if (bg.startsWith('bg/')) return bg;
+      if (bg.startsWith('/bg/')) return bg.slice(1);
+      return 'bg/' + bg;
+    }
+
+    // Load and inject custom fonts
+    function loadCustomFonts() {
+      return fetch('/api/fonts')
+        .then(r => r.ok ? r.json() : { data: { customFonts: [] } })
+        .then(response => {
+          const fonts = response.data?.customFonts || [];
+          if (fonts.length === 0) return;
+
+          const formatMap = { WOFF2: 'woff2', WOFF: 'woff', TTF: 'truetype' };
+          const fontFaceCSS = fonts.map(font => {
+            const format = formatMap[font.format] || 'truetype';
+            return `@font-face {\n  font-family: '${font.filename}';\n  src: url('${font.url}') format('${format}');\n  font-display: swap;\n}`;
+          }).join('\n');
+          
+          let styleTag = document.getElementById('customFonts');
+          if (!styleTag) {
+            styleTag = document.createElement('style');
+            styleTag.id = 'customFonts';
+            document.head.appendChild(styleTag);
+          }
+          styleTag.textContent = fontFaceCSS;
+        })
+        .catch(() => {});
+    }
+
+    function applyConfig(cfg) {
+      const bgUrl = resolveBgUrl(cfg.bg);
+      if (bgUrl) {
+        document.body.style.setProperty('--bg-image', 'url("' + bgUrl + '")');
+      }
+      if (typeof cfg.bgBrightness === 'number') {
+        document.body.style.setProperty('--bg-brightness', String(cfg.bgBrightness));
+      }
+
+      if (cfg.font) {
+        document.body.style.fontFamily = cfg.font;
+      }
+      if (cfg.headerFont) {
+        headerEl.style.fontFamily = cfg.headerFont;
+      }
+      if (cfg.headerText) {
+        headerEl.textContent = cfg.headerText;
+      }
+
+      if (typeof cfg.headerSizePercent === 'number') {
+        headerEl.style.fontSize = 'clamp(1.5rem, ' + cfg.headerSizePercent + 'vw, 10rem)';
+      }
+
+      if (cfg.showClock === false) {
+        clockEl.style.display = 'none';
+      } else {
+        clockEl.style.display = '';
+      }
+      clock24Hour = cfg.clock24Hour !== false;
+
+      applyResponsiveSizing(cfg);
+
+      const defaultUrl = 'http://' + window.location.hostname + '/';
+      const qrEnabled = cfg.qrBadgeEnabled !== false;
+      if (qrEnabled) {
+        qrBadgeEl.style.display = 'flex';
+        qrTitleEl.textContent = cfg.qrBadgeTitle || 'Scan for menu';
+        qrUrlEl.textContent = cfg.qrBadgeUrl || defaultUrl;
+        if (cfg.qrBadgeImage) {
+          qrImageEl.src = cfg.qrBadgeImage;
+        } else {
+          qrImageEl.src = 'qr-menu.png';
+        }
+      } else {
+        qrBadgeEl.style.display = 'none';
+      }
+    }
+
+    // Screen Orientation API - Lock display orientation
+    async function lockOrientation(orientationValue) {
+      console.log('[ORIENTATION] Attempting to lock orientation:', orientationValue);
+      
+      // Check if screen object exists
+      if (!screen) {
+        console.warn('[ORIENTATION] screen object not available');
+        return false;
+      }
+
+      // Check if orientation property exists
+      if (!screen.orientation) {
+        console.warn('[ORIENTATION] screen.orientation not available on this browser/device');
+        return false;
+      }
+
+      // Check if lock method exists
+      if (!screen.orientation.lock) {
+        console.warn('[ORIENTATION] screen.orientation.lock() not available');
+        console.log('[ORIENTATION] Available screen.orientation properties:', Object.keys(screen.orientation));
+        return false;
+      }
+
+      try {
+        // Map orientation value (0=normal, 1=left/90, 2=inverted/180, 3=right/270) to orientation types
+        const orientationMap = {
+          0: 'portrait-primary',   // Normal (0°)
+          1: 'landscape-secondary', // Left 90° (Raspberry Pi portrait mode is landscape-secondary)
+          2: 'portrait-secondary',  // Inverted (180°)
+          3: 'landscape-primary'    // Right 270° (standard landscape)
+        };
+
+        const orientationType = orientationMap[orientationValue] || 'landscape-primary';
+        console.log('[ORIENTATION] Mapped value', orientationValue, 'to type:', orientationType);
+        
+        // Request fullscreen first (required on many browsers for orientation lock)
+        try {
+          if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+            console.log('[ORIENTATION] Requesting fullscreen...');
+            await document.documentElement.requestFullscreen();
+            console.log('[ORIENTATION] Fullscreen granted');
+          }
+        } catch (err) {
+          console.warn('[ORIENTATION] Fullscreen request failed (may not be permitted):', err.message);
+          // Continue anyway - orientation lock might still work
+        }
+
+        console.log('[ORIENTATION] Calling screen.orientation.lock(' + orientationType + ')...');
+        await screen.orientation.lock(orientationType);
+        console.log('[ORIENTATION] Successfully locked to:', orientationType, 'angle:', screen.orientation.angle);
+        return true;
+      } catch (error) {
+        console.error('[ORIENTATION] Failed to lock:', error.message, error.name);
+        console.log('[ORIENTATION] Current screen.orientation.type:', screen.orientation?.type);
+        console.log('[ORIENTATION] Current screen.orientation.angle:', screen.orientation?.angle);
+        return false;
+      }
+    }
+
+    function unlockOrientation() {
+      if (!screen?.orientation?.unlock) return;
+      try {
+        screen.orientation.unlock();
+        console.log('[ORIENTATION] Unlocked');
+      } catch (error) {
+        console.error('[ORIENTATION] Unlock failed:', error);
+      }
+    }
+
+    // Listen for orientation changes
+    function setupOrientationListener() {
+      if (!screen?.orientation) return;
+      
+      screen.orientation.addEventListener('change', () => {
+        const type = screen.orientation.type;
+        const angle = screen.orientation.angle;
+        console.log(`[ORIENTATION] Changed to ${type} (${angle}°)`);
+        currentOrientation = type;
+        applyResponsiveSizing(lastConfig);
+      });
+    }
+
+    function loadConfig() {
+      fetch('/api/config?' + Date.now(), { cache: 'no-store' })
+        .then(r => r.ok ? r.json() : { data: {} })
+        .then(res => {
+          lastConfig = res.data || {};
+          applyConfig(lastConfig);
+          // Apply orientation lock from config (defaulting to portrait 90° for HDMI-1)
+          const orientationValue = lastConfig.displayOrientation || 1; // 1 = landscape-secondary (portrait mode on Raspberry Pi)
+          lockOrientation(orientationValue);
+        })
+        .catch(() => {
+          lastConfig = {};
+          applyConfig({});
+          lockOrientation(1); // Default to portrait
+        });
+    }
+
+    function checkReloadTrigger() {
+      fetch('/api/config/reload-trigger?' + Date.now(), { cache: 'no-store' })
+        .then(r => r.ok ? r.text() : '')
+        .then(value => {
+          const trimmed = String(value || '').trim();
+          if (!trimmed) return;
+          if (reloadTriggerValue === null) {
+            reloadTriggerValue = trimmed;
+            return;
+          }
+          if (trimmed !== reloadTriggerValue) {
+            reloadTriggerValue = trimmed;
+            location.reload(true);
+          }
+        })
+        .catch(() => {});
+    }
+
+    function applyResponsiveSizing(cfg) {
+      const width = window.innerWidth || 0;
+      const height = window.innerHeight || 0;
+      const shortSide = Math.min(width, height);
+      const isMobile = width < 900 || shortSide < 700;
+      const defaultPercent = isMobile ? 2.4 : 5.5;
+      const contentPercent = Number.isFinite(cfg.contentSizePercent)
+        ? cfg.contentSizePercent
+        : defaultPercent;
+      const minRem = isMobile ? 0.95 : 1.5;
+      const maxRem = isMobile ? 2.2 : 8.0;
+      const clampValue = 'clamp(' + minRem + 'rem, ' + contentPercent + 'vw, ' + maxRem + 'rem)';
+      document.body.style.setProperty('--content-size', clampValue);
+    }
+
+    // Update clock
+    function updateClock() {
+      const now = new Date();
+      let hours = now.getHours();
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      if (!clock24Hour) {
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+        clockEl.textContent = hours + ':' + minutes + ' ' + ampm;
+        return;
+      }
+      clockEl.textContent = hours.toString().padStart(2, '0') + ':' + minutes;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function normalizeMenuName(menuName) {
+      if (!menuName) return 'dinner';
+      let name = String(menuName);
+      if (name.startsWith('menus/')) {
+        name = name.replace(/^menus\//, '');
+      }
+      if (name.endsWith('.txt')) {
+        name = name.slice(0, -4);
+      }
+      return name || 'dinner';
+    }
+
+    // Color map for formatting tags
+    const colorMap = {
+      r: '#ff4444',
+      y: '#ffff00',
+      g: '#44ff44',
+      b: '#4499ff',
+      o: '#ff9900',
+      p: '#ff44ff',
+      w: '#ffffff',
+      lg: '#c0c0c0'
+    };
+
+    // Format menu content with color, alignment, and size tags
+    function formatMenuContent(text) {
+      // Helper: wrap text in HTML with formatting
+      function processLine(line) {
+        if (!line) return '';
+        
+        let html = line;
+        
+        // Process markdown headings: ## -> <strong>
+        if (html.startsWith('##')) {
+          html = '<strong>' + html.substring(2).trim() + '</strong>';
+        }
+        
+        // Process color tags: {r}...{/r} -> <span style="color: #ff4444">...</span>
+        for (const [tag, color] of Object.entries(colorMap)) {
+          const regex = new RegExp(`\\{${tag}\\}([^]*?)\\{/${tag}\\}`, 'g');
+          html = html.replace(regex, `<span style="color:${color}">$1</span>`);
+          // Also handle unclosed tags (applies to end of line)
+          const openRegex = new RegExp(`\\{${tag}\\}`, 'g');
+          const closeRegex = new RegExp(`\\{/${tag}\\}`, 'g');
+          if (html.includes(`{${tag}}`) && !html.includes(`{/${tag}}`)) {
+            html = html.replace(openRegex, `<span style="color:${color}">`);
+            html += '</span>';
+          }
+        }
+        
+        // Process size tags: [s15]...[/s] -> <span style="font-size: 15px">...</span>
+        html = html.replace(/\[s(\d+)\]([^\[]*?)\[\/s\]/g, '<span style="font-size:$1px">$2</span>');
+        
+        return html;
+      }
+
+      function processAlignment(line) {
+        // Handle [center]...[/center]
+        if (line.includes('[center]') && line.includes('[/center]')) {
+          const match = line.match(/\[center\](.*?)\[\/center\]/);
+          if (match) {
+            const centered = `<div style="text-align:center">${match[1]}</div>`;
+            return line.replace(/\[center\](.*?)\[\/center\]/, centered);
+          }
+        }
+        
+        // Handle [right]...[/right]
+        if (line.includes('[right]') && line.includes('[/right]')) {
+          const match = line.match(/\[right\](.*?)\[\/right\]/);
+          if (match) {
+            const right = `<div style="text-align:right">${match[1]}</div>`;
+            return line.replace(/\[right\](.*?)\[\/right\]/, right);
+          }
+        }
+        
+        return line;
+      }
+
+      return text
+        .split('\n')
+        .map(line => {
+          line = line.trim();
+          if (!line) return '';
+          
+          // Apply formatting
+          line = processAlignment(line);
+          line = processLine(line);
+          
+          return line;
+        })
+        .filter(x => x)
+        .join('<br>');
+    }
+
+    // Load and display menu
+    function loadMenu(menuName) {
+      const normalized = normalizeMenuName(menuName);
+      currentMenu = normalized;
+      specialsEl.innerHTML = 'Loading...';
+      
+      fetch('/api/menu/' + normalized)
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) {
+            let html = formatMenuContent(data.data.content);
+            specialsEl.innerHTML = html;
+          }
+        })
+        .catch(err => {
+          specialsEl.innerHTML = '<span style="color:red">Error loading menu: ' + err.message + '</span>';
+        });
+    }
+
+    // Check schedule rules
+    function checkScheduleRules() {
+      if (isPlayingSlideshow) return;
+      
+      fetch('/api/rules')
+        .then(r => r.json())
+        .then(data => {
+          if (!data.success || !data.data) return;
+          
+          const now = new Date();
+          const dayName = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][now.getDay()];
+          const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+          
+          for (const rule of data.data) {
+            if (!rule.days.includes(dayName)) continue;
+            
+            const startTime = rule.startTime || '00:00';
+            const endTime = rule.endTime || '23:59';
+            const matches = startTime <= endTime 
+              ? (timeStr >= startTime && timeStr < endTime)
+              : (timeStr >= startTime || timeStr < endTime);
+            
+            if (matches && rule.menu) {
+              const normalized = normalizeMenuName(rule.menu);
+              if (normalized && normalized !== currentMenu) {
+                loadMenu(normalized);
+              }
+              break;
+            }
+          }
+        })
+        .catch(() => {});
+    }
+    
+    // Check every minute
+    setInterval(checkScheduleRules, 60000);
+    checkScheduleRules();
+
+    // Load initial menu
+    loadCustomFonts().then(() => {
+      loadMenu('dinner');
+      loadConfig();
+      setupOrientationListener();
+    });
+    checkReloadTrigger();
+    setInterval(checkReloadTrigger, 10000);
+    window.addEventListener('resize', () => applyResponsiveSizing(lastConfig));
+  </script>
+</body>
+</html>

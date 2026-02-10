@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+
+# Runtime files (generated at runtime)
+logs/
+*.log
+page.json
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+314sign.db*
+
+# Uploads and media
+bg/uploaded_*
+media/uploaded_*
+slideshows/media/uploaded_*
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.tmp
+
+# Testing
+coverage/
+.nyc_output/
+jest-results/
+
+# Miscellaneous
+.cache/
+*.tgz
+*.tar.gz

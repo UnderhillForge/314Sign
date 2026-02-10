@@ -1,0 +1,18 @@
+## Lunch Specials
+
+**Club Sandwich** - {y}$9.95{/y}
+Triple-decker with turkey, bacon, lettuce, tomato
+
+**Caesar Salad** - {y}$8.50{/y}
+{g}Vegetarian option available{/g}
+Romaine, parmesan, croutons, grilled chicken
+
+**Soup & Half Sandwich** - {y}$10.95{/y}
+Chef's daily soup with choice of sandwich
+
+**Fish Tacos** - {y}$11.95{/y}
+Three tacos with slaw and chipotle mayo
+
+---
+*All lunches include chips or fries*
+[center]{o}Ask about our daily dessert special!{/o}[/center]

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Minimal Test</title>
+  <style>
+    body {
+      background: #333;
+      color: white;
+      font-size: 48px;
+      padding: 20px;
+      font-family: Arial;
+    }
+  </style>
+</head>
+<body>
+  <h1>MINIMAL TEST - IF YOU SEE THIS, BASIC PAGE WORKS</h1>
+  <p id="status">Loading...</p>
+  
+  <script>
+    console.log('Script executing');
+    document.getElementById('status').textContent = 'Script ran!';
+    
+    fetch('/api/menu/dinner')
+      .then(r => r.json())
+      .then(d => {
+        document.getElementById('status').innerHTML = 
+          'API WORKS: ' + d.data.name + '<br>' +
+          d.data.content.substring(0, 100);
+      })
+      .catch(e => {
+        document.getElementById('status').textContent = 'API ERROR: ' + e.message;
+      });
+  </script>
+</body>
+</html>

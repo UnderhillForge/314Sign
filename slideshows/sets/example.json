@@ -1,0 +1,25 @@
+{
+    "name": "Example Slideshow",
+    "description": "Sample slideshow with different slide types",
+    "defaultDuration": 5000,
+    "defaultTransition": "fade",
+    "slides": [
+        {
+            "type": "text",
+            "duration": 5000,
+            "transition": "fade",
+            "background": "../bg/default1.jpg",
+            "content": "# Welcome!\n\nCheck out our **upcoming events**",
+            "font": "Lato, sans-serif",
+            "fontSize": 8
+        },
+        {
+            "type": "image",
+            "duration": 7000,
+            "transition": "slide-left",
+            "media": "media/sample.jpg",
+            "caption": "Amazing Event This Weekend!",
+            "captionPosition": "bottom"
+        }
+    ]
+}

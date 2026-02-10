@@ -1,0 +1,3 @@
+# Ignore task management files - these are local workflow artifacts
+*.md
+!README.md

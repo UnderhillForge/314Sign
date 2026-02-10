@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Daily Specials</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <script src="marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.0.7/dist/splide.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.0.7/dist/splide.min.js"><\/script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { height:100%; overflow:hidden; }
+    body {
+      font-family: 'Comic Sans MS', 'Marker Felt', 'Apple Chancery', cursive;
+      color: #fff;
+      background: #333;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    header {
+      background: rgba(0,0,0,0.5);
+      padding: 1rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: clamp(1.5rem, 5vw, 4rem);
+      font-weight: bold;
+    }
+    #specials {
+      flex: 1;
+      padding: clamp(1rem, 2vw, 3rem);
+      font-size: clamp(1rem, 3vw, 6rem);
+      line-height: 1.1;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+    .version {
+      position: fixed;
+      bottom: 0.5rem;
+      right: 0.5rem;
+      font-size: 0.7rem;
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+  <header>Today's Specials</header>
+  <div id="specials">Loading...</div>
+  <div class="version">314Sign | © 2025 J Stekervetz</div>
+
+  <script>
+  console.log('[PAGE] Loading...');
+  
+  let currentMenu = localStorage.getItem('currentMenu') || 'menus/dinner.txt';
+  const specialsDiv = document.getElementById('specials');
+  const headerEl = document.querySelector('header');
+  
+  function loadMenu() {
+    const menuFile = currentMenu.replace('menus/', '').replace('.txt', '');
+    console.log('[MENU] Loading:', menuFile);
+    
+    fetch('/api/menu/' + menuFile)
+      .then(r => {
+        console.log('[MENU] Response:', r.ok, r.status);
+        return r.json();
+      })
+      .then(data => {
+        if (data.success && data.data && data.data.content) {
+          console.log('[MENU] Content received, length:', data.data.content.length);
+          // Convert content to HTML using marked
+          const html = marked.parse(data.data.content);
+          specialsDiv.innerHTML = html;
+        } else {
+          specialsDiv.textContent = 'No menu loaded';
+        }
+      })
+      .catch(err => {
+        console.error('[MENU] Error:', err);
+        specialsDiv.textContent = 'Error loading menu: ' + err.message;
+        specialsDiv.style.color = 'red';
+      });
+  }
+  
+  // Load immediately
+  loadMenu();
+  
+  // Poll every 10 seconds
+  setInterval(loadMenu, 10000);
+  </script>
+</body>
+</html>

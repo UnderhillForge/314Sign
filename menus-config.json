@@ -1,0 +1,14 @@
+{
+  "breakfast": {
+    "fontScalePercent": 10
+  },
+  "lunch": {
+    "fontScalePercent": 10
+  },
+  "dinner": {
+    "fontScalePercent": 10
+  },
+  "closed": {
+    "fontScalePercent": 15
+  }
+}

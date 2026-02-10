@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Display Configuration — 314Sign</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #1a1a1a;
+            min-height: 100vh;
+            padding: 20px;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: #2a2a2a;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+        }
+
+        header h1 {
+            color: #e0e0e0;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        header p {
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        .displays-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .display-card {
+            background: #2a2a2a;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border-left: 4px solid #667eea;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .display-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.5);
+        }
+
+        .display-card.disabled {
+            border-left-color: #555;
+            opacity: 0.6;
+        }
+
+        .display-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #444;
+        }
+
+        .display-header h2 {
+            font-size: 18px;
+            color: #e0e0e0;
+        }
+
+        .display-port {
+            font-size: 12px;
+            background: #444;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: #aaa;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-switch .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .3s;
+            border-radius: 24px;
+        }
+
+        .toggle-switch .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        .toggle-switch input:checked + .slider {
+            background-color: #667eea;
+        }
+
+        .toggle-switch input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #e0e0e0;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #444;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            background: #333;
+            color: #e0e0e0;
+            transition: border-color 0.2s;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .orientation-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .orientation-btn {
+            padding: 12px;
+            border: 2px solid #444;
+            background: #333;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            color: #aaa;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .orientation-btn:hover {
+            border-color: #667eea;
+            background: #3a3a3a;
+            color: #e0e0e0;
+        }
+
+        .orientation-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .orientation-preview {
+            width: 100%;
+            height: 100px;
+            background: linear-gradient(45deg, #333 25%, transparent 25%, transparent 75%, #333 75%, #333),
+                        linear-gradient(45deg, #333 25%, transparent 25%, transparent 75%, #333 75%, #333);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+            background-color: #444;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #666;
+            margin-bottom: 10px;
+            border: 2px solid #555;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .status-badge.pending {
+            background: #5a3a3a;
+            color: #fca5a5;
+        }
+
+        .status-badge.synced {
+            background: #3a5a3a;
+            color: #86efac;
+        }
+
+        .status-badge.error {
+            background: #5a3a3a;
+            color: #fca5a5;
+        }
+
+        .action-bar {
+            background: #2a2a2a;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+        }
+
+        .action-bar h3 {
+            margin-bottom: 15px;
+            color: #e0e0e0;
+            font-size: 16px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .action-buttons .btn {
+            flex: 0;
+            padding: 12px 20px;
+        }
+
+        .pending-changes {
+            background: #543a1a;
+            border-left: 4px solid #d97706;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            color: #fbbf24;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: #2a2a2a;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 400px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            border-left: 4px solid #667eea;
+        }
+
+        .modal h3 {
+            color: #e0e0e0;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .modal p {
+            color: #aaa;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .modal .error-text {
+            color: #fca5a5;
+            background: #5a3a3a;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-buttons .btn {
+            flex: 1;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #333;
+            color: white;
+            padding: 16px 20px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 2000;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.success {
+            background: #48bb78;
+        }
+
+        .toast.error {
+            background: #f56565;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f0f0f0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 768px) {
+            .displays-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .action-buttons .btn {
+                width: 100%;
+            }
+
+            header {
+                padding: 20px;
+            }
+
+            header h1 {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🖥️ Display Configuration</h1>
+            <p>Configure dual HDMI outputs, orientation, and display modes for your kiosk system</p>
+        </header>
+
+        <div class="action-bar">
+            <div style="background: #3a5a3a; border-left: 4px solid #48bb78; padding: 12px; border-radius: 6px; margin-bottom: 15px; color: #86efac;">
+                <strong>ℹ️ Note:</strong> Display orientation is controlled via the browser's Screen Orientation API (safe, non-destructive). Resolution, refresh rate, and enable/disable changes stored in configuration.
+            </div>
+            <div id="pendingChanges" class="pending-changes" style="display: none;">
+                You have <strong id="pendingCount">0</strong> unsaved change(s)
+            </div>
+            <h3>System Actions</h3>
+            <div class="action-buttons">
+                <button class="btn btn-success" id="applyBtn" disabled>✓ Apply Changes</button>
+                <button class="btn btn-secondary" id="refreshBtn">↻ Refresh Status</button>
+            </div>
+        </div>
+
+        <div class="displays-grid" id="displaysContainer">
+            <div class="loading-spinner">
+                <div class="spinner"></div>
+                <p style="text-align: center; margin-top: 15px; color: white;">Loading display configuration...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Restart Confirmation Modal -->
+    <div class="modal-overlay" id="restartModal">
+        <div class="modal">
+            <h3>⚠️ Restart Services?</h3>
+            <p>This will momentarily restart the X server and web service. The kiosk display will briefly go black and reconnect.</p>
+            <p>Proceed?</p>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeModal('restartModal')">Cancel</button>
+                <button class="btn btn-danger" id="confirmRestartBtn">Restart Now</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+
+        /**
+         * @typedef {object} ScreenOrientation
+         * @property {string} type - The current orientation type ('portrait-primary', 'portrait-secondary', 'landscape-primary', 'landscape-secondary')
+         * @property {number} angle - Current angle (0, 90, 180, 270)
+         * @property {function(string|string[]): Promise<void>} lock - Lock the orientation
+         * @property {function(): void} unlock - Unlock the orientation
+         */
+
+        // State tracking
+        let displays = [];
+        let originalDisplays = [];
+        let currentXrandrOutputs = [];
+        let changes = {}; // Track which displays have pending changes
+
+        // UI Functions
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.add('show');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        function updatePendingChanges() {
+            const changeCount = Object.keys(changes).length;
+            const badge = document.getElementById('pendingChanges');
+            const applyBtn = document.getElementById('applyBtn');
+
+            if (changeCount > 0) {
+                badge.style.display = 'block';
+                document.getElementById('pendingCount').textContent = changeCount;
+                applyBtn.disabled = false;
+            } else {
+                badge.style.display = 'none';
+                applyBtn.disabled = true;
+            }
+        }
+
+        // Load displays from API
+        async function loadDisplays() {
+            try {
+                const response = await fetch(`${API_BASE}/displays`);
+                if (!response.ok) throw new Error('Failed to load displays');
+
+                const data = await response.json();
+                displays = data.displays;
+                currentXrandrOutputs = data.xrandr_outputs;
+                originalDisplays = JSON.parse(JSON.stringify(displays));
+                changes = {};
+                updatePendingChanges();
+                renderDisplays();
+                showToast('Display configuration loaded', 'success');
+            } catch (error) {
+                console.error('Error loading displays:', error);
+                showToast('Failed to load displays: ' + error.message, 'error');
+                document.getElementById('displaysContainer').innerHTML = `
+                    <div class="display-card" style="grid-column: 1/-1;">
+                        <p style="color: #c53030; text-align: center;">Error loading displays: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Render displays
+        function renderDisplays() {
+            const container = document.getElementById('displaysContainer');
+            container.innerHTML = displays.map(display => {
+                const hasChanges = changes[display.hdmi_port];
+                const isDisabled = !display.enabled;
+                const orientations = ['0°', '90°', '180°', '270°'];
+
+                return `
+                    <div class="display-card ${isDisabled ? 'disabled' : ''}">
+                        <div class="display-header">
+                            <h2>HDMI ${display.hdmi_port + 1}</h2>
+                            <span class="display-port">${display.xrandr_output}</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Enable Display</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" ${display.enabled ? 'checked' : ''} 
+                                       onchange="toggleDisplay(${display.hdmi_port}, this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Orientation</label>
+                            <div class="orientation-grid">
+                                ${[0, 1, 2, 3].map(rotation => `
+                                    <button class="orientation-btn ${display.orientation === rotation ? 'active' : ''}"
+                                            onclick="setOrientation(${display.hdmi_port}, ${rotation})">
+                                        ${orientations[rotation]}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <div class="orientation-preview">
+                            🖼️
+                        </div>
+
+                        <div class="form-group">
+                            <label>Display Mode</label>
+                            <select onchange="setMode(${display.hdmi_port}, this.value)">
+                                <option value="main" ${display.mode === 'main' ? 'selected' : ''}>Main Menu</option>
+                                <option value="slideshow" ${display.mode === 'slideshow' ? 'selected' : ''}>Slideshow</option>
+                                <option value="disabled" ${display.mode === 'disabled' ? 'selected' : ''}>Disabled</option>
+                            </select>
+                        </div>
+
+                        ${display.mode === 'slideshow' ? `
+                            <div class="form-group">
+                                <label>Slideshow Set</label>
+                                <select onchange="setSlideshowName(${display.hdmi_port}, this.value)" id="slideshow-${display.hdmi_port}">
+                                    <option value="">-- Select a slideshow --</option>
+                                </select>
+                            </div>
+                        ` : ''}
+
+                        <div class="form-group">
+                            <label>Resolution</label>
+                            <input type="text" placeholder="e.g., 1920x1080" value="${display.resolution || ''}" 
+                                   onchange="setResolution(${display.hdmi_port}, this.value)">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Refresh Rate (Hz)</label>
+                            <select onchange="setRefreshRate(${display.hdmi_port}, parseFloat(this.value))">
+                                <option value="24" ${display.refresh_rate === 24 ? 'selected' : ''}>24 Hz</option>
+                                <option value="30" ${display.refresh_rate === 30 ? 'selected' : ''}>30 Hz</option>
+                                <option value="60" ${display.refresh_rate === 60 ? 'selected' : ''}>60 Hz</option>
+                                <option value="144" ${display.refresh_rate === 144 ? 'selected' : ''}>144 Hz</option>
+                            </select>
+                        </div>
+
+                        ${hasChanges ? `<div class="status-badge pending">⏳ Pending Changes</div>` : ''}
+
+                        <div class="button-group">
+                            <button class="btn btn-primary" onclick="testDisplay(${display.hdmi_port}, event)">
+                                Test Display
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Load slideshows for dropdowns
+            loadSlideshows();
+        }
+
+        // Load available slideshows
+        async function loadSlideshows() {
+            try {
+                const response = await fetch(`${API_BASE}/slideshows`);
+                if (!response.ok) return;
+
+                const data = await response.json();
+                const slideshows = Array.isArray(data) ? data : data.slideshows || [];
+
+                displays.forEach(display => {
+                    if (display.mode === 'slideshow') {
+                        const select = document.getElementById(`slideshow-${display.hdmi_port}`);
+                        if (select) {
+                            select.innerHTML = '<option value="">-- Select a slideshow --</option>' +
+                                slideshows.map(s => `
+                                    <option value="${s.name}" ${display.slideshow_name === s.name ? 'selected' : ''}>
+                                        ${s.name}
+                                    </option>
+                                `).join('');
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Failed to load slideshows:', error);
+            }
+        }
+
+        // Change handlers
+        function toggleDisplay(port, enabled) {
+            const display = displays.find(d => d.hdmi_port === port);
+            if (display) {
+                display.enabled = enabled ? 1 : 0;
+                changes[port] = true;
+                updatePendingChanges();
+                renderDisplays();
+            }
+        }
+
+        function setOrientation(port, orientation) {
+            const display = displays.find(d => d.hdmi_port === port);
+            if (display) {
+                display.orientation = orientation;
+                changes[port] = true;
+                updatePendingChanges();
+                renderDisplays();
+                
+                // Orientation will be applied to the actual display (index.html) when it loads/refreshes
+                // No need to apply Screen Orientation API here (admin may be on different device)
+                showToast(`Orientation set to ${['0°', '90°', '180°', '270°'][orientation]} (will apply to display on next load)`, 'info');
+            }
+        }
+
+        function setMode(port, mode) {
+            const display = displays.find(d => d.hdmi_port === port);
+            if (display) {
+                display.mode = mode;
+                changes[port] = true;
+                updatePendingChanges();
+                renderDisplays();
+            }
+        }
+
+        function setSlideshowName(port, name) {
+            const display = displays.find(d => d.hdmi_port === port);
+            if (display) {
+                display.slideshow_name = name || null;
+                changes[port] = true;
+                updatePendingChanges();
+            }
+        }
+
+        function setResolution(port, resolution) {
+            const display = displays.find(d => d.hdmi_port === port);
+            if (display) {
+                display.resolution = resolution || null;
+                changes[port] = true;
+                updatePendingChanges();
+            }
+        }
+
+        function setRefreshRate(port, rate) {
+            const display = displays.find(d => d.hdmi_port === port);
+            if (display) {
+                display.refresh_rate = rate;
+                changes[port] = true;
+                updatePendingChanges();
+            }
+        }
+
+        // API Actions
+        async function testDisplay(port, evt) {
+            try {
+                const btn = evt.target;
+                btn.disabled = true;
+                btn.innerHTML = '<span class="loading"></span> Testing...';
+
+                const response = await fetch(`${API_BASE}/displays/${port}/test`, { method: 'POST' });
+                const data = await response.json();
+
+                if (response.ok) {
+                    showToast(`Test signal sent to ${data.xrandr_output}`, 'success');
+                } else {
+                    showToast('Test signal failed: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error: ' + error.message, 'error');
+            } finally {
+                evt.target.disabled = false;
+                evt.target.innerHTML = 'Test Display';
+            }
+        }
+
+        async function applyChanges() {
+            const changedPorts = Object.keys(changes).map(Number);
+            if (changedPorts.length === 0) return;
+
+            try {
+                const applyBtn = document.getElementById('applyBtn');
+                applyBtn.disabled = true;
+                applyBtn.innerHTML = '<span class="loading"></span> Applying...';
+
+                console.log('[SCREENS] Applying changes to ports:', changedPorts);
+
+                for (const port of changedPorts) {
+                    const display = displays.find(d => d.hdmi_port === port);
+                    console.log(`[SCREENS] Updating port ${port}:`, display);
+                    
+                    const response = await fetch(`${API_BASE}/displays/${port}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(display)
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(`Failed to update display ${port}: ${error.error || response.statusText}`);
+                    }
+                }
+
+                // Note: Orientation changes are applied immediately via Screen Orientation API when changed
+                // Remaining changes (enabled, mode, resolution, refresh_rate, etc) are saved to database
+                console.log('[SCREENS] Saving display configuration to database...');
+                // API endpoints now only save to database (xrandr apply is disabled for safety)
+                
+                showToast('Display configuration updated successfully', 'success');
+                
+                changes = {};
+                updatePendingChanges();
+                loadDisplays();
+            } catch (error) {
+                console.error('[SCREENS] Apply error:', error);
+                showToast('Error: ' + error.message, 'error');
+                document.getElementById('applyBtn').innerHTML = '✓ Apply Changes';
+                document.getElementById('applyBtn').disabled = false;
+            }
+        }
+
+        async function restartServices() {
+            showModal('restartModal');
+        }
+
+        document.getElementById('confirmRestartBtn').addEventListener('click', async () => {
+            closeModal('restartModal');
+            const btn = document.getElementById('confirmRestartBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Restarting...';
+
+            try {
+                const response = await fetch(`${API_BASE}/displays/system/restart?confirm=true`, { method: 'POST' });
+                if (!response.ok) throw new Error('Restart request failed');
+
+                showToast('Services restarting... You may lose connection briefly.', 'success');
+                // Attempt to reconnect after 5 seconds
+                setTimeout(() => {
+                    window.location.reload();
+                }, 5000);
+            } catch (error) {
+                showToast('Error: ' + error.message, 'error');
+                btn.disabled = false;
+                btn.innerHTML = '⏻ Restart Services';
+            }
+        });
+
+        // Event listeners
+        document.getElementById('applyBtn').addEventListener('click', applyChanges);
+        document.getElementById('refreshBtn').addEventListener('click', loadDisplays);
+
+        // Initialize
+        loadDisplays();
+    </script>
+</body>
+</html>

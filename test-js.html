@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>JS Test</title>
+  <style>
+    body { background: #222; color: #fff; font-size: 2rem; padding: 2rem; }
+    #status { padding: 1rem; background: #333; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <div id="status">Loading...</div>
+  <script>
+    document.getElementById('status').textContent = 'JavaScript is working!';
+    console.log('Test script executed');
+    setTimeout(() => {
+      document.getElementById('status').textContent = 'JavaScript works + timeout works!';
+    }, 1000);
+  </script>
+</body>
+</html>

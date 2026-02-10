@@ -1,0 +1,31 @@
+{
+  "version": "1.0.1.1",
+  "bg": "backgd.jpg",
+  "font": "'Permanent Marker', cursive",
+  "headerFont": "'PermanentMarker-Regular', sans-serif",
+  "headerText": "Specials",
+  "headerSizePercent": 34,
+  "contentSizePercent": 5.4,
+  "bgBrightness": 0.4,
+  "showClock": true,
+  "clock24Hour": true,
+  "qrBadgeEnabled": true,
+  "qrBadgeTitle": "Scan for menu! You must be on MAH_Guest to view.",
+  "qrBadgeUrl": "http://314sign.local/",
+  "qrBadgeImage": "qr-menu.png",
+  "autoFormatItemColor": "w",
+  "autoFormatPriceColor": "y",
+  "autoFormatDescColor": "lg",
+  "availableFonts": {
+    "Lato": "Lato, sans-serif",
+    "Arial": "Arial, sans-serif",
+    "Georgia": "Georgia, serif",
+    "Comic Sans": "'Comic Sans MS', cursive",
+    "Indie Flower": "'Indie Flower', cursive",
+    "Permanent Marker": "'Permanent Marker', cursive",
+    "Caveat": "'Caveat', cursive",
+    "Dancing Script": "'Dancing Script', cursive"
+  },
+  "masterCode": "DMCIIQ",
+  "displayOrientation": 2
+}
