@@ -104,7 +104,9 @@ WorkingDirectory=${APP_DIR}
 Environment=NODE_ENV=production
 Environment=KIOSK_PORT=${PORT}
 Environment=KIOSK_HOST=127.0.0.1
-ExecStart=/usr/bin/env npm start
+Environment=KIOSK_NODE_BINARY=/usr/bin/node
+Environment=DISPLAY=:0
+ExecStart=/usr/bin/env bash ${APP_DIR}/scripts/run-kiosk.sh
 Restart=always
 RestartSec=3
 TimeoutStopSec=20

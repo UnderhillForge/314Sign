@@ -1,11 +1,7 @@
 import { app, BrowserWindow, screen } from 'electron'
 import { spawn, type ChildProcess } from 'child_process'
-import { dirname, join } from 'path'
+import { join } from 'path'
 import { existsSync } from 'fs'
-import { fileURLToPath } from 'url'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
 
 const SERVER_HOST = process.env.KIOSK_HOST || '127.0.0.1'
 const SERVER_PORT = Number(process.env.KIOSK_PORT || process.env.PORT || 80)
@@ -29,6 +25,7 @@ type DisplayWindowState = {
 }
 
 let serverProcess: ChildProcess | null = null
+const nodeBinary = process.env.KIOSK_NODE_BINARY || 'node'
 const displayWindows = new Map<number, DisplayWindowState>()
 let lastDisplayConfigHash = ''
 
@@ -63,7 +60,7 @@ function startServer(): void {
     ? ['--loader', 'ts-node/esm', script]
     : [script]
 
-  serverProcess = spawn(process.execPath, args, {
+  serverProcess = spawn(nodeBinary, args, {
     cwd: serverRoot,
     env: {
       ...process.env,
