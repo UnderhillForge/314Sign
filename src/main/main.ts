@@ -109,7 +109,7 @@ async function fetchDisplayConfig(): Promise<DisplayConfig[]> {
   if (!response.ok) {
     throw new Error(`Failed to fetch display config (${response.status})`)
   }
-  const payload = await response.json()
+  const payload = (await response.json()) as { data?: DisplayConfig[] }
   return payload.data || []
 }
 

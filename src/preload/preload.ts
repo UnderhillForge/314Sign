@@ -20,12 +20,13 @@ const api = {
 
   // Orientation lock via Screen Orientation API
   lockOrientation: async (orientationType: string) => {
-    if (!window.screen?.orientation?.lock) {
+    const orientation = (window.screen as any)?.orientation
+    if (!orientation?.lock) {
       console.warn('Screen Orientation API not available')
       return false
     }
     try {
-      await window.screen.orientation.lock(orientationType)
+      await orientation.lock(orientationType)
       console.log('[PRELOAD] Locked orientation to:', orientationType)
       return true
     } catch (error) {
@@ -35,8 +36,9 @@ const api = {
   },
 
   unlockOrientation: () => {
-    if (window.screen?.orientation?.unlock) {
-      window.screen.orientation.unlock()
+    const orientation = (window.screen as any)?.orientation
+    if (orientation?.unlock) {
+      orientation.unlock()
       console.log('[PRELOAD] Unlocked orientation')
     }
   },
