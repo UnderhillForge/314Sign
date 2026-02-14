@@ -173,24 +173,31 @@
     </div>
 
     <script>
-        // Get display number and orientation from URL parameters
+        // Get display number, port, and orientation from URL parameters
         const params = new URLSearchParams(window.location.search);
-        const displayNum = params.get('display') || '1';
-        const orientation = parseInt(params.get('orientation') || '0', 10);
+        const displayNum = params.get('display') || params.get('port') || '1';
+        let orientationParam = parseInt(params.get('orientation') || '0', 10);
+        const portParam = parseInt(params.get('port') || '0', 10);
+        
+        // HDMI-2 (port=1) has a -90° hardware offset, so add 90° to compensate
+        // 0->1, 1->2, 2->3, 3->0
+        if (portParam === 1) {
+          orientationParam = (orientationParam + 1) % 4;
+        }
         
         document.getElementById('displayNumber').textContent = displayNum;
 
         // Apply CSS rotation based on orientation value
         // 0 = 0°, 1 = 90° CW, 2 = 180°, 3 = 270° CW (90° CCW)
-        if (orientation !== 0) {
-            const rotationDegrees = orientation * 90;
+        if (orientationParam !== 0) {
+            const rotationDegrees = orientationParam * 90;
             const body = document.body;
             
-            console.log(`[TEST PATTERN] Applying CSS rotation: ${rotationDegrees}° (orientation value: ${orientation})`);
+            console.log(`[TEST PATTERN] Port ${portParam}, Applying CSS rotation: ${rotationDegrees}° (orientation value: ${orientationParam})`);
             console.log(`[TEST PATTERN] Viewport: ${window.innerWidth}x${window.innerHeight}`);
             
             // For 90° and 270°, we need to swap width/height
-            if (orientation === 1 || orientation === 3) {
+            if (orientationParam === 1 || orientationParam === 3) {
                 // Landscape to portrait rotation
                 const vw = window.innerWidth;
                 const vh = window.innerHeight;
@@ -205,7 +212,7 @@
                 body.style.padding = '0';
                 
                 // Adjust position based on rotation direction
-                if (orientation === 1) {
+                if (orientationParam === 1) {
                     // 90° CW: rotate around top-left, then shift to top-right
                     body.style.transform = `rotate(90deg) translate(0, -100%)`;
                     body.style.left = '0';
@@ -237,7 +244,7 @@
         document.getElementById('resolution').textContent = `${width}×${height} @ ${window.devicePixelRatio}x`;
 
         // Log display info
-        console.log(`[TEST PATTERN] Display ${displayNum} - Resolution: ${width}×${height} - Orientation: ${orientation}`);
+        console.log(`[TEST PATTERN] Display ${displayNum} - Resolution: ${width}×${height} - Original Orientation: ${params.get('orientation') || '0'} - Adjusted Orientation: ${orientationParam}`);
     </script>
 </body>
 </html>
