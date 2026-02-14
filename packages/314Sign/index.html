@@ -7,7 +7,7 @@
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     :root {
-      --content-size: clamp(1rem, 2.6vw, 2.2rem);
+      --content-size: clamp(1rem, max(1.5vw, 4.2vh), 2.2rem);
     }
     html, body { height:100%; width:100%; overflow:hidden; }
     body {
@@ -36,13 +36,19 @@
     header {
       background: rgba(0,0,0,0.5);
       padding: 1rem;
-      font-size: clamp(1.5rem, 5vw, 4rem);
+      height: 12vh;
+      font-size: 3.5vh;
       font-weight: bold;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      overflow: hidden;
     }
-    #clock { font-size: clamp(1rem, 3vw, 2.5rem); }
+    #clock { 
+      font-size: 5.25vh; 
+      font-weight: bold;
+      font-family: Arial, sans-serif;
+    }
     #specials {
       flex: 1;
       overflow: auto;
@@ -61,35 +67,35 @@
       right: 1.2rem;
       bottom: 2.2rem;
       background: rgba(0,0,0,0.55);
-      border: 2px solid rgba(255,255,255,0.55);
-      border-radius: 0.8rem;
-      padding: 0.6rem 0.7rem;
+      border: 4px solid rgba(255,255,255,0.55);
+      border-radius: 1.6rem;
+      padding: 1.2rem 1.4rem;
       display: flex;
-      gap: 0.6rem;
+      gap: 1.2rem;
       align-items: center;
       z-index: 5;
       backdrop-filter: blur(4px);
     }
     .qr-badge img {
-      width: 86px;
-      height: 86px;
+      width: 172px;
+      height: 172px;
       background: #fff;
-      padding: 4px;
-      border-radius: 0.4rem;
+      padding: 8px;
+      border-radius: 0.8rem;
     }
     .qr-text {
-      font-size: 0.9rem;
+      font-size: 1.8rem;
       line-height: 1.1;
     }
     .qr-url {
       display: inline-block;
-      font-size: 0.85rem;
+      font-size: 1.7rem;
       opacity: 0.85;
       margin-top: 0.2rem;
     }
     @media (max-width: 900px) {
       .qr-badge {
-        transform: scale(0.85);
+        transform: scale(1.7);
         transform-origin: bottom right;
       }
     }
@@ -110,6 +116,9 @@
       <span class="qr-url" id="qr-url">http://314sign.local/</span>
     </div>
   </div>
+
+  <!-- Slideshow player module -->
+  <script src="slideshow-player.js"></script>
 
   <script>
     // TEST: Immediate test to verify JavaScript is running
@@ -189,6 +198,12 @@ const __orientationParam = parseInt(new URLSearchParams(window.location.search).
     const qrUrlEl = document.getElementById('qr-url');
     const qrImageEl = document.getElementById('qr-image');
 
+    // Also expose as window properties for slideshow module
+    window.headerEl = headerEl;
+    window.clockEl = clockEl;
+    window.specialsEl = specialsEl;
+    window.qrBadgeEl = qrBadgeEl;
+
     function resolveBgUrl(bg) {
       if (!bg) return null;
       if (bg.startsWith('data:')) return bg;
@@ -224,7 +239,7 @@ const __orientationParam = parseInt(new URLSearchParams(window.location.search).
     }
 
     window.updateQrVisibility = function updateQrVisibility(cfg = lastConfig) {
-      const defaultUrl = 'http://' + window.location.hostname + '/';
+      const defaultUrl = 'http://' + window.location.hostname + '/?guest=1';
       const qrEnabled = cfg.qrBadgeEnabled !== false && !isGuestView && !slideshowParam && !isPlayingSlideshow;
 
       if (qrEnabled) {
@@ -264,7 +279,7 @@ const __orientationParam = parseInt(new URLSearchParams(window.location.search).
         headerEl.style.fontSize = 'clamp(1.5rem, ' + cfg.headerSizePercent + 'vw, 10rem)';
       }
 
-      if (cfg.showClock === false) {
+      if (cfg.showClock === false || isGuestView) {
         clockEl.style.display = 'none';
       } else {
         clockEl.style.display = '';
@@ -575,9 +590,23 @@ const __orientationParam = parseInt(new URLSearchParams(window.location.search).
     setInterval(checkScheduleRules, 60000);
     checkScheduleRules();
 
-    // Load initial menu
+    // Initialize slideshow module and check for slideshow in URL
+    if (window.initializeSlideshowModule) {
+      window.initializeSlideshowModule();
+      if (window.checkForSlideshow) {
+        window.checkForSlideshow();
+      }
+    }
+
+    // Load initial menu (unless a slideshow is being played)
     loadCustomFonts().then(() => {
-      loadMenu('dinner');
+      // Skip loading menu if slideshow parameter is in URL
+      if (!slideshowParam && !isPlayingSlideshow) {
+        console.log('[INIT] Loading menu: dinner');
+        loadMenu('dinner');
+      } else if (slideshowParam) {
+        console.log('[INIT] Slideshow parameter detected, skipping menu load');
+      }
       loadConfig();
       setupOrientationListener();
     });

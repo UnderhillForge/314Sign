@@ -27,6 +27,7 @@ import authRoutes, { authenticateToken, requireAdmin } from './routes/auth.js';
 import remotesRoutes from './routes/remotes.js';
 import displaysRoutes from './routes/displays.js';
 import kioskRoutes from './routes/kiosk.js';
+import weatherRoutes from './routes/weather.js';
 import { requireAuthPage } from './middleware/auth.js';
 import db, { dbHelpers, initializeDatabase } from './database.js';
 
@@ -248,6 +249,7 @@ app.use('/api/backgrounds', backgroundsRoutes);
 app.use('/api/remotes', remotesRoutes);
 app.use('/api/displays', displaysRoutes);
 app.use('/api/kiosk', kioskRoutes);
+app.use('/api/weather', weatherRoutes);
 
 // Debug logs endpoint (admin only)
 app.get('/api/debug/logs', authenticateToken, requireAdmin, (req, res) => {

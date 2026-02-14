@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>314Sign Slideshow</title>
+  
+  <!-- Reveal.js CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.0.4/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.0.4/dist/theme/black.css">
+  
+  <style>
+    :root {
+      --slide-bg: #000;
+      --slide-text: #fff;
+    }
+    
+    .reveal {
+      background: var(--slide-bg);
+    }
+    
+    .reveal .slides {
+      text-align: center;
+    }
+    
+    /* Slide content styling */
+    .slide-content {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem;
+    }
+    
+    .slide-title {
+      font-size: 4rem;
+      font-weight: bold;
+      margin-bottom: 1rem;
+    }
+    
+    .slide-subtitle {
+      font-size: 2rem;
+      opacity: 0.8;
+    }
+    
+    .slide-text {
+      font-size: 2.5rem;
+      line-height: 1.6;
+      max-width: 90%;
+    }
+    
+    .slide-image {
+      max-width: 90%;
+      max-height: 80vh;
+      object-fit: contain;
+    }
+    
+    /* Weather widget */
+    .weather-widget {
+      display: flex;
+      gap: 3rem;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    
+    .weather-current {
+      text-align: center;
+    }
+    
+    .weather-temp {
+      font-size: 6rem;
+      font-weight: bold;
+    }
+    
+    .weather-condition {
+      font-size: 2rem;
+      opacity: 0.9;
+    }
+    
+    .weather-icon {
+      font-size: 8rem;
+    }
+    
+    .weather-forecast {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+    }
+    
+    .forecast-day {
+      text-align: center;
+      padding: 1rem;
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px;
+    }
+    
+    .forecast-day-name {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .forecast-temp {
+      font-size: 2rem;
+      font-weight: bold;
+    }
+    
+    /* Time widget */
+    .time-widget {
+      font-size: 8rem;
+      font-weight: bold;
+      font-family: 'Courier New', monospace;
+    }
+    
+    .date-widget {
+      font-size: 3rem;
+      margin-top: 2rem;
+      opacity: 0.9;
+    }
+    
+    /* Video slide */
+    .slide-video {
+      max-width: 100%;
+      max-height: 85vh;
+    }
+  </style>
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides" id="slides-container">
+      <!-- Slides will be injected here -->
+    </div>
+  </div>
+
+  <!-- Reveal.js -->
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.0.4/dist/reveal.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+  
+  <script>
+    let slideshowData = null;
+    let weatherCache = null;
+    let weatherUpdateInterval = null;
+
+    // Get slideshow name from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const slideshowName = urlParams.get('slideshow');
+
+    if (!slideshowName) {
+      document.getElementById('slides-container').innerHTML = 
+        '<section><h1>No slideshow specified</h1><p>Add ?slideshow=name to the URL</p></section>';
+    } else {
+      loadSlideshow(slideshowName);
+    }
+
+    async function loadSlideshow(name) {
+      try {
+        const response = await fetch(`/api/slideshows/${name}`);
+        if (!response.ok) throw new Error('Slideshow not found');
+        
+        const result = await response.json();
+        slideshowData = result.data;
+        
+        await renderSlides();
+        initializeReveal();
+        
+        // Start weather updates if needed
+        if (hasWeatherWidget()) {
+          updateWeather();
+          weatherUpdateInterval = setInterval(updateWeather, 10 * 60 * 1000); // Every 10 minutes
+        }
+        
+      } catch (error) {
+        console.error('Failed to load slideshow:', error);
+        document.getElementById('slides-container').innerHTML = 
+          `<section><h1>Error</h1><p>Failed to load slideshow: ${error.message}</p></section>`;
+      }
+    }
+
+    function hasWeatherWidget() {
+      return slideshowData?.slides?.some(slide => slide.type === 'weather');
+    }
+
+    async function updateWeather() {
+      try {
+        // Find first weather slide to get location/units preferences
+        const weatherSlide = slideshowData.slides.find(s => s.type === 'weather');
+        if (!weatherSlide) return;
+        
+        const location = weatherSlide.location || 'auto';
+        const units = weatherSlide.units || 'F';
+        
+        const response = await fetch(`/api/weather?location=${encodeURIComponent(location)}&units=${units}`);
+        const result = await response.json();
+        
+        if (result.success) {
+          weatherCache = result.data;
+          
+          // Re-render weather slides
+          const weatherSlides = document.querySelectorAll('.weather-slide');
+          weatherSlides.forEach(slide => {
+            const slideData = slideshowData.slides.find(s => s.type === 'weather');
+            if (slideData) {
+              slide.innerHTML = renderWeatherSlide(slideData);
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Failed to update weather:', error);
+      }
+    }
+
+    async function renderSlides() {
+      const container = document.getElementById('slides-container');
+      container.innerHTML = '';
+
+      let currentParent = null; // Track current horizontal section for vertical nesting
+
+      for (let i = 0; i < slideshowData.slides.length; i++) {
+        const slide = slideshowData.slides[i];
+        const section = document.createElement('section');
+        
+        // Set background color or image
+        if (slide.background) {
+          if (slide.background.startsWith('#')) {
+            section.setAttribute('data-background-color', slide.background);
+          } else {
+            section.setAttribute('data-background-image', slide.background);
+            section.setAttribute('data-background-size', 'cover');
+          }
+        }
+        
+        // Set transition
+        if (slide.transition) {
+          section.setAttribute('data-transition', slide.transition);
+        }
+        
+        // Set auto-slide duration
+        if (slide.duration) {
+          section.setAttribute('data-autoslide', slide.duration);
+        }
+
+        section.className = 'slide-content';
+        
+        // Render content based on type
+        switch (slide.type) {
+          case 'text':
+            section.innerHTML = renderTextSlide(slide);
+            break;
+          case 'image':
+            section.innerHTML = renderImageSlide(slide);
+            break;
+          case 'weather':
+            section.classList.add('weather-slide');
+            section.innerHTML = renderWeatherSlide(slide);
+            break;
+          case 'time':
+            section.innerHTML = renderTimeSlide(slide);
+            startTimeUpdate(section);
+            break;
+          case 'html':
+            section.innerHTML = slide.content || '';
+            break;
+          case 'composite':
+            section.innerHTML = renderCompositeSlide(slide);
+            break;
+          default:
+            section.innerHTML = '<p>Unknown slide type</p>';
+        }
+        
+        // Handle vertical slides (nested sections)
+        if (slide.vertical && currentParent) {
+          // If parent has no children yet, we need to convert it to a wrapper
+          if (currentParent.children.length === 0 || 
+              !currentParent.firstElementChild.tagName === 'SECTION') {
+            // Move parent's content into a child section
+            const parentContent = currentParent.innerHTML;
+            const parentAttrs = {};
+            
+            // Copy parent's data attributes
+            Array.from(currentParent.attributes).forEach(attr => {
+              if (attr.name.startsWith('data-')) {
+                parentAttrs[attr.name] = attr.value;
+              }
+            });
+            
+            currentParent.innerHTML = '';
+            const firstChild = document.createElement('section');
+            firstChild.className = 'slide-content';
+            firstChild.innerHTML = parentContent;
+            
+            // Copy attributes to first child
+            Object.keys(parentAttrs).forEach(key => {
+              firstChild.setAttribute(key, parentAttrs[key]);
+            });
+            
+            currentParent.appendChild(firstChild);
+          }
+          
+          // Add this slide as a nested section
+          currentParent.appendChild(section);
+        } else {
+          // This is a horizontal slide
+          container.appendChild(section);
+          currentParent = section;
+        }
+      }
+    }
+
+    function renderTextSlide(slide) {
+      let html = '';
+      
+      // If markdown is enabled, render as markdown
+      if (slide.markdown && slide.content) {
+        return marked.parse(slide.content);
+      }
+      
+      // Otherwise render as regular text slide
+      if (slide.title) {
+        html += `<h1 class="slide-title">${escapeHtml(slide.title)}</h1>`;
+      }
+      
+      if (slide.subtitle) {
+        html += `<p class="slide-subtitle">${escapeHtml(slide.subtitle)}</p>`;
+      }
+      
+      if (slide.content) {
+        html += `<div class="slide-text">${escapeHtml(slide.content).replace(/\n/g, '<br>')}</div>`;
+      }
+      
+      return html;
+    }
+
+    function renderImageSlide(slide) {
+      let html = `<img src="${escapeHtml(slide.media)}" class="slide-image" alt="Slide image">`;
+      
+      if (slide.caption) {
+        html += `<p class="slide-subtitle" style="margin-top: 1rem;">${escapeHtml(slide.caption)}</p>`;
+      }
+      
+      return html;
+    }
+
+    function renderWeatherSlide(slide) {
+      if (!weatherCache) return '<p>Loading weather...</p>';
+      
+      const unitSymbol = slide.units === 'C' ? '°C' : '°F';
+      const windUnit = slide.units === 'C' ? 'km/h' : 'mph';
+      
+      return `
+        <div class="weather-widget">
+          <div class="weather-location">${weatherCache.location || ''}</div>
+          <div class="weather-current">
+            <div class="weather-icon">
+              <img src="https://openweathermap.org/img/wn/${weatherCache.current.icon}@4x.png" alt="${weatherCache.current.condition}">
+            </div>
+            <div class="weather-temp">${weatherCache.current.temp}${unitSymbol}</div>
+            <div class="weather-condition">${weatherCache.current.condition}</div>
+          </div>
+          <div class="weather-details" style="display:flex;gap:2rem;justify-content:center;margin:1rem 0;font-size:1.5rem;">
+            <div>💧 ${weatherCache.current.humidity}%</div>
+            <div>💨 ${weatherCache.current.windSpeed} ${windUnit}</div>
+          </div>
+          <div class="weather-forecast">
+            ${weatherCache.forecast.map(day => `
+              <div class="forecast-day">
+                <div class="forecast-day-name">${day.day}</div>
+                <img src="https://openweathermap.org/img/wn/${day.icon}@2x.png" alt="${day.condition}">
+                <div class="forecast-temp">${day.temp}${unitSymbol}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTimeSlide(slide) {
+      return `
+        <div class="time-widget" id="time-display">--:--</div>
+        <div class="date-widget" id="date-display">Loading...</div>
+      `;
+    }
+
+    function renderCompositeSlide(slide) {
+      if (!slide.elements || slide.elements.length === 0) {
+        return '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#666;">Empty slide</div>';
+      }
+      
+      let html = '<div style="position:relative;width:100%;height:100%;">';
+      
+      slide.elements.forEach(element => {
+        const style = `
+          position: absolute;
+          left: ${element.x}%;
+          top: ${element.y}%;
+          width: ${element.width}px;
+          height: ${element.height}px;
+          transform: rotate(${element.rotation || 0}deg);
+        `;
+        
+        if (element.type === 'text') {
+          html += `
+            <div style="${style}">
+              <div style="padding:10px;font-size:${element.fontSize || 24}px;color:${element.color || '#fff'};font-weight:${element.bold ? 'bold' : 'normal'};">
+                ${escapeHtml(element.content || '')}
+              </div>
+            </div>
+          `;
+        } else if (element.type === 'image') {
+          html += `<div style="${style}"><img src="${escapeHtml(element.src)}" style="width:100%;height:100%;object-fit:cover;"></div>`;
+        } else if (element.type === 'weather') {
+          html += `<div style="${style}"><div class="weather-widget-composite" data-location="${element.location || 'auto'}"></div></div>`;
+        }
+      });
+      
+      html += '</div>';
+      return html;
+    }
+
+    function startTimeUpdate(section) {
+      const updateTime = () => {
+        const timeEl = section.querySelector('#time-display');
+        const dateEl = section.querySelector('#date-display');
+        
+        if (timeEl && dateEl) {
+          const now = new Date();
+          timeEl.textContent = now.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: true 
+          });
+          dateEl.textContent = now.toLocaleDateString('en-US', { 
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+        }
+      };
+      
+      updateTime();
+      setInterval(updateTime, 1000);
+    }
+
+    function renderWeatherContent(slide) {
+      const container = slide.querySelector('.weather-widget');
+      if (container && weatherCache) {
+        container.outerHTML = renderWeatherSlide({});
+      }
+    }
+
+    function initializeReveal() {
+      const config = {
+        width: 1920,
+        height: 1080,
+        margin: 0,
+        minScale: 1,
+        maxScale: 1,
+        controls: false,
+        progress: false,
+        center: true,
+        hash: false,
+        transition: slideshowData.defaultTransition || 'slide',
+        transitionSpeed: 'default',
+        autoSlide: slideshowData.defaultDuration || 5000,
+        autoSlideStoppable: false,
+        loop: true,
+        shuffle: false,
+        mouseWheel: false,
+        hideInactiveCursor: true,
+        hideCursorTime: 1000
+      };
+
+      Reveal.initialize(config);
+      
+      // Log slideshow started
+      console.log('[SLIDESHOW] Reveal.js initialized with', slideshowData.slides.length, 'slides');
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      if (weatherUpdateInterval) {
+        clearInterval(weatherUpdateInterval);
+      }
+    });
+  </script>
+</body>
+</html>

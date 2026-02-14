@@ -434,7 +434,7 @@ fi
 # === 10. Generate QR codes ===
 echo "Generating QR codes..."
 cd /var/www/html
-[ ! -f qr-menu.png ] && qrencode -o qr-menu.png -s 6 -m 1 "http://${HOSTNAME}.local/"
+[ ! -f qr-menu.png ] && qrencode -o qr-menu.png -s 6 -m 1 "http://${HOSTNAME}.local/?guest=1"
 [ ! -f qr-start.png ] && qrencode -o qr-start.png -s 10 "http://${HOSTNAME}.local/start/"
 [ ! -f qr-edit.png ] && qrencode -o qr-edit.png -s 10 "http://${HOSTNAME}.local/edit/"
 [ ! -f qr-design.png ] && qrencode -o qr-design.png -s 10 "http://${HOSTNAME}.local/design/"

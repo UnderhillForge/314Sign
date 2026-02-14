@@ -17,37 +17,65 @@ window.initializeSlideshowModule = function() {
 
   // Load slideshow from database API
   window.loadSlideshow = function(slideshowName) {
+    console.log('[SLIDESHOW] Loading slideshow:', slideshowName);
+    
     // Extract name if it's a full path
     if (slideshowName && slideshowName.includes('/')) {
       slideshowName = slideshowName.split('/').pop().replace('.json', '');
     }
 
     fetch('/api/slideshows/' + slideshowName)
-      .then(r => r.ok ? r.json() : null)
-      .then(response => response ? response.data : null)
+      .then(r => {
+        console.log('[SLIDESHOW] API response status:', r.status, r.ok);
+        return r.ok ? r.json() : null;
+      })
+      .then(response => {
+        console.log('[SLIDESHOW] API response:', response);
+        return response ? response.data : null;
+      })
       .then(data => {
+        console.log('[SLIDESHOW] Slide data:', data);
         if (data && data.slides && data.slides.length > 0) {
           window.slideshowData = data;
           window.isPlayingSlideshow = true;
+          console.log('[SLIDESHOW] Slideshow ready, setting isPlayingSlideshow=true');
+          
           if (typeof window.updateQrVisibility === 'function') {
             window.updateQrVisibility();
           }
 
-          // Hide header and clock
-          if (window.headerEl) window.headerEl.style.display = 'none';
-          if (window.clockEl) window.clockEl.style.display = 'none';
-          if (window.specialsDiv) window.specialsDiv.style.display = 'none';
+          // Hide header and clock completely
+          if (window.headerEl) {
+            window.headerEl.style.display = 'none';
+            window.headerEl.style.visibility = 'hidden';
+            window.headerEl.style.height = '0';
+            window.headerEl.style.overflow = 'hidden';
+            window.headerEl.style.margin = '0';
+            window.headerEl.style.padding = '0';
+            console.log('[SLIDESHOW] Hid header');
+          }
+          if (window.clockEl) {
+            window.clockEl.style.display = 'none';
+            window.clockEl.style.visibility = 'hidden';
+            console.log('[SLIDESHOW] Hid clock');
+          }
+          if (window.specialsEl) {
+            window.specialsEl.style.display = 'flex';
+            console.log('[SLIDESHOW] Showed specials div');
+          }
 
           // Initialize Splide carousel
           window.initializeSlideshowPlayer();
+        } else {
+          console.error('[SLIDESHOW] No slides found in data:', data);
         }
       })
       .catch(err => {
-        console.error('Failed to load slideshow:', err);
-          window.isPlayingSlideshow = false;
-          if (typeof window.updateQrVisibility === 'function') {
-            window.updateQrVisibility();
-          }
+        console.error('[SLIDESHOW] Failed to load slideshow:', err);
+        window.isPlayingSlideshow = false;
+        if (typeof window.updateQrVisibility === 'function') {
+          window.updateQrVisibility();
+        }
       });
   };
 
@@ -58,7 +86,7 @@ window.initializeSlideshowModule = function() {
     }
 
     // Create Splide carousel HTML
-    window.specialsDiv.innerHTML = `<div class="splide" id="slideshow-carousel" role="region">
+    window.specialsEl.innerHTML = `<div class="splide" id="slideshow-carousel" role="region">
       <div class="splide__track">
         <ul class="splide__list">
           ${window.slideshowData.slides.map((slide, i) => `
@@ -72,7 +100,7 @@ window.initializeSlideshowModule = function() {
       </div>
     </div>`;
 
-    window.specialsDiv.style.display = 'flex';
+    window.specialsEl.style.display = 'flex';
 
     // Initialize Splide with disabled autoplay (we'll handle timing manually)
     const splide = new Splide('#slideshow-carousel', {
@@ -177,6 +205,21 @@ window.initializeSlideshowModule = function() {
       window.currentSplide.destroy();
       window.currentSplide = null;
     }
+    
+    // Restore header and clock visibility
+    if (window.headerEl) {
+      window.headerEl.style.display = '';
+      window.headerEl.style.visibility = '';
+      window.headerEl.style.height = '';
+      window.headerEl.style.overflow = '';
+      window.headerEl.style.margin = '';
+      window.headerEl.style.padding = '';
+    }
+    if (window.clockEl) {
+      window.clockEl.style.display = '';
+      window.clockEl.style.visibility = '';
+    }
+    
     window.isPlayingSlideshow = false;
     if (typeof window.updateQrVisibility === 'function') {
       window.updateQrVisibility();

@@ -1,0 +1,18 @@
+[Unit]
+Description=314Sign Kiosk Display
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/314Sign-e
+Environment="DISPLAY=:0"
+Environment="KIOSK_PORT=80"
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

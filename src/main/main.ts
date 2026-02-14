@@ -25,6 +25,9 @@ type DisplayWindowState = {
   displayId: number
 }
 
+// Disable GPU acceleration to prevent crashes on resource-constrained systems like Raspberry Pi
+app.disableHardwareAcceleration()
+
 let serverProcess: ChildProcess | null = null
 const nodeBinary = process.env.KIOSK_NODE_BINARY || 'node'
 const displayWindows = new Map<number, DisplayWindowState>()

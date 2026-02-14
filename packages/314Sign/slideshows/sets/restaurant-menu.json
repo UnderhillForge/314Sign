@@ -1,0 +1,58 @@
+{
+  "name": "Restaurant Menu Showcase",
+  "description": "A 5-slide restaurant specialty menu presentation with typography and imagery",
+  "defaultDuration": 6000,
+  "defaultTransition": "fade",
+  "slides": [
+    {
+      "type": "text",
+      "duration": 4000,
+      "transition": "fade",
+      "background": "#2C3E50",
+      "content": "# 🍽️ TODAY'S SPECIALS\n\n*Featured Menu Items*",
+      "textColor": "#ECF0F1",
+      "fontSize": 5.5,
+      "alignment": "center"
+    },
+    {
+      "type": "text",
+      "duration": 6000,
+      "transition": "slide-left",
+      "background": "#E8F8F5",
+      "content": "## 🥗 FRESH SALADS\n\n**Garden Fresh** - $12.95\nMixed greens, seasonal vegetables, house dressing\n\n**Grilled Chicken Caesar** - $14.95\nCrispy croutons, parmesan, classic Caesar dressing",
+      "textColor": "#1B4332",
+      "fontSize": 3.5,
+      "alignment": "left"
+    },
+    {
+      "type": "text",
+      "duration": 6000,
+      "transition": "slide-up",
+      "background": "#FCE4EC",
+      "content": "## 🍖 SIGNATURE ENTREES\n\n**Pan-Seared Salmon** - $24.95\nHerb-crusted with lemon butter sauce\n\n**Grass-Fed Ribeye** - $28.95\nGrilled to perfection with seasonal vegetables",
+      "textColor": "#880E4F",
+      "fontSize": 3.5,
+      "alignment": "left"
+    },
+    {
+      "type": "text",
+      "duration": 6000,
+      "transition": "slide-right",
+      "background": "#FFF3E0",
+      "content": "## 🍰 DESSERTS & SWEETS\n\n**Chocolate Lava Cake** - $8.95\nWarm center with vanilla ice cream\n\n**Seasonal Fruit Tart** - $9.95\nFresh berries with pastry cream",
+      "textColor": "#E65100",
+      "fontSize": 3.5,
+      "alignment": "left"
+    },
+    {
+      "type": "text",
+      "duration": 5000,
+      "transition": "fade",
+      "background": "#1A237E",
+      "content": "# ✨ THANK YOU!\n\n*Visit us today and enjoy!*\n\nOpen Daily 11am - 10pm",
+      "textColor": "#E3F2FD",
+      "fontSize": 5.5,
+      "alignment": "center"
+    }
+  ]
+}

@@ -739,8 +739,8 @@
                 });
                 if (!response.ok) return;
 
-                const data = await response.json();
-                const slideshows = Array.isArray(data) ? data : data.slideshows || [];
+                const result = await response.json();
+                const slideshows = Array.isArray(result) ? result : (result.data || []);
 
                 displays.forEach(display => {
                     if (display.mode === 'slideshow') {

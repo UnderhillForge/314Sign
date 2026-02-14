@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slideshow Editor - 314Sign</title>
+  
+  <!-- Sortable.js for drag and drop -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.1/Sortable.min.js"></script>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-dark: #0d1117;
+      --bg-card: #161b22;
+      --border: #30363d;
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --accent: #58a6ff;
+      --success: #3fb950;
+      --danger: #f85149;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      overflow-x: hidden;
+    }
+
+    .app-container {
+      display: grid;
+      grid-template-columns: 280px 1fr 400px;
+      grid-template-rows: auto 1fr;
+      height: 100vh;
+      gap: 1rem;
+      padding: 1rem;
+    }
+
+    /* Header */
+    header {
+      grid-column: 1 / -1;
+      background: var(--bg-card);
+      padding: 1.5rem;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+      font-weight: 600;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    /* Sidebar - Slide Library */
+    .sidebar {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      overflow-y: auto;
+    }
+
+    .sidebar h2 {
+      font-size: 1.2rem;
+      margin-bottom: 1.5rem;
+      color: var(--text-primary);
+    }
+
+    .slide-templates {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .slide-template {
+      background: var(--bg-dark);
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+    }
+
+    .slide-template:hover {
+      border-color: var(--accent);
+      background: rgba(88, 166, 255, 0.1);
+    }
+
+    .slide-template:active {
+      cursor: grabbing;
+    }
+
+    .template-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .template-name {
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    /* Main Editor Area */
+    .main-editor {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      overflow: hidden;
+    }
+
+    .editor-toolbar {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .slideshow-name {
+      font-size: 1.2rem;
+      font-weight: 500;
+    }
+
+    .slides-list {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      flex: 1;
+      padding: 1.5rem;
+      overflow-y: auto;
+      min-height: 0;
+    }
+
+    .slides-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      min-height: 100px;
+    }
+
+    .slide-item {
+      background: var(--bg-dark);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      cursor: move;
+      transition: all 0.2s;
+      position: relative;
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+    }
+
+    .slide-item:hover {
+      border-color: var(--accent);
+      box-shadow: 0 4px 12px rgba(88, 166, 255, 0.2);
+    }
+
+    .slide-item.sortable-ghost {
+      opacity: 0.4;
+    }
+
+    .slide-item.sortable-drag {
+      opacity: 0.8;
+      cursor: grabbing;
+    }
+
+    .slide-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .slide-type-badge {
+      background: var(--accent);
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .slide-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .slide-preview {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+    }
+
+    .slide-settings {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    /* Properties Panel */
+    .properties-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      overflow-y: auto;
+    }
+
+    .properties-panel h2 {
+      font-size: 1.2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 0.75rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-family: inherit;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 0.6rem 1.2rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #4a8fe7;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(88, 166, 255, 0.3);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #2ea043;
+    }
+
+    .btn-secondary {
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border);
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #d6393c;
+    }
+
+    .btn-sm {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.85rem;
+    }
+
+    .btn-icon {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-secondary);
+    }
+
+    .empty-state-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 500px;
+      width: 90%;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-header h2 {
+      font-size: 1.5rem;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--success);
+      color: white;
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      z-index: 2000;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .color-picker {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .color-swatch {
+      width: 40px;
+      height: 40px;
+      border-radius: 6px;
+      border: 2px solid var(--border);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .color-swatch:hover {
+      transform: scale(1.1);
+      border-color: var(--accent);
+    }
+
+    .color-swatch.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.3);
+    }
+
+    /* Visual Editor Canvas */
+    .visual-editor {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .visual-editor.active {
+      display: block;
+    }
+
+    .canvas-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #1a1a1a;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .canvas-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 2px dashed rgba(88, 166, 255, 0.3);
+      pointer-events: none;
+      display: none;
+    }
+
+    .canvas-overlay.dragover {
+      display: block;
+      background: rgba(88, 166, 255, 0.1);
+      border-color: var(--accent);
+    }
+
+    .canvas-element {
+      position: absolute;
+      cursor: move;
+      border: 2px solid transparent;
+      transition: border-color 0.2s;
+    }
+
+    .canvas-element:hover,
+    .canvas-element.selected {
+      border-color: var(--accent);
+    }
+
+    .canvas-element.selected::after {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: var(--accent);
+      border: 2px solid white;
+      border-radius: 50%;
+      bottom: -6px;
+      right: -6px;
+      cursor: nwse-resize;
+    }
+
+    .element-toolbar {
+      position: absolute;
+      top: -35px;
+      right: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.25rem;
+      display: flex;
+      gap: 0.25rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
+    .canvas-element.selected .element-toolbar {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .canvas-toolbar {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .dropzone-hint {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+
+    .dropzone-hint-icon {
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header>
+      <div>
+        <h1>🎬 Slideshow Editor</h1>
+        <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.25rem;">
+          Drag and drop slides to create your presentation
+        </p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" onclick="loadSlideshows()">
+          📂 Load
+        </button>
+        <button class="btn btn-primary" onclick="showPreview()">
+          👁️ Preview
+        </button>
+        <button class="btn btn-success" onclick="saveSlideshow()">
+          💾 Save
+        </button>
+      </div>
+    </header>
+
+    <!-- Sidebar - Slide Types -->
+    <aside class="sidebar">
+      <h2>📚 Slide Types</h2>
+      <div class="slide-templates" id="slide-templates">
+        <div class="slide-template" data-type="text">
+          <div class="template-icon">📝</div>
+          <div class="template-name">Text Slide</div>
+        </div>
+        <div class="slide-template" data-type="image">
+          <div class="template-icon">🖼️</div>
+          <div class="template-name">Image</div>
+        </div>
+        <div class="slide-template" data-type="weather">
+          <div class="template-icon">🌤️</div>
+          <div class="template-name">Weather</div>
+        </div>
+        <div class="slide-template" data-type="time">
+          <div class="template-icon">🕐</div>
+          <div class="template-name">Time & Date</div>
+        </div>
+        <div class="slide-template" data-type="composite">
+          <div class="template-icon">🎨</div>
+          <div class="template-name">Composite</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Editor -->
+    <main class="main-editor">
+      <div class="editor-toolbar">
+        <div>
+          <div class="slideshow-name" id="slideshow-name">New Slideshow</div>
+          <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">
+            <span id="slide-count">0</span> slides
+          </div>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+          <button class="btn btn-sm btn-secondary" onclick="clearAllSlides()">
+            🗑️ Clear All
+          </button>
+        </div>
+      </div>
+
+      <div class="slides-list">
+        <div class="slides-container" id="slides-container">
+          <div class="empty-state">
+            <div class="empty-state-icon">📋</div>
+            <p>Drag slide types from the left to get started</p>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Properties Panel -->
+    <aside class="properties-panel" id="properties-panel">
+      <h2>⚙️ Properties</h2>
+      <div id="properties-content">
+        <p style="color: var(--text-secondary); text-align: center; padding: 2rem;">
+          Select a slide to edit its properties
+        </p>
+      </div>
+
+      <!-- Visual Editor -->
+      <div class="visual-editor" id="visual-editor">
+        <h3 style="margin-bottom: 1rem;">📐 Visual Editor</h3>
+        <div class="canvas-container" id="canvas-container">
+          <div class="canvas-overlay" id="canvas-overlay"></div>
+          <div class="dropzone-hint" id="dropzone-hint">
+            <div class="dropzone-hint-icon">🖼️</div>
+            <div>Drag images here or click to add elements</div>
+          </div>
+        </div>
+        <div class="canvas-toolbar">
+          <button class="btn btn-sm btn-secondary" onclick="addTextElement()">
+            ➕ Text
+          </button>
+          <button class="btn btn-sm btn-secondary" onclick="addImageElement()">
+            🖼️ Image
+          </button>
+          <button class="btn btn-sm btn-secondary" onclick="addWeatherElement()">
+            🌤️ Weather
+          </button>
+          <button class="btn btn-sm btn-danger" onclick="deleteSelectedElement()" style="margin-left: auto;">
+            🗑️ Delete
+          </button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Modals -->
+  <div class="modal" id="save-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Save Slideshow</h2>
+        <button class="btn btn-icon btn-secondary" onclick="closeModal('save-modal')">✕</button>
+      </div>
+      <div class="form-group">
+        <label>Slideshow Name</label>
+        <input type="text" id="save-name" placeholder="my-slideshow">
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="save-description" placeholder="A short description..."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('save-modal')">Cancel</button>
+        <button class="btn btn-success" onclick="confirmSave()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="load-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Load Slideshow</h2>
+        <button class="btn btn-icon btn-secondary" onclick="closeModal('load-modal')">✕</button>
+      </div>
+      <div class="form-group">
+        <label>Select Slideshow</label>
+        <select id="load-select" size="10" style="width:100%;min-height:200px;">
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('load-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmLoad()">Load</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global state
+    let currentSlideshow = {
+      name: 'new-slideshow',
+      description: '',
+      defaultDuration: 5000,
+      defaultTransition: 'slide',
+      slides: []
+    };
+
+    let selectedSlideIndex = null;
+    let sortable = null;
+    let selectedElement = null;
+    let isDraggingElement = false;
+    let isResizingElement = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let elementStartX = 0;
+    let elementStartY = 0;
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeDragAndDrop();
+      updateSlideCount();
+      initializeCanvas();
+    });
+
+    function initializeDragAndDrop() {
+      const container = document.getElementById('slides-container');
+      
+      // Initialize Sortable for drag and drop reordering
+      sortable = new Sortable(container, {
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        dragClass: 'sortable-drag',
+        handle: '.slide-item',
+        onEnd: function(evt) {
+          // Update the slides array order
+          const movedSlide = currentSlideshow.slides.splice(evt.oldIndex, 1)[0];
+          currentSlideshow.slides.splice(evt.newIndex, 0, movedSlide);
+          renderSlides();
+        }
+      });
+
+      // Make slide templates draggable
+      const templates = document.querySelectorAll('.slide-template');
+      templates.forEach(template => {
+        template.addEventListener('click', () => {
+          const type = template.getAttribute('data-type');
+          addSlide(type);
+        });
+      });
+    }
+
+    function addSlide(type) {
+      const slide = createSlideTemplate(type);
+      currentSlideshow.slides.push(slide);
+      renderSlides();
+      updateSlideCount();
+      
+      // Select the new slide
+      selectSlide(currentSlideshow.slides.length - 1);
+    }
+
+    function createSlideTemplate(type) {
+      const base = {
+        type,
+        duration: 5000,
+        transition: 'slide',
+        background: '#000000',
+        vertical: false
+      };
+
+      switch (type) {
+        case 'text':
+          return { ...base, title: 'New Slide', subtitle: '', content: '', markdown: false };
+        case 'image':
+          return { ...base, media: '', caption: '' };
+        case 'weather':
+          return { ...base, location: 'auto', units: 'F' };
+        case 'time':
+          return { ...base, format: '12h', showDate: true };
+        case 'composite':
+          return { ...base, elements: [] };
+        default:
+          return base;
+      }
+    }
+
+    function renderSlides() {
+      const container = document.getElementById('slides-container');
+      
+      if (currentSlideshow.slides.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📋</div>
+            <p>Drag slide types from the left to get started</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = currentSlideshow.slides.map((slide, index) => `
+        <div class="slide-item" onclick="selectSlide(${index})">
+          <div class="slide-header">
+            <span class="slide-type-badge">${slide.type}</span>
+            <div class="slide-actions">
+              <button class="btn btn-sm btn-icon btn-secondary" onclick="event.stopPropagation(); duplicateSlide(${index})" title="Duplicate">
+                📋
+              </button>
+              <button class="btn btn-sm btn-icon btn-danger" onclick="event.stopPropagation(); deleteSlide(${index})" title="Delete">
+                🗑️
+              </button>
+            </div>
+          </div>
+          <div class="slide-preview">
+            ${slide.vertical ? '↓ ' : ''}${getSlidePreview(slide)}
+          </div>
+          <div class="slide-settings">
+            <span>⏱️ ${slide.duration}ms</span>
+            <span>🔄 ${slide.transition}</span>
+            ${slide.vertical ? '<span style="color:var(--accent)">⬇️ Vertical</span>' : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function getSlidePreview(slide) {
+      switch (slide.type) {
+        case 'text':
+          return slide.title || 'Untitled Slide';
+        case 'image':
+          return slide.media ? `Image: ${slide.media.split('/').pop()}` : 'No image selected';
+        case 'weather':
+          return 'Weather forecast';
+        case 'time':
+          return 'Current time & date';
+        case 'composite':
+          return `Composite (${slide.elements?.length || 0} elements)`;
+        default:
+          return 'Slide';
+      }
+    }
+
+    function selectSlide(index) {
+      selectedSlideIndex = index;
+      renderProperties();
+      
+      // Show/hide visual editor
+      const visualEditor = document.getElementById('visual-editor');
+      const slide = currentSlideshow.slides[index];
+      if (slide && slide.type === 'composite') {
+        visualEditor.classList.add('active');
+        renderCanvas();
+      } else {
+        visualEditor.classList.remove('active');
+      }
+      
+      // Highlight selected slide
+      document.querySelectorAll('.slide-item').forEach((item, i) => {
+        if (i === index) {
+          item.style.borderColor = 'var(--accent)';
+          item.style.boxShadow = '0 0 0 3px rgba(88, 166, 255, 0.2)';
+        } else {
+          item.style.borderColor = 'var(--border)';
+          item.style.boxShadow = 'none';
+        }
+      });
+    }
+
+    function renderProperties() {
+      if (selectedSlideIndex === null) return;
+      
+      const slide = currentSlideshow.slides[selectedSlideIndex];
+      const container = document.getElementById('properties-content');
+      
+      let html = `
+        <div class="form-group">
+          <label>Duration (ms)</label>
+          <input type="number" value="${slide.duration}" 
+                 onchange="updateSlide('duration', parseInt(this.value))">
+        </div>
+        
+        <div class="form-group">
+          <label>Transition</label>
+          <select onchange="updateSlide('transition', this.value)">
+            <option value="none" ${slide.transition === 'none' ? 'selected' : ''}>None</option>
+            <option value="fade" ${slide.transition === 'fade' ? 'selected' : ''}>Fade</option>
+            <option value="slide" ${slide.transition === 'slide' ? 'selected' : ''}>Slide</option>
+            <option value="convex" ${slide.transition === 'convex' ? 'selected' : ''}>Convex</option>
+            <option value="concave" ${slide.transition === 'concave' ? 'selected' : ''}>Concave</option>
+            <option value="zoom" ${slide.transition === 'zoom' ? 'selected' : ''}>Zoom</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>
+            <input type="checkbox" ${slide.vertical ? 'checked' : ''} 
+                   onchange="updateSlide('vertical', this.checked)">
+            Vertical Slide (nested below previous)
+          </label>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.5rem;">
+            Vertical slides appear below the previous slide. Press ↓ to navigate down.
+          </p>
+        </div>
+        
+        <div class="form-group">
+          <label>Background</label>
+          <input type="color" value="${slide.background}" 
+                 onchange="updateSlide('background', this.value)">
+          <input type="text" value="${slide.background}" 
+                 onchange="updateSlide('background', this.value)" 
+                 placeholder="#000000 or image URL"
+                 style="margin-top: 0.5rem;">
+        </div>
+      `;
+
+      // Add type-specific properties
+      switch (slide.type) {
+        case 'text':
+          html += `
+            <div class="form-group">
+              <label>Title</label>
+              <input type="text" value="${slide.title || ''}" 
+                     onchange="updateSlide('title', this.value)">
+            </div>
+            <div class="form-group">
+              <label>Subtitle</label>
+              <input type="text" value="${slide.subtitle || ''}" 
+                     onchange="updateSlide('subtitle', this.value)">
+            </div>
+            <div class="form-group">
+              <label>
+                <input type="checkbox" ${slide.markdown ? 'checked' : ''} 
+                       onchange="updateSlide('markdown', this.checked)">
+                Use Markdown formatting
+              </label>
+            </div>
+            <div class="form-group">
+              <label>Content</label>
+              <textarea onchange="updateSlide('content', this.value)" 
+                        style="min-height: 150px; ${slide.markdown ? 'font-family: monospace;' : ''}">${slide.content || ''}</textarea>
+            </div>
+          `;
+          break;
+        
+        case 'image':
+          html += `
+            <div class="form-group">
+              <label>Image URL</label>
+              <input type="text" value="${slide.media || ''}" 
+                     onchange="updateSlide('media', this.value)">
+            </div>
+            <div class="form-group">
+              <label>Caption</label>
+              <input type="text" value="${slide.caption || ''}" 
+                     onchange="updateSlide('caption', this.value)">
+            </div>
+          `;
+          break;
+        
+        case 'weather':
+          html += `
+            <div class="form-group">
+              <label>Location</label>
+              <input type="text" value="${slide.location || 'auto'}" 
+                     onchange="updateSlide('location', this.value)"
+                     placeholder="auto or city name">
+            </div>
+            <div class="form-group">
+              <label>Units</label>
+              <select onchange="updateSlide('units', this.value)">
+                <option value="F" ${slide.units === 'F' ? 'selected' : ''}>Fahrenheit</option>
+                <option value="C" ${slide.units === 'C' ? 'selected' : ''}>Celsius</option>
+              </select>
+            </div>
+          `;
+          break;
+        
+        case 'time':
+          html += `
+            <div class="form-group">
+              <label>Time Format</label>
+              <select onchange="updateSlide('format', this.value)">
+                <option value="12h" ${slide.format === '12h' ? 'selected' : ''}>12 Hour</option>
+                <option value="24h" ${slide.format === '24h' ? 'selected' : ''}>24 Hour</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>
+                <input type="checkbox" ${slide.showDate ? 'checked' : ''} 
+                       onchange="updateSlide('showDate', this.checked)">
+                Show Date
+              </label>
+            </div>
+          `;
+          break;
+        
+        case 'composite':
+          html += `
+            <div class="form-group">
+              <p style="color:var(--text-secondary);font-size:0.9rem;">
+                Use the visual editor below to add and arrange elements on this slide.
+              </p>
+            </div>
+          `;
+          break;
+      }
+
+      container.innerHTML = html;
+    }
+
+    function updateSlide(property, value) {
+      if (selectedSlideIndex !== null) {
+        currentSlideshow.slides[selectedSlideIndex][property] = value;
+        renderSlides();
+        if (selectedSlideIndex !== null) {
+          selectSlide(selectedSlideIndex);
+        }
+      }
+    }
+
+    function duplicateSlide(index) {
+      const slide = JSON.parse(JSON.stringify(currentSlideshow.slides[index]));
+      currentSlideshow.slides.splice(index + 1, 0, slide);
+      renderSlides();
+      updateSlideCount();
+    }
+
+    function deleteSlide(index) {
+      if (confirm('Delete this slide?')) {
+        currentSlideshow.slides.splice(index, 1);
+        if (selectedSlideIndex === index) {
+          selectedSlideIndex = null;
+        }
+        renderSlides();
+        updateSlideCount();
+      }
+    }
+
+    function clearAllSlides() {
+      if (confirm('Clear all slides?')) {
+        currentSlideshow.slides = [];
+        selectedSlideIndex = null;
+        renderSlides();
+        updateSlideCount();
+        document.getElementById('properties-content').innerHTML = `
+          <p style="color: var(--text-secondary); text-align: center; padding: 2rem;">
+            Select a slide to edit its properties
+          </p>
+        `;
+      }
+    }
+
+    function updateSlideCount() {
+      document.getElementById('slide-count').textContent = currentSlideshow.slides.length;
+    }
+
+    function saveSlideshow() {
+      document.getElementById('save-name').value = currentSlideshow.name;
+      document.getElementById('save-description').value = currentSlideshow.description;
+      showModal('save-modal');
+    }
+
+    async function confirmSave() {
+      const name = document.getElementById('save-name').value.trim();
+      const description = document.getElementById('save-description').value.trim();
+      
+      if (!name) {
+        alert('Please enter a slideshow name');
+        return;
+      }
+
+      currentSlideshow.name = name;
+      currentSlideshow.description = description;
+      document.getElementById('slideshow-name').textContent = name;
+
+      try {
+        const response = await fetch('/api/slideshows', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(currentSlideshow)
+        });
+
+        if (!response.ok) throw new Error('Save failed');
+
+        showToast('Slideshow saved successfully!');
+        closeModal('save-modal');
+      } catch (error) {
+        alert('Failed to save: ' + error.message);
+      }
+    }
+
+    function showPreview() {
+      if (currentSlideshow.slides.length === 0) {
+        alert('Add some slides first!');
+        return;
+      }
+      
+      // Open preview in new window
+      window.open(`/slideshows/reveal-player.html?slideshow=${currentSlideshow.name}`, '_blank');
+    }
+
+    async function loadSlideshows() {
+      try {
+        const response = await fetch('/api/slideshows', { credentials: 'include' });
+        const result = await response.json();
+        
+        if (result.success && result.data.length > 0) {
+          const select = document.getElementById('load-select');
+          select.innerHTML = result.data.map(s => 
+            `<option value="${s.name}">${s.name}</option>`
+          ).join('');
+          showModal('load-modal');
+        } else {
+          alert('No slideshows found');
+        }
+      } catch (error) {
+        alert('Failed to load: ' + error.message);
+      }
+    }
+
+    async function confirmLoad() {
+      const select = document.getElementById('load-select');
+      const name = select.value;
+      
+      if (!name) {
+        alert('Please select a slideshow');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/slideshows/${name}`, { credentials: 'include' });
+        const result = await response.json();
+        
+        if (result.success) {
+          currentSlideshow = result.data;
+          document.getElementById('slideshow-name').textContent = currentSlideshow.name;
+          renderSlides();
+          updateSlideCount();
+          closeModal('load-modal');
+          showToast('Slideshow loaded!');
+        } else {
+          alert('Failed to load slideshow');
+        }
+      } catch (error) {
+        alert('Failed to load: ' + error.message);
+      }
+    }
+
+    function showModal(id) {
+      document.getElementById(id).classList.add('active');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.remove();
+      }, 3000);
+    }
+
+
+
+    // ============ VISUAL CANVAS EDITOR ============
+
+    function initializeCanvas() {
+      const canvas = document.getElementById('canvas-container');
+      const overlay = document.getElementById('canvas-overlay');
+      
+      // Prevent default drag behavior
+      canvas.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        overlay.classList.add('dragover');
+      });
+      
+      canvas.addEventListener('dragleave', () => {
+        overlay.classList.remove('dragover');
+      });
+      
+      // Handle file drop
+      canvas.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        overlay.classList.remove('dragover');
+        
+        if (selectedSlideIndex === null) return;
+        const slide = currentSlideshow.slides[selectedSlideIndex];
+        if (slide.type !== 'composite') return;
+        
+        const files = Array.from(e.dataTransfer.files);
+        for (const file of files) {
+          if (file.type.startsWith('image/')) {
+            await handleImageUpload(file);
+          }
+        }
+      });
+    }
+
+    async function handleImageUpload(file) {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      try {
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          credentials: 'include',
+          body: formData
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+          addElement({
+            type: 'image',
+            src: result.url,
+            x: 10,
+            y: 10,
+            width: 200,
+            height: 150,
+            rotation: 0
+          });
+        }
+      } catch (error) {
+        console.error('Upload failed:', error);
+        alert('Failed to upload image');
+      }
+    }
+
+    function renderCanvas() {
+      if (selectedSlideIndex === null) return;
+      const slide = currentSlideshow.slides[selectedSlideIndex];
+      if (slide.type !== 'composite') return;
+      
+      const canvas = document.getElementById('canvas-container');
+      
+      // Clear existing elements
+      const existing = canvas.querySelectorAll('.canvas-element');
+      existing.forEach(el => el.remove());
+      
+      // Set background
+      canvas.style.background = slide.background;
+      
+      // Hide hint if there are elements
+      const hint = document.getElementById('dropzone-hint');
+      hint.style.display = slide.elements && slide.elements.length > 0 ? 'none' : 'block';
+      
+      // Render elements
+      if (!slide.elements) slide.elements = [];
+      
+      slide.elements.forEach((element, index) => {
+        const el = createCanvasElement(element, index);
+        canvas.appendChild(el);
+      });
+    }
+
+    function createCanvasElement(element, index) {
+      const el = document.createElement('div');
+      el.className = 'canvas-element';
+      el.dataset.index = index;
+      
+      // Position and size
+      el.style.left = element.x + '%';
+      el.style.top = element.y + '%';
+      el.style.width = element.width + 'px';
+      el.style.height = element.height + 'px';
+      el.style.transform = `rotate(${element.rotation || 0}deg)`;
+      
+      // Content based on type
+      if (element.type === 'text') {
+        el.innerHTML = `<div style="padding:10px;font-size:${element.fontSize || 24}px;color:${element.color || '#fff'};font-weight:${element.bold ? 'bold' : 'normal'};">${element.content || 'Text'}</div>`;
+      } else if (element.type === 'image') {
+        el.innerHTML = `<img src="${element.src}" style="width:100%;height:100%;object-fit:cover;">`;
+      } else if (element.type === 'weather') {
+        el.innerHTML = `<div style="padding:10px;background:rgba(0,0,0,0.5);color:#fff;border-radius:8px;">🌤️ Weather</div>`;
+      }
+      
+      // Toolbar
+      const toolbar = document.createElement('div');
+      toolbar.className = 'element-toolbar';
+      toolbar.innerHTML = `
+        <button class="btn btn-sm btn-icon btn-secondary" onclick="event.stopPropagation(); rotateElement(${index}, -15)" title="Rotate Left">↶</button>
+        <button class="btn btn-sm btn-icon btn-secondary" onclick="event.stopPropagation(); rotateElement(${index}, 15)" title="Rotate Right">↷</button>
+        <button class="btn btn-sm btn-icon btn-danger" onclick="event.stopPropagation(); deleteElement(${index})" title="Delete">✕</button>
+      `;
+      el.appendChild(toolbar);
+      
+      // Click to select
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectElement(index);
+      });
+      
+      // Drag to move
+      el.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.element-toolbar')) return;
+        if (e.target === el || e.target.closest('.canvas-element') === el) {
+          startDragElement(e, index);
+        }
+      });
+      
+      return el;
+    }
+
+    function selectElement(index) {
+      selectedElement = index;
+      const canvas = document.getElementById('canvas-container');
+      canvas.querySelectorAll('.canvas-element').forEach((el, i) => {
+        if (i === index) {
+          el.classList.add('selected');
+        } else {
+          el.classList.remove('selected');
+        }
+      });
+    }
+
+    function startDragElement(e, index) {
+      if (e.button !== 0) return; // Only left click
+      
+      selectedElement = index;
+      isDraggingElement = true;
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      
+      const slide = currentSlideshow.slides[selectedSlideIndex];
+      const element = slide.elements[index];
+      elementStartX = element.x;
+      elementStartY = element.y;
+      
+      e.preventDefault();
+      
+      document.addEventListener('mousemove', dragElement);
+      document.addEventListener('mouseup', stopDragElement);
+    }
+
+    function dragElement(e) {
+      if (!isDraggingElement || selectedSlideIndex === null || selectedElement === null) return;
+      
+      const canvas = document.getElementById('canvas-container');
+      const rect = canvas.getBoundingClientRect();
+      
+      const deltaX = ((e.clientX - dragStartX) / rect.width) * 100;
+      const deltaY = ((e.clientY - dragStartY) / rect.height) * 100;
+      
+      const slide = currentSlideshow.slides[selectedSlideIndex];
+      const element = slide.elements[selectedElement];
+      
+      element.x = Math.max(0, Math.min(95, elementStartX + deltaX));
+      element.y = Math.max(0, Math.min(95, elementStartY + deltaY));
+      
+      renderCanvas();
+      selectElement(selectedElement);
+    }
+
+    function stopDragElement() {
+      isDraggingElement = false;
+      document.removeEventListener('mousemove', dragElement);
+      document.removeEventListener('mouseup', stopDragElement);
+    }
+
+    function addElement(element) {
+      if (selectedSlideIndex === null) return;
+      const slide = currentSlideshow.slides[selectedSlideIndex];
+      if (slide.type !== 'composite') return;
+      
+      if (!slide.elements) slide.elements = [];
+      slide.elements.push(element);
+      renderCanvas();
+      renderSlides();
+    }
+
+    function addTextElement() {
+      addElement({
+        type: 'text',
+        content: 'Edit me',
+        x: 20,
+        y: 20,
+        width: 200,
+        height: 60,
+        rotation: 0,
+        fontSize: 24,
+        color: '#ffffff',
+        bold: false
+      });
+    }
+
+    function addImageElement() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (file) await handleImageUpload(file);
+      };
+      input.click();
+    }
+
+    function addWeatherElement() {
+      addElement({
+        type: 'weather',
+        x: 30,
+        y: 30,
+        width: 250,
+        height: 150,
+        rotation: 0
+      });
+    }
+
+    function deleteElement(index) {
+      if (selectedSlideIndex === null) return;
+      const slide = currentSlideshow.slides[selectedSlideIndex];
+      slide.elements.splice(index, 1);
+      selectedElement = null;
+      renderCanvas();
+      renderSlides();
+    }
+
+    function deleteSelectedElement() {
+      if (selectedElement !== null) {
+        deleteElement(selectedElement);
+      }
+    }
+
+    function rotateElement(index, degrees) {
+      if (selectedSlideIndex === null) return;
+      const slide = currentSlideshow.slides[selectedSlideIndex];
+      const element = slide.elements[index];
+      element.rotation = (element.rotation || 0) + degrees;
+      renderCanvas();
+      selectElement(index);
+    }
+
+    // Click canvas background to deselect
+    document.getElementById('canvas-container')?.addEventListener('click', (e) => {
+      if (e.target.id === 'canvas-container') {
+        selectedElement = null;
+        renderCanvas();
+      }
+    });
+
+    // ============ END VISUAL CANVAS EDITOR ============
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 's') {
+          e.preventDefault();
+          saveSlideshow();
+        }
+      }
+      if (e.key === 'Delete' && selectedSlideIndex !== null) {
+        if (selectedElement !== null) {
+          deleteSelectedElement();
+          e.preventDefault();
+        } else {
+          deleteSlide(selectedSlideIndex);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
