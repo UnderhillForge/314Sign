@@ -120,14 +120,7 @@
     })();
 
     // Get orientation parameter from URL
-    let __orientationParam = parseInt(new URLSearchParams(window.location.search).get('orientation') || '0', 10);
-    const __portParam = parseInt(new URLSearchParams(window.location.search).get('port') || '0', 10);
-
-// HDMI-2 (port=1) has a -90° hardware offset, so add 90° to compensate
-      // 0->1, 1->2, 2->3, 3->0
-      if (__portParam === 1) {
-        __orientationParam = (__orientationParam + 1) % 4;
-    }
+const __orientationParam = parseInt(new URLSearchParams(window.location.search).get('orientation') || '0', 10);
 
     // Apply CSS rotation if orientation > 0
     if (__orientationParam !== 0) {

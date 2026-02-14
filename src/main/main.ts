@@ -118,8 +118,14 @@ function buildDisplayUrl(config: DisplayConfig): string | null {
 
   const port = config.hdmi_port
   const displayNumber = port + 1
-  const orientation = config.orientation || 0
+  let orientation = config.orientation || 0
   const cacheBuster = Date.now() // Add cache buster to force fresh page loads
+
+  // HDMI-2 (port=1) has a -90° hardware offset, so compensate by adding 90° to the orientation value
+  // This way, orientation=0 always means 0°, regardless of which HDMI port is used
+  if (port === 1) {
+    orientation = (orientation + 1) % 4
+  }
 
   if (config.mode === 'identify') {
     return `${SERVER_URL}/identify.html?display=${displayNumber}&orientation=${orientation}&bust=${cacheBuster}`
