@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Orientation Test</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { 
+      height: 100%; 
+      width: 100%; 
+      overflow: hidden; 
+    }
+    body {
+      background: #1a1a1a;
+      color: white;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    
+    .corner {
+      position: absolute;
+      font-size: 60px;
+      font-weight: bold;
+      color: rgba(255, 0, 0, 0.3);
+    }
+    .tl { top: 20px; left: 20px; }
+    .tr { top: 20px; right: 20px; }
+    .bl { bottom: 20px; left: 20px; }
+    .br { bottom: 20px; right: 20px; }
+    
+    .center-box {
+      background: rgba(200, 100, 255, 0.5);
+      padding: 40px 60px;
+      border: 3px solid #0ff;
+      border-radius: 10px;
+      text-align: center;
+      z-index: 10;
+    }
+    
+    .info {
+      margin-top: 30px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 600px;
+      line-height: 1.6;
+    }
+    
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      background: #0f0;
+      color: #000;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    
+    button:hover {
+      background: #3f3;
+    }
+    
+    .status {
+      margin-top: 15px;
+      font-size: 16px;
+      color: #0f0;
+    }
+  </style>
+</head>
+<body>
+  <div class="corner tl">↖</div>
+  <div class="corner tr">↗</div>
+  <div class="corner bl">↙</div>
+  <div class="corner br">↘</div>
+
+  <div class="center-box">
+    <h1>Orientation Test</h1>
+    <div style="margin-top: 20px; font-size: 36px; font-weight: bold; color: #0f0;">
+      <div id="rotation-display">0°</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button onclick="setRotation(0)">0°</button>
+    <button onclick="setRotation(1)">90°</button>
+    <button onclick="setRotation(2)">180°</button>
+    <button onclick="setRotation(3)">270°</button>
+    <button onclick="loadFromDB()">Load from DB</button>
+    <button onclick="clearRotation()">Clear</button>
+  </div>
+
+  <div class="info">
+    <div><strong>Instructions:</strong></div>
+    <div>1. Click a rotation button to apply CSS rotation</div>
+    <div>2. Check if the entire page rotates around the center</div>
+    <div>3. Click "Load from DB" to load the orientation from /api/kiosk/displays</div>
+    <div>4. Watch the browser console for detailed logs</div>
+    <div style="margin-top: 10px; color: #0f0;"><strong>Console Logs:</strong></div>
+    <div id="console-output" style="margin-top: 10px; background: #222; padding: 10px; border-radius: 5px; max-height: 200px; overflow-y: auto; font-size: 12px;"></div>
+  </div>
+
+  <div class="status">
+    Port: <span id="port-display">not set</span> | 
+    Status: <span id="status-display">waiting</span>
+  </div>
+
+  <script>
+    // Intercept console.log
+    const originalLog = console.log;
+    const consoleOutput = document.getElementById('console-output');
+    
+    console.log = function(...args) {
+      originalLog.apply(console, args);
+      const message = args.map(arg => 
+        typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+      ).join(' ');
+      
+      const line = document.createElement('div');
+      line.style.color = message.includes('[ORIENTATION]') ? '#0f0' : '#aaa';
+      line.textContent = message;
+      consoleOutput.appendChild(line);
+      consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    };
+
+    const rotationMap = {
+      0: '0deg',
+      1: '90deg',
+      2: '180deg',
+      3: '270deg'
+    };
+
+    const rotationLabels = {
+      0: '0°',
+      1: '90°',
+      2: '180°',
+      3: '270°'
+    };
+
+    // Get port from URL
+    const params = new URLSearchParams(window.location.search);
+    const port = params.get('port');
+    
+    document.getElementById('port-display').textContent = port || 'none';
+    
+    console.log('[ORIENTATION-TEST] Page loaded');
+    console.log('[ORIENTATION-TEST] Port parameter:', port);
+    console.log('[ORIENTATION-TEST] Window size:', window.innerWidth, 'x', window.innerHeight);
+
+    function setRotation(value) {
+      const rotation = rotationMap[value];
+      const label = rotationLabels[value];
+      
+      console.log('[ORIENTATION-TEST] Setting rotation to:', label);
+      document.body.style.transformOrigin = 'center center';
+      document.body.style.transform = `rotate(${rotation})`;
+      
+      document.getElementById('rotation-display').textContent = label;
+      document.getElementById('status-display').textContent = `Applied ${label}`;
+      
+      // Log the computed style
+      const computed = window.getComputedStyle(document.body);
+      console.log('[ORIENTATION-TEST] Applied transform:', computed.transform);
+      console.log('[ORIENTATION-TEST] Transform origin:', computed.transformOrigin);
+    }
+
+    function clearRotation() {
+      console.log('[ORIENTATION-TEST] Clearing rotation');
+      document.body.style.transform = '';
+      document.body.style.transformOrigin = '';
+      document.getElementById('rotation-display').textContent = 'None';
+      document.getElementById('status-display').textContent = 'Cleared';
+    }
+
+    async function loadFromDB() {
+      if (!port) {
+        console.error('[ORIENTATION-TEST] Port parameter not found in URL');
+        document.getElementById('status-display').textContent = 'Error: No port';
+        return;
+      }
+
+      console.log('[ORIENTATION-TEST] Loading orientation from /api/kiosk/displays for port:', port);
+      document.getElementById('status-display').textContent = 'Loading...';
+      
+      try {
+        const response = await fetch(`/api/kiosk/displays?${Date.now()}`, { cache: 'no-store' });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('[ORIENTATION-TEST] API Response:', data);
+        
+        if (!data.data || !Array.isArray(data.data)) {
+          throw new Error('Invalid response format');
+        }
+        
+        const displayConfig = data.data.find(d => d.hdmi_port === parseInt(port));
+        
+        if (!displayConfig) {
+          console.error('[ORIENTATION-TEST] No config found for port:', port);
+          document.getElementById('status-display').textContent = `Error: Port ${port} not found`;
+          return;
+        }
+        
+        console.log('[ORIENTATION-TEST] Found display config:', displayConfig);
+        
+        const orientation = displayConfig.orientation;
+        console.log('[ORIENTATION-TEST] Orientation value from DB:', orientation);
+        
+        if (orientation !== undefined && orientation !== null) {
+          setRotation(orientation);
+          document.getElementById('status-display').textContent = `Loaded: ${rotationLabels[orientation]}`;
+        } else {
+          console.warn('[ORIENTATION-TEST] Orientation is null/undefined');
+          document.getElementById('status-display').textContent = 'Error: Orientation not set';
+        }
+      } catch (error) {
+        console.error('[ORIENTATION-TEST] Failed to load:', error.message);
+        document.getElementById('status-display').textContent = `Error: ${error.message}`;
+      }
+    }
+
+    // Show initial message
+    console.log('[ORIENTATION-TEST] Use buttons above to test rotation');
+    console.log('[ORIENTATION-TEST] Check browser DevTools Console for detailed logs');
+  </script>
+</body>
+</html>

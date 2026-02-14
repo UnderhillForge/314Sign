@@ -215,6 +215,16 @@ app.get(['/guest', '/guest/'], (req, res) => {
 
 
 
+// Disable caching for HTML pages to ensure fresh loads
+app.use((req, res, next) => {
+  if (req.path.endsWith('.html') || req.path === '/' || req.path === '') {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
+});
+
 // Static file serving (after authentication checks)
 app.use('/bg', express.static(path.join(__dirname, '../bg')));
 app.use('/fonts', express.static(path.join(__dirname, '../fonts')));
@@ -224,7 +234,7 @@ app.use('/media', express.static(path.join(__dirname, '../media')));
 app.use(express.static(path.join(__dirname, '../')));
 
 // API routes
-app.use('/api/status', statusRoutes);
+app.use('/api', statusRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/menu', menuRoutes);

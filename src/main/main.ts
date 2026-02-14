@@ -1,5 +1,5 @@
 import { app, BrowserWindow, screen } from 'electron'
-import { spawn, type ChildProcess } from 'child_process'
+import { spawn, spawnSync, execSync, type ChildProcess } from 'child_process'
 import { join } from 'path'
 import { existsSync } from 'fs'
 
@@ -12,10 +12,11 @@ type DisplayConfig = {
   hdmi_port: number
   enabled: number | boolean
   orientation: number
-  mode: 'main' | 'slideshow' | 'disabled'
+  mode: 'main' | 'slideshow' | 'disabled' | 'identify' | 'test-pattern'
   slideshow_name?: string | null
   position_x?: number
   position_y?: number
+  xrandr_output?: string
 }
 
 type DisplayWindowState = {
@@ -89,7 +90,7 @@ async function waitForServer(timeoutMs = 30000): Promise<boolean> {
   const started = Date.now()
   while (Date.now() - started < timeoutMs) {
     try {
-      const response = await fetch(`${SERVER_URL}/api/status`)
+      const response = await fetch(`${SERVER_URL}/api`)
       if (response.ok) {
         return true
       }
@@ -115,12 +116,25 @@ function buildDisplayUrl(config: DisplayConfig): string | null {
     return null
   }
 
-  if (config.mode === 'slideshow' && config.slideshow_name) {
-    const slideshow = encodeURIComponent(config.slideshow_name)
-    return `${SERVER_URL}/?slideshow=${slideshow}`
+  const port = config.hdmi_port
+  const displayNumber = port + 1
+  const orientation = config.orientation || 0
+  const cacheBuster = Date.now() // Add cache buster to force fresh page loads
+
+  if (config.mode === 'identify') {
+    return `${SERVER_URL}/identify.html?display=${displayNumber}&orientation=${orientation}&bust=${cacheBuster}`
   }
 
-  return `${SERVER_URL}/`
+  if (config.mode === 'test-pattern') {
+    return `${SERVER_URL}/test-pattern.html?display=${displayNumber}&orientation=${orientation}&bust=${cacheBuster}`
+  }
+
+  if (config.mode === 'slideshow' && config.slideshow_name) {
+    const slideshow = encodeURIComponent(config.slideshow_name)
+    return `${SERVER_URL}/?slideshow=${slideshow}&port=${port}&orientation=${orientation}&bust=${cacheBuster}`
+  }
+
+  return `${SERVER_URL}/?port=${port}&orientation=${orientation}&bust=${cacheBuster}`
 }
 
 function findBestDisplay(config: DisplayConfig) {
@@ -207,6 +221,106 @@ function closeWindowForPort(port: number) {
   displayWindows.delete(port)
 }
 
+/**
+ * Check if a command exists on the system
+ */
+function commandExists(cmd: string): boolean {
+  try {
+    execSync(`which ${cmd}`, { stdio: 'ignore' })
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Get current display rotation using Electron Display API
+ */
+function getDisplayRotation(displayId: number): number {
+  const allDisplays = screen.getAllDisplays()
+  const display = allDisplays.find(d => d.id === displayId)
+  if (!display) {
+    return 0
+  }
+  // Electron returns rotation as 0, 90, 180, 270
+  // We need to convert to our format: 0, 1, 2, 3
+  const displayRotation = (display.rotation ?? 0) as number
+  const normalizedRotation = Math.round(displayRotation / 90) % 4
+  console.log(`[ROTATE] Display ${displayId} current rotation: ${displayRotation}° (normalized: ${normalizedRotation})`)
+  return normalizedRotation
+}
+
+/**
+ * List all available displays with their properties
+ */
+function logDisplayInfo(): void {
+  const allDisplays = screen.getAllDisplays()
+  console.log(`[ROTATE] ===== DISPLAY INFO (${allDisplays.length} total) =====`)
+  for (const display of allDisplays) {
+    console.log(`[ROTATE] Display ID: ${display.id}`)
+    console.log(`[ROTATE]   - Bounds: ${display.bounds.x},${display.bounds.y} (${display.bounds.width}x${display.bounds.height})`)
+    console.log(`[ROTATE]   - Resolution: ${display.bounds.width}x${display.bounds.height}`)
+    console.log(`[ROTATE]   - Rotation: ${display.rotation}° (value: ${Math.round((display.rotation ?? 0) / 90)})`)
+    console.log(`[ROTATE]   - Scale: ${display.scaleFactor}`)
+    console.log(`[ROTATE]   - Virtual: ${display.internal ? 'Yes' : 'No'}`)
+  }
+  console.log(`[ROTATE] ===== END DISPLAY INFO =====`)
+}
+
+/**
+ * Apply OS-level display rotation via xrandr on Linux/Raspberry Pi
+ * @param xrandrOutput - The xrandr output name (e.g., 'HDMI-1', 'HDMI1')
+ * @param orientation - Rotation value: 0=normal, 1=left (90°), 2=inverted (180°), 3=right (270°)
+ */
+function applyDisplayRotation(xrandrOutput: string, orientation: number): void {
+  if (process.platform !== 'linux') {
+    console.log(`[ROTATE] Display rotation not supported on ${process.platform}, skipping`)
+    return
+  }
+
+  // Check if xrandr is available
+  if (!commandExists('xrandr')) {
+    console.warn(`[ROTATE] xrandr command not found - install with: sudo apt-get install x11-xserver-utils`)
+    console.log(`[ROTATE] Skipping display rotation`)
+    return
+  }
+
+  // Map orientation value to xrandr rotation flag
+  const rotationMap: Record<number, string> = {
+    0: 'normal',    // 0°
+    1: 'left',      // 90° clockwise = xrandr 'left'
+    2: 'inverted',  // 180°
+    3: 'right',     // 270° clockwise = xrandr 'right'
+  }
+
+  const rotation = rotationMap[orientation] || 'normal'
+
+  try {
+    console.log(`[ROTATE] Applying rotation to ${xrandrOutput}: ${rotation} (value: ${orientation})`)
+
+    // Execute xrandr to rotate display
+    const result = spawnSync('xrandr', ['--output', xrandrOutput, '-o', rotation], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: 5000,
+    })
+
+    if (result.error) {
+      console.error(`[ROTATE] Failed to execute xrandr: ${result.error.message}`)
+      return
+    }
+
+    if (result.status !== 0) {
+      const stderr = result.stderr?.toString() || 'unknown error'
+      console.error(`[ROTATE] xrandr failed with status ${result.status}: ${stderr}`)
+      return
+    }
+
+    console.log(`[ROTATE] Successfully rotated ${xrandrOutput} to ${rotation}`)
+  } catch (error) {
+    console.error(`[ROTATE] Error applying rotation: ${error instanceof Error ? error.message : String(error)}`)
+  }
+}
+
 async function refreshDisplayWindows() {
   const configs = await fetchDisplayConfig()
   const hash = JSON.stringify(configs)
@@ -222,16 +336,55 @@ async function refreshDisplayWindows() {
       continue
     }
     ensureWindowForDisplay(config, url)
+
+    // Apply display rotation if configured
+    if (config.orientation !== undefined && config.orientation !== null && config.orientation !== 0) {
+      try {
+        // Use xrandr_output from config if available, otherwise try to detect
+        let xrandrOutput = config.xrandr_output
+        
+        if (!xrandrOutput) {
+          // Fallback: try to detect xrandr output name from display position
+          // Common patterns: HDMI-1, HDMI1, HDMI-2, etc.
+          xrandrOutput = `HDMI-${config.hdmi_port + 1}`
+        }
+
+        // Note: CSS rotation on the page handles the rotation, so we're disabling xrandr
+        // to avoid double-rotation issues (xrandr + CSS transforms)
+        // applyDisplayRotation(xrandrOutput, config.orientation)
+      } catch (error) {
+        console.error(`[ROTATE] Failed to apply rotation to display ${config.hdmi_port}: ${error}`)
+      }
+    }
   }
 }
 
 async function startKiosk() {
+  console.log('[KIOSK] Starting 314Sign kiosk application')
+  console.log(`[KIOSK] Platform: ${process.platform}`)
+  
   startServer()
 
   const ready = await waitForServer()
   if (!ready) {
     console.error('[KIOSK] 314Sign server did not become ready in time')
     return
+  }
+
+  // Give server a moment to fully initialize all routes
+  await new Promise((resolve) => setTimeout(resolve, 1000))
+
+  // Log display information
+  logDisplayInfo()
+  
+  // Check for xrandr availability on Linux
+  if (process.platform === 'linux') {
+    if (commandExists('xrandr')) {
+      console.log('[KIOSK] xrandr is available for display rotation')
+    } else {
+      console.warn('[KIOSK] xrandr not found - display rotation will not work')
+      console.warn('[KIOSK] To enable rotation, install: sudo apt-get install x11-xserver-utils')
+    }
   }
 
   await refreshDisplayWindows()

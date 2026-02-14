@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Display Identification</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+
+        .identify-container {
+            text-align: center;
+        }
+
+        .identify-number {
+            font-size: 400px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            line-height: 1;
+            letter-spacing: -20px;
+        }
+
+        .identify-label {
+            font-size: 48px;
+            color: rgba(255, 255, 255, 0.9);
+            margin-top: 40px;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+
+        .identify-info {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 20px;
+            text-align: center;
+        }
+
+        .countdown {
+            font-size: 64px;
+            color: rgba(255, 255, 255, 0.9);
+            margin-top: 60px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="identify-container">
+        <div class="identify-number" id="displayNumber">1</div>
+        <div class="identify-label">HDMI Display</div>
+        <div class="countdown">
+            <span id="countdown">5</span>s
+        </div>
+    </div>
+
+    <div class="identify-info">
+        This display is temporarily identifying.<br>
+        It will return to normal shortly.
+    </div>
+
+    <script>
+        // Get display number from URL parameter
+        const params = new URLSearchParams(window.location.search);
+        const displayNum = params.get('display') || '1';
+        
+        document.getElementById('displayNumber').textContent = displayNum;
+
+        // Countdown timer
+        let seconds = 5;
+        const countdownEl = document.getElementById('countdown');
+        
+        const interval = setInterval(() => {
+            seconds--;
+            countdownEl.textContent = Math.max(0, seconds);
+            
+            if (seconds <= 0) {
+                clearInterval(interval);
+                // Page will auto-reload after the server resets the config
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

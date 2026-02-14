@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rotation Test</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; width: 100%; overflow: hidden; }
+    body {
+      background: #1a1a1a;
+      color: white;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      text-align: center;
+    }
+    .content {
+      background: rgba(0, 100, 200, 0.7);
+      padding: 40px;
+      border-radius: 10px;
+      border: 3px solid #0ff;
+    }
+    .rotation-value {
+      font-size: 48px;
+      font-weight: bold;
+      color: #0f0;
+      margin: 20px 0;
+    }
+    button {
+      padding: 15px 30px;
+      margin: 10px;
+      font-size: 18px;
+      cursor: pointer;
+      background: #0f0;
+      color: #000;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+    button:hover {
+      background: #0f3;
+    }
+    .corner {
+      position: fixed;
+      font-size: 72px;
+      font-weight: bold;
+      color: rgba(255, 0, 0, 0.5);
+    }
+    .tl { top: 10px; left: 10px; }
+    .tr { top: 10px; right: 10px; }
+    .bl { bottom: 10px; left: 10px; }
+    .br { bottom: 10px; right: 10px; }
+  </style>
+</head>
+<body>
+  <div class="corner tl">↖</div>
+  <div class="corner tr">↗</div>
+  <div class="corner bl">↙</div>
+  <div class="corner br">↘</div>
+
+  <div class="content">
+    <div>Current Rotation</div>
+    <div class="rotation-value" id="rotation">0°</div>
+    <div id="log"></div>
+    <button onclick="rotate(0)">0°</button>
+    <button onclick="rotate(1)">90°</button>
+    <button onclick="rotate(2)">180°</button>
+    <button onclick="rotate(3)">270°</button>
+    <button onclick="autoRotate()">Auto-Rotate</button>
+  </div>
+
+  <script>
+    const rotationMap = {
+      0: '0deg',
+      1: '90deg',
+      2: '180deg',
+      3: '270deg'
+    };
+
+    let currentRotation = 0;
+    let autoRotateInterval = null;
+
+    function log(msg) {
+      console.log(msg);
+      const el = document.getElementById('log');
+      el.textContent = msg;
+      el.style.fontSize = '14px';
+      el.style.marginTop = '10px';
+    }
+
+    function rotate(value) {
+      currentRotation = value;
+      const angle = rotationMap[value];
+      
+      // Apply to both html and body
+      document.documentElement.style.transformOrigin = 'center center';
+      document.body.style.transformOrigin = 'center center';
+      document.documentElement.style.transform = `rotate(${angle})`;
+      document.body.style.transform = `rotate(${angle})`;
+      
+      document.getElementById('rotation').textContent = value * 90 + '°';
+      
+      const htmlTransform = window.getComputedStyle(document.documentElement).transform;
+      const bodyTransform = window.getComputedStyle(document.body).transform;
+      
+      log(`Applied: ${angle} | HTML: ${htmlTransform} | Body: ${bodyTransform}`);
+    }
+
+    function autoRotate() {
+      if (autoRotateInterval) {
+        clearInterval(autoRotateInterval);
+        autoRotateInterval = null;
+        log('Auto rotation stopped');
+        return;
+      }
+
+      let index = 0;
+      log('Auto rotation started...');
+      autoRotateInterval = setInterval(() => {
+        rotate(index % 4);
+        index++;
+      }, 2000);
+    }
+
+    // Start with 0°
+    rotate(0);
+  </script>
+</body>
+</html>

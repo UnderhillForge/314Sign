@@ -259,4 +259,56 @@ router.post('/system/restart', requireAdmin, async (req: AuthenticatedRequest, r
   }
 });
 
+/**
+ * POST /api/displays/identify
+ * Temporarily show identification numbers on all displays (1 on HDMI-1, 2 on HDMI-2)
+ * Auto-restores original config after 5 seconds
+ */
+router.post('/identify', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    console.log(`[IDENTIFY] Starting display identification sequence`);
+    
+    // Get all displays
+    const displays = dbHelpers.getAllDisplays() as any[];
+    
+    // Store original configs for restoration
+    const originalConfigs = new Map(displays.map(d => [d.hdmi_port, { 
+      mode: d.mode,
+      slideshow_name: d.slideshow_name,
+      orientation: d.orientation
+    }]));
+    
+    // Update each display to show identify page with its port number
+    for (const display of displays) {
+      if (display.enabled) {
+        const displayNumber = display.hdmi_port + 1; // Port 0 = Display 1, Port 1 = Display 2
+        dbHelpers.updateDisplay(display.hdmi_port, {
+          mode: 'identify',
+          slideshow_name: null,
+          orientation: display.orientation // Keep orientation
+        } as any);
+        console.log(`[IDENTIFY] Set HDMI-${displayNumber} to identify mode`);
+      }
+    }
+    
+    // Auto-restore after 5 seconds
+    setTimeout(() => {
+      console.log(`[IDENTIFY] Restoring original display configurations`);
+      for (const [port, originalConfig] of originalConfigs) {
+        dbHelpers.updateDisplay(port, originalConfig as any);
+      }
+    }, 5000);
+    
+    res.json({
+      success: true,
+      message: 'Display identification started (5 seconds)',
+      displays_identified: displays.length,
+      auto_restore_in_ms: 5000
+    });
+  } catch (error) {
+    console.error('Failed to identify displays:', error);
+    res.status(500).json({ error: 'Failed to start display identification' });
+  }
+});
+
 export default router;

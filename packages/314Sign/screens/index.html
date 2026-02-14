@@ -286,6 +286,15 @@
             background: #38a169;
         }
 
+        .btn-info {
+            background: #4299e1;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #3182ce;
+        }
+
         .btn-danger {
             background: #f56565;
             color: white;
@@ -519,6 +528,7 @@
             <div class="action-buttons">
                 <button class="btn btn-success" id="applyBtn" disabled>✓ Apply Changes</button>
                 <button class="btn btn-secondary" id="refreshBtn">↻ Refresh Status</button>
+                <button class="btn btn-info" id="identifyBtn">🔢 Identify Displays</button>
             </div>
         </div>
 
@@ -595,7 +605,9 @@
         // Load displays from API
         async function loadDisplays() {
             try {
-                const response = await fetch(`${API_BASE}/displays`);
+                const response = await fetch(`${API_BASE}/displays`, {
+                    credentials: 'include'
+                });
                 if (!response.ok) throw new Error('Failed to load displays');
 
                 const data = await response.json();
@@ -664,6 +676,7 @@
                             <select onchange="setMode(${display.hdmi_port}, this.value)">
                                 <option value="main" ${display.mode === 'main' ? 'selected' : ''}>Main Menu</option>
                                 <option value="slideshow" ${display.mode === 'slideshow' ? 'selected' : ''}>Slideshow</option>
+                                <option value="test-pattern" ${display.mode === 'test-pattern' ? 'selected' : ''}>Test Pattern</option>
                                 <option value="disabled" ${display.mode === 'disabled' ? 'selected' : ''}>Disabled</option>
                             </select>
                         </div>
@@ -721,7 +734,9 @@
         // Load available slideshows
         async function loadSlideshows() {
             try {
-                const response = await fetch(`${API_BASE}/slideshows`);
+                const response = await fetch(`${API_BASE}/slideshows`, {
+                    credentials: 'include'
+                });
                 if (!response.ok) return;
 
                 const data = await response.json();
@@ -831,7 +846,10 @@
                 btn.disabled = true;
                 btn.innerHTML = '<span class="loading"></span> Testing...';
 
-                const response = await fetch(`${API_BASE}/displays/${port}/test`, { method: 'POST' });
+                const response = await fetch(`${API_BASE}/displays/${port}/test`, { 
+                    method: 'POST',
+                    credentials: 'include'
+                });
                 const data = await response.json();
 
                 if (response.ok) {
@@ -865,6 +883,7 @@
                     const response = await fetch(`${API_BASE}/displays/${port}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
                         body: JSON.stringify(display)
                     });
 
@@ -874,21 +893,26 @@
                     }
                 }
 
-                // Note: Orientation changes are applied immediately via Screen Orientation API when changed
-                // Remaining changes (enabled, mode, resolution, refresh_rate, etc) are saved to database
-                console.log('[SCREENS] Saving display configuration to database...');
-                // API endpoints now only save to database (xrandr apply is disabled for safety)
+                console.log('[SCREENS] All display configurations saved to database');
                 
                 showToast('Display configuration updated successfully', 'success');
                 
                 changes = {};
                 updatePendingChanges();
-                loadDisplays();
+                
+                // Reset button immediately
+                applyBtn.innerHTML = '✓ Apply Changes';
+                applyBtn.disabled = true;
+                
+                // Reload displays in background (don't wait for it)
+                loadDisplays().catch(err => console.warn('[SCREENS] Failed to reload displays:', err));
             } catch (error) {
                 console.error('[SCREENS] Apply error:', error);
                 showToast('Error: ' + error.message, 'error');
-                document.getElementById('applyBtn').innerHTML = '✓ Apply Changes';
-                document.getElementById('applyBtn').disabled = false;
+                
+                const applyBtn = document.getElementById('applyBtn');
+                applyBtn.innerHTML = '✓ Apply Changes';
+                applyBtn.disabled = false;
             }
         }
 
@@ -903,7 +927,10 @@
             btn.innerHTML = '<span class="loading"></span> Restarting...';
 
             try {
-                const response = await fetch(`${API_BASE}/displays/system/restart?confirm=true`, { method: 'POST' });
+                const response = await fetch(`${API_BASE}/displays/system/restart?confirm=true`, { 
+                    method: 'POST',
+                    credentials: 'include'
+                });
                 if (!response.ok) throw new Error('Restart request failed');
 
                 showToast('Services restarting... You may lose connection briefly.', 'success');
@@ -918,9 +945,51 @@
             }
         });
 
+        async function identifyDisplays() {
+            try {
+                const btn = document.getElementById('identifyBtn');
+                btn.disabled = true;
+                btn.innerHTML = '<span class="loading"></span> Identifying...';
+
+                console.log('[SCREENS] Starting display identification');
+
+                const response = await fetch(`${API_BASE}/displays/identify`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || response.statusText);
+                }
+
+                const data = await response.json();
+                
+                showToast('Displays identified for 5 seconds', 'success');
+                console.log('[SCREENS] Display identification result:', data);
+
+                // Reset button after 6 seconds (gives 1s buffer after display reset)
+                setTimeout(() => {
+                    btn.innerHTML = '🔢 Identify Displays';
+                    btn.disabled = false;
+                    // Reload to show normal displays again
+                    loadDisplays().catch(err => console.warn('[SCREENS] Failed to reload:', err));
+                }, 6000);
+
+            } catch (error) {
+                console.error('[SCREENS] Identify error:', error);
+                showToast('Error: ' + error.message, 'error');
+                
+                const btn = document.getElementById('identifyBtn');
+                btn.innerHTML = '🔢 Identify Displays';
+                btn.disabled = false;
+            }
+        }
+
         // Event listeners
         document.getElementById('applyBtn').addEventListener('click', applyChanges);
         document.getElementById('refreshBtn').addEventListener('click', loadDisplays);
+        document.getElementById('identifyBtn').addEventListener('click', identifyDisplays);
 
         // Initialize
         loadDisplays();

@@ -106,6 +106,44 @@ export async function getXrandrOutputs(): Promise<string[]> {
 }
 
 /**
+ * Get available display resolutions for an xrandr output
+ */
+function getAvailableResolutions(xrandrOutput: string): string[] {
+  try {
+    const { stdout } = execSync(`xrandr --query`, { encoding: 'utf-8', env: getDisplayEnv(), stdio: ['pipe', 'pipe', 'ignore'] }) as any;
+    const lines = stdout.split('\n');
+    let inOutput = false;
+    const resolutions: string[] = [];
+    
+    for (const line of lines) {
+      // Look for the output line (e.g., "HDMI-1 connected")
+      if (line.startsWith(xrandrOutput)) {
+        inOutput = true;
+        continue;
+      }
+      
+      // Stop when we hit another output or end
+      if (inOutput && line.match(/^[A-Z]/)) {
+        break;
+      }
+      
+      if (inOutput) {
+        // Parse resolution lines (they start with whitespace and contain an 'x')
+        const match = line.trim().match(/^(\d+x\d+)/);
+        if (match) {
+          resolutions.push(match[1]);
+        }
+      }
+    }
+    
+    return resolutions;
+  } catch (error) {
+    console.warn(`[XRANDR] Failed to get resolutions for ${xrandrOutput}, using fallback`);
+    return [];
+  }
+}
+
+/**
  * Build xrandr command string from display configurations
  * Returns command that can be executed with exec()
  * NOTE: Skips --rotate flag due to display stability issues on Raspberry Pi
@@ -115,22 +153,34 @@ export function buildXrandrCommand(displays: DisplayConfig[]): string {
   
   for (const display of displays) {
     if (display.enabled) {
-      // Safe parameters only - skip rotation to prevent display blanking
-      const resolution = display.resolution || '3840x2160'; // Default 4K resolution
+      let resolution = display.resolution;
+      
+      // Auto-detect resolution if not specified
+      if (!resolution) {
+        const available = getAvailableResolutions(display.xrandr_output);
+        // Pick the first (highest) available resolution, or fallback to 1920x1080
+        resolution = available.length > 0 ? available[0] : '1920x1080';
+      }
+      
       const refresh = display.refresh_rate || 60;
       
-      // Build the command with only safe parameters
-      parts.push(
-        `--output ${display.xrandr_output}`,
-        `--mode ${resolution}`,
-        `--rate ${refresh}`,
-        `--pos ${display.position_x}x${display.position_y}`
-      );
+      // Build command parts with output first, then mode
+      const outputParts = [`--output ${display.xrandr_output}`, `--mode ${resolution}`];
       
-      console.log(`[XRANDR] Enabling ${display.xrandr_output}: ${resolution} @ ${refresh}Hz`);
+      // Only add refresh rate if resolution was explicitly specified in database
+      if (display.resolution) {
+        outputParts.push(`--rate ${refresh}`);
+      }
+      
+      // Add position
+      outputParts.push(`--pos ${display.position_x}x${display.position_y}`);
+      
+      parts.push(...outputParts);
+      
+      console.log(`[XRANDR] Enabling ${display.xrandr_output}: ${resolution}${display.resolution ? ` @ ${refresh}Hz` : ''}`);
     } else {
       // Disable output
-      parts.push(`--output ${display.xrandr_output} --off`);
+      parts.push(`--output ${display.xrandr_output}`, `--off`);
       console.log(`[XRANDR] Disabling ${display.xrandr_output}`);
     }
   }
@@ -139,17 +189,29 @@ export function buildXrandrCommand(displays: DisplayConfig[]): string {
 }
 
 /**
- * Apply xrandr configuration
+ * Apply xrandr configuration with timeout protection
  */
 export async function applyXrandrConfig(displays: DisplayConfig[]): Promise<boolean> {
   try {
     const command = buildXrandrCommand(displays);
-    console.log(`Executing: ${command}`);
-    await execPromise(command, { env: getDisplayEnv() });
-    console.log('xrandr configuration applied successfully');
+    console.log(`[XRANDR] Executing command: ${command}`);
+    
+    // Apply with a 10-second timeout to prevent hanging
+    const { stdout, stderr } = await Promise.race([
+      execPromise(command, { env: getDisplayEnv(), maxBuffer: 1024 * 1024 }),
+      new Promise<{ stdout: string; stderr: string }>((_, reject) =>
+        setTimeout(() => reject(new Error('xrandr command timeout (>10s)')), 10000)
+      )
+    ]);
+    
+    if (stderr && stderr.trim()) {
+      console.warn(`[XRANDR] Command warnings: ${stderr}`);
+    }
+    
+    console.log('[XRANDR] Configuration applied successfully');
     return true;
   } catch (error) {
-    console.error('Failed to apply xrandr configuration:', error);
+    console.error('[XRANDR] Failed to apply configuration:', error instanceof Error ? error.message : String(error));
     return false;
   }
 }
@@ -259,8 +321,8 @@ export function validateDisplayConfig(config: any): { valid: boolean; errors: st
     errors.push('orientation must be 0-3 (0°, 90°, 180°, 270°)');
   }
   
-  if (config.mode !== undefined && !['main', 'slideshow', 'disabled'].includes(config.mode)) {
-    errors.push('mode must be "main", "slideshow", or "disabled"');
+  if (config.mode !== undefined && !['main', 'slideshow', 'disabled', 'identify', 'test-pattern'].includes(config.mode)) {
+    errors.push('mode must be "main", "slideshow", "test-pattern", "identify", or "disabled"');
   }
   
   if (config.position_x !== undefined && (config.position_x < 0 || config.position_x > 7680)) {

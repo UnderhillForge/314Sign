@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Pattern</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #000;
+            font-family: 'Arial', sans-serif;
+        }
+
+        .test-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Color bars - classic TV test pattern */
+        .color-bars {
+            display: flex;
+            flex: 1;
+            height: 75vh;
+        }
+
+        .color-bar {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 20px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .color-bar.white { background: #fff; color: #000; }
+        .color-bar.yellow { background: #ffff00; color: #000; }
+        .color-bar.cyan { background: #00ffff; color: #000; }
+        .color-bar.green { background: #00ff00; color: #000; }
+        .color-bar.magenta { background: #ff00ff; color: #fff; }
+        .color-bar.red { background: #ff0000; color: #fff; }
+        .color-bar.blue { background: #0000ff; color: #fff; }
+        .color-bar.black { background: #000; color: #fff; border: 2px solid #666; }
+
+        /* Bottom section with info */
+        .info-section {
+            height: 25vh;
+            background: linear-gradient(180deg, #222 0%, #000 100%);
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .large-number {
+            font-size: 120px;
+            font-weight: bold;
+            color: #00ff00;
+            text-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+            margin: 20px 0;
+        }
+
+        .info-text {
+            font-size: 24px;
+            color: #aaa;
+            margin: 10px 0;
+            letter-spacing: 2px;
+        }
+
+        .resolution {
+            font-size: 18px;
+            color: #888;
+            margin-top: 10px;
+        }
+
+        .grid-pattern {
+            position: absolute;
+            width: 100%;
+            height: 75vh;
+            opacity: 0.1;
+            pointer-events: none;
+            background-image: 
+                linear-gradient(0deg, transparent 24%, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, 0.05) 75%, rgba(255, 255, 255, 0.05) 76%, transparent 77%, transparent),
+                linear-gradient(90deg, transparent 24%, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, 0.05) 75%, rgba(255, 255, 255, 0.05) 76%, transparent 77%, transparent);
+            background-size: 50px 50px;
+        }
+
+        .corner-marks {
+            position: absolute;
+            width: 100%;
+            height: 75vh;
+            pointer-events: none;
+        }
+
+        .corner-mark {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 3px solid #fff;
+        }
+
+        .corner-mark.top-left {
+            top: 10px;
+            left: 10px;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .corner-mark.top-right {
+            top: 10px;
+            right: 10px;
+            border-left: none;
+            border-bottom: none;
+        }
+
+        .corner-mark.bottom-left {
+            bottom: 10px;
+            left: 10px;
+            border-right: none;
+            border-top: none;
+        }
+
+        .corner-mark.bottom-right {
+            bottom: 10px;
+            right: 10px;
+            border-left: none;
+            border-top: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div style="position: relative; flex: 1; height: 75vh;">
+            <div class="grid-pattern"></div>
+            <div class="corner-marks">
+                <div class="corner-mark top-left"></div>
+                <div class="corner-mark top-right"></div>
+                <div class="corner-mark bottom-left"></div>
+                <div class="corner-mark bottom-right"></div>
+            </div>
+            <div class="color-bars">
+                <div class="color-bar white">WHITE</div>
+                <div class="color-bar yellow">YELLOW</div>
+                <div class="color-bar cyan">CYAN</div>
+                <div class="color-bar green">GREEN</div>
+                <div class="color-bar magenta">MAGENTA</div>
+                <div class="color-bar red">RED</div>
+                <div class="color-bar blue">BLUE</div>
+                <div class="color-bar black">BLACK</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <div class="info-text">TEST PATTERN</div>
+        <div class="large-number" id="displayNumber">1</div>
+        <div class="info-text">Display Operational</div>
+        <div class="resolution" id="resolution"></div>
+    </div>
+
+    <script>
+        // Get display number and orientation from URL parameters
+        const params = new URLSearchParams(window.location.search);
+        const displayNum = params.get('display') || '1';
+        const orientation = parseInt(params.get('orientation') || '0', 10);
+        
+        document.getElementById('displayNumber').textContent = displayNum;
+
+        // Apply CSS rotation based on orientation value
+        // 0 = 0°, 1 = 90° CW, 2 = 180°, 3 = 270° CW (90° CCW)
+        if (orientation !== 0) {
+            const rotationDegrees = orientation * 90;
+            const body = document.body;
+            
+            console.log(`[TEST PATTERN] Applying CSS rotation: ${rotationDegrees}° (orientation value: ${orientation})`);
+            console.log(`[TEST PATTERN] Viewport: ${window.innerWidth}x${window.innerHeight}`);
+            
+            // For 90° and 270°, we need to swap width/height
+            if (orientation === 1 || orientation === 3) {
+                // Landscape to portrait rotation
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+                
+                // Set body to use viewport height as width and viewport width as height
+                body.style.position = 'fixed';
+                body.style.width = `${vh}px`;
+                body.style.height = `${vw}px`;
+                body.style.transformOrigin = '0 0';
+                body.style.overflow = 'hidden';
+                body.style.margin = '0';
+                body.style.padding = '0';
+                
+                // Adjust position based on rotation direction
+                if (orientation === 1) {
+                    // 90° CW: rotate around top-left, then shift to top-right
+                    body.style.transform = `rotate(90deg) translate(0, -100%)`;
+                    body.style.left = '0';
+                    body.style.top = '0';
+                } else {
+                    // 270° CW: rotate around top-left, then shift to bottom-left  
+                    body.style.transform = `rotate(270deg) translate(-100%, 0)`;
+                    body.style.left = '0';
+                    body.style.top = '0';
+                }
+            } else {
+                // 180° rotation
+                body.style.position = 'fixed';
+                body.style.width = '100vw';
+                body.style.height = '100vh';
+                body.style.transform = `rotate(180deg)`;
+                body.style.transformOrigin = 'center center';
+                body.style.left = '0';
+                body.style.top = '0';
+                body.style.overflow = 'hidden';
+                body.style.margin = '0';
+                body.style.padding = '0';
+            }
+        }
+
+        // Show resolution
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        document.getElementById('resolution').textContent = `${width}×${height} @ ${window.devicePixelRatio}x`;
+
+        // Log display info
+        console.log(`[TEST PATTERN] Display ${displayNum} - Resolution: ${width}×${height} - Orientation: ${orientation}`);
+    </script>
+</body>
+</html>

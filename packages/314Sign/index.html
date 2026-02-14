@@ -112,6 +112,63 @@
   </div>
 
   <script>
+    // TEST: Immediate test to verify JavaScript is running
+    (function() {
+      const img = new Image();
+      img.onerror = img.onload = function() {};
+      img.src = '/qr-menu.png?ts=' + Date.now() + '&test-running';
+    })();
+
+    // Get orientation parameter from URL
+    let __orientationParam = parseInt(new URLSearchParams(window.location.search).get('orientation') || '0', 10);
+    const __portParam = parseInt(new URLSearchParams(window.location.search).get('port') || '0', 10);
+
+// HDMI-2 (port=1) has a -90° hardware offset, so add 90° to compensate
+      // 0->1, 1->2, 2->3, 3->0
+      if (__portParam === 1) {
+        __orientationParam = (__orientationParam + 1) % 4;
+    }
+
+    // Apply CSS rotation if orientation > 0
+    if (__orientationParam !== 0) {
+      document.addEventListener('DOMContentLoaded', function() {
+        // Make a test request to log rotation execution
+        const testImg = new Image();
+        testImg.src = '/qr-menu.png?ts=' + Date.now() + '&rotation-applying=' + __orientationParam;
+        
+        if (__orientationParam === 1 || __orientationParam === 3) {
+          // 90° or 270° rotation - swap dimensions
+          const vw = window.innerWidth;
+          const vh = window.innerHeight;
+          
+          document.body.style.position = 'fixed';
+          document.body.style.width = vh + 'px';
+          document.body.style.height = vw + 'px';
+          document.body.style.transformOrigin = '0 0';
+          document.body.style.overflow = 'hidden';
+          document.body.style.margin = '0';
+          document.body.style.padding = '0';
+          
+          if (__orientationParam === 1) {
+            // 90° CW
+            document.body.style.transform = 'rotate(90deg) translate(0, -100%)';
+          } else {
+            // 270° CW
+            document.body.style.transform = 'rotate(270deg) translate(-100%, 0)';
+          }
+        } else if (__orientationParam === 2) {
+          // 180° rotation
+          document.body.style.position = 'fixed';
+          document.body.style.transform = 'rotate(180deg)';
+          document.body.style.transformOrigin = 'center center';
+          document.body.style.overflow = 'hidden';
+          document.body.style.margin = '0';
+          document.body.style.padding = '0';
+        }
+        console.log('[ROTATION] Applied CSS rotation for orientation:', __orientationParam);
+      });
+    }
+
     // TypeScript interface for ScreenOrientation API (for type safety)
     /**
      * @typedef {object} ScreenOrientation

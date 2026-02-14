@@ -1,11 +1,11 @@
 {
   "version": "1.0.1.1",
   "bg": "backgd.jpg",
-  "font": "'Permanent Marker', cursive",
+  "font": "'Indie Flower', cursive",
   "headerFont": "'PermanentMarker-Regular', sans-serif",
   "headerText": "Specials",
   "headerSizePercent": 34,
-  "contentSizePercent": 5.4,
+  "contentSizePercent": 3,
   "bgBrightness": 0.4,
   "showClock": true,
   "clock24Hour": true,
