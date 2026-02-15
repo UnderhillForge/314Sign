@@ -8,8 +8,8 @@
   <!-- Sortable.js for drag and drop -->
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.1/Sortable.min.js"></script>
   
-  <!-- SVG Edit - Full editor from CDN -->
-  <link href="https://unpkg.com/svgedit@latest/dist/editor/svgedit.css" rel="stylesheet"></link>
+  <!-- SVG Edit - Local distribution -->
+  <link href="./svgedit/svgedit.css" rel="stylesheet"></link>
   
   <style>
     * {
@@ -1232,7 +1232,7 @@
 
   <!-- SVG Editor Modal for Slide Type -->
   <div class="modal" id="svg-editor-modal" style="z-index: 1002;">
-    <div class="modal-content" style="width: 95%; height: 95vh; display: flex; flex-direction: column;">
+    <div class="modal-content" style="width: 100%; height: 100vh; display: flex; flex-direction: column; margin: 0; border-radius: 0; padding: 0; max-width: none;">
       <div class="modal-header">
         <h2>SVG Editor</h2>
         <button class="btn btn-icon btn-secondary" onclick="closeSvgEditor()">✕</button>
@@ -1251,9 +1251,9 @@
     let currentSvgSlideIndex = null;
 
     async function initSvgEditor() {
-      // Dynamically load SVG Editor from CDN
+      // Dynamically load SVG Editor from local distribution
       try {
-        const module = await import('https://unpkg.com/svgedit@latest/dist/editor/Editor.js');
+        const module = await import('./svgedit/Editor.js');
         return module.default;
       } catch (error) {
         console.error('Failed to load SVG Editor:', error);
@@ -1279,8 +1279,15 @@
         svgEditor = new Editor(container);
         svgEditor.setConfig({
           allowInitialUserOverride: true,
-          noDefaultExtensions: true,  // Disable extensions - not available locally
-          userExtensions: []
+          noDefaultExtensions: false,  // Enable extensions - now available locally
+          userExtensions: [
+            './svgedit/extensions/ext-connector/ext-connector.js',
+            './svgedit/extensions/ext-shapes/ext-shapes.js',
+            './svgedit/extensions/ext-eyedropper/ext-eyedropper.js',
+            './svgedit/extensions/ext-grid/ext-grid.js',
+            './svgedit/extensions/ext-panning/ext-panning.js',
+            './svgedit/extensions/ext-storage/ext-storage.js'
+          ]
         });
 
         await svgEditor.init();
