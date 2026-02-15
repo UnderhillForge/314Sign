@@ -10,17 +10,38 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.0.4/dist/theme/black.css">
   
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     :root {
       --slide-bg: #000;
       --slide-text: #fff;
     }
     
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: var(--slide-bg);
+    }
+
     .reveal {
       background: var(--slide-bg);
+      width: 100% !important;
+      height: 100% !important;
+      overflow: visible !important;
     }
     
     .reveal .slides {
       text-align: center;
+      overflow: visible !important;
+    }
+
+    .reveal section {
+      overflow: visible !important;
     }
     
     /* Slide content styling */
@@ -125,6 +146,22 @@
       max-width: 100%;
       max-height: 85vh;
     }
+
+    /* SVG slide styling */
+    .svg-slide-container {
+      width: 100% !important;
+      height: 100% !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      overflow: hidden !important;
+    }
+
+    .svg-slide-container svg {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
   </style>
 </head>
 <body>
@@ -142,10 +179,62 @@
     let slideshowData = null;
     let weatherCache = new Map(); // Cache by location+units
     let weatherUpdateInterval = null;
+    let lastModified = null; // Track when slideshow was last modified
+    let updateCheckInterval = null; // Interval for checking slideshow updates
 
     // Get slideshow name from URL
     const urlParams = new URLSearchParams(window.location.search);
     const slideshowName = urlParams.get('slideshow');
+    const orientationParam = parseInt(urlParams.get('orientation') || '0', 10);
+    const resolutionParam = urlParams.get('resolution') || 'auto';
+
+    // Parse resolution parameter (e.g., "1920x1080" or "auto")
+    let configuredWidth = null;
+    let configuredHeight = null;
+    if (resolutionParam && resolutionParam !== 'auto') {
+      const parts = resolutionParam.split('x');
+      if (parts.length === 2) {
+        configuredWidth = parseInt(parts[0], 10);
+        configuredHeight = parseInt(parts[1], 10);
+      }
+    }
+    console.log(`[SLIDESHOW] Resolution parameter: ${resolutionParam}, parsed: ${configuredWidth}x${configuredHeight}`);
+
+    // Apply CSS rotation based on orientation parameter
+    if (orientationParam !== 0) {
+      document.addEventListener('DOMContentLoaded', function() {
+        if (orientationParam === 1 || orientationParam === 3) {
+          // 90° or 270° rotation - swap dimensions
+          const vw = window.innerWidth;
+          const vh = window.innerHeight;
+          
+          document.body.style.position = 'fixed';
+          document.body.style.width = vh + 'px';
+          document.body.style.height = vw + 'px';
+          document.body.style.transformOrigin = '0 0';
+          document.body.style.overflow = 'hidden';
+          document.body.style.margin = '0';
+          document.body.style.padding = '0';
+          
+          if (orientationParam === 1) {
+            // 90° CW
+            document.body.style.transform = 'rotate(90deg) translate(0, -100%)';
+          } else {
+            // 270° CW
+            document.body.style.transform = 'rotate(270deg) translate(-100%, 0)';
+          }
+        } else if (orientationParam === 2) {
+          // 180° rotation
+          document.body.style.position = 'fixed';
+          document.body.style.transform = 'rotate(180deg)';
+          document.body.style.transformOrigin = 'center center';
+          document.body.style.overflow = 'hidden';
+          document.body.style.margin = '0';
+          document.body.style.padding = '0';
+        }
+        console.log('[SLIDESHOW ROTATION] Applied CSS rotation for orientation:', orientationParam);
+      });
+    }
 
     if (!slideshowName) {
       document.getElementById('slides-container').innerHTML = 
@@ -154,13 +243,16 @@
       loadSlideshow(slideshowName);
     }
 
-    async function loadSlideshow(name) {
+    async function loadSlideshow(name, isReload = false) {
       try {
         const response = await fetch(`/api/slideshows/${name}`);
         if (!response.ok) throw new Error('Slideshow not found');
         
         const result = await response.json();
         slideshowData = result.data;
+        lastModified = result.data.lastModified;
+        
+        console.log(`[SLIDESHOW] ${isReload ? 'Reloaded' : 'Loaded'} slideshow: ${name}, lastModified: ${lastModified}`);
         
         // Fetch weather data BEFORE rendering slides if weather widget exists
         if (slideshowData.slides.some(s => s.type === 'weather')) {
@@ -168,17 +260,43 @@
         }
         
         await renderSlides();
-        initializeReveal();
         
-        // Set up periodic weather updates (every 10 minutes)
-        if (slideshowData.slides.some(s => s.type === 'weather')) {
-          weatherUpdateInterval = setInterval(updateWeather, 10 * 60 * 1000);
+        if (!isReload) {
+          initializeReveal();
+          
+          // Set up periodic weather updates (every 10 minutes)
+          if (slideshowData.slides.some(s => s.type === 'weather')) {
+            weatherUpdateInterval = setInterval(updateWeather, 10 * 60 * 1000);
+          }
+          
+          // Set up periodic check for slideshow updates (every 5 seconds)
+          updateCheckInterval = setInterval(() => checkForUpdates(name), 5000);
+        } else {
+          // On reload, just sync with current slide
+          Reveal.sync();
         }
         
       } catch (error) {
         console.error('Failed to load slideshow:', error);
         document.getElementById('slides-container').innerHTML = 
           `<section><h1>Error</h1><p>Failed to load slideshow: ${error.message}</p></section>`;
+      }
+    }
+
+    async function checkForUpdates(name) {
+      try {
+        const response = await fetch(`/api/slideshows/${name}`);
+        if (!response.ok) return;
+        
+        const result = await response.json();
+        const currentModified = result.data.lastModified;
+        
+        if (lastModified && currentModified > lastModified) {
+          console.log(`[SLIDESHOW] Update detected! Reloading... (old: ${lastModified}, new: ${currentModified})`);
+          await loadSlideshow(name, true);
+        }
+      } catch (error) {
+        console.error('[SLIDESHOW] Error checking for updates:', error);
       }
     }
 
@@ -389,9 +507,34 @@
         return '<p>No SVG content available</p>';
       }
       
-      // Create a container for the SVG with proper sizing
-      return `<div class="svg-slide-container" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: auto;">
-        ${slide.svgContent}
+      // Parse the SVG to preserve viewBox for proper scaling
+      // Only remove width/height from the root <svg> tag, not from child elements
+      let svgContent = slide.svgContent;
+      
+      // Find the opening <svg> tag and clean it
+      svgContent = svgContent.replace(/(<svg[^>]*)(>)/i, (match, openTag, bracket) => {
+        // Remove width and height attributes from root svg only
+        let cleanedTag = openTag
+          .replace(/\s*width\s*=\s*["'][^"']*["']/gi, '')
+          .replace(/\s*height\s*=\s*["'][^"']*["']/gi, '');
+        
+        // Remove width/height from root svg's inline style attribute if present
+        cleanedTag = cleanedTag.replace(/style\s*=\s*["']([^"']*)["']/gi, (styleMatch, styleContent) => {
+          const cleanedStyle = styleContent.replace(/\s*(width|height)\s*:\s*[^;]*;?/gi, '').trim();
+          return cleanedStyle ? `style="${cleanedStyle}"` : '';
+        });
+        
+        return cleanedTag + bracket;
+      });
+      
+      // Ensure SVG has viewBox for proper scaling
+      if (!svgContent.includes('viewBox')) {
+        // If no viewBox, add a default one assuming 1920x1080 content
+        svgContent = svgContent.replace(/^<svg\s+/i, '<svg viewBox="0 0 1920 1080" ');
+      }
+      
+      return `<div class="svg-slide-container">
+        ${svgContent}
       </div>`;
     }
 
@@ -715,9 +858,17 @@
     }
 
     function initializeReveal() {
+      // Use configured resolution if available, otherwise use window dimensions
+      const screenWidth = configuredWidth || window.innerWidth;
+      const screenHeight = configuredHeight || window.innerHeight;
+      
+      // Use actual screen dimensions directly instead of scaling from a base resolution
+      // This ensures the slideshow fills the entire screen without letterboxing
+      console.log(`[SLIDESHOW] Display resolution: ${screenWidth}x${screenHeight} (configured: ${resolutionParam})`);
+      
       const config = {
-        width: 1920,
-        height: 1080,
+        width: screenWidth,
+        height: screenHeight,
         margin: 0,
         minScale: 1,
         maxScale: 1,
@@ -737,6 +888,25 @@
       };
 
       Reveal.initialize(config);
+      
+      // Handle window resize to recalculate dimensions
+      let resizeTimeout;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+          const screenWidth = configuredWidth || window.innerWidth;
+          const screenHeight = configuredHeight || window.innerHeight;
+          
+          console.log(`[SLIDESHOW RESIZE] Display resolution: ${screenWidth}x${screenHeight}`);
+          
+          // Update Reveal dimensions to match screen
+          Reveal.getConfig().width = screenWidth;
+          Reveal.getConfig().height = screenHeight;
+          Reveal.getConfig().minScale = 1;
+          Reveal.getConfig().maxScale = 1;
+          Reveal.layout();
+        }, 250); // Debounce resize events
+      });
       
       // Reload fact data every time a fact slide is displayed
       Reveal.on('slidechanged', event => {

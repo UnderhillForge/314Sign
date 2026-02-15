@@ -6,6 +6,11 @@ export interface DisplayConfig {
   orientation: number
   enabled: boolean
   mode: 'main' | 'slideshow' | 'disabled'
+  slideshow_name?: string
+  resolution?: string | null
+  xrandr_output?: string
+  position_x?: number
+  position_y?: number
 }
 
 export class DisplayController {

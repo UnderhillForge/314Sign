@@ -140,7 +140,8 @@ function buildDisplayUrl(config: DisplayConfig): string | null {
 
   if (config.mode === 'slideshow' && config.slideshow_name) {
     const slideshow = encodeURIComponent(config.slideshow_name)
-    return `${SERVER_URL}/?slideshow=${slideshow}&port=${port}&orientation=${orientation}&bust=${cacheBuster}`
+    const resolution = config.resolution || 'auto'
+    return `${SERVER_URL}/slideshows/reveal-player.html?slideshow=${slideshow}&orientation=${orientation}&resolution=${resolution}&bust=${cacheBuster}`
   }
 
   return `${SERVER_URL}/?port=${port}&orientation=${orientation}&bust=${cacheBuster}`
@@ -330,10 +331,10 @@ function applyDisplayRotation(xrandrOutput: string, orientation: number): void {
   }
 }
 
-async function refreshDisplayWindows() {
+async function refreshDisplayWindows(force = false) {
   const configs = await fetchDisplayConfig()
   const hash = JSON.stringify(configs)
-  if (hash === lastDisplayConfigHash) {
+  if (!force && hash === lastDisplayConfigHash) {
     return
   }
   lastDisplayConfigHash = hash
@@ -396,7 +397,12 @@ async function startKiosk() {
     }
   }
 
-  await refreshDisplayWindows()
+  await refreshDisplayWindows(true)
+  setTimeout(() => {
+    refreshDisplayWindows(true).catch((error) => {
+      console.error('[KIOSK] Failed to refresh display config (startup retry):', error)
+    })
+  }, 2000)
   setInterval(() => {
     refreshDisplayWindows().catch((error) => {
       console.error('[KIOSK] Failed to refresh display config:', error)

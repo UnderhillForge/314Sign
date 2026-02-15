@@ -653,6 +653,10 @@
       position: relative;
       background: transparent;
       border: none;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      overflow: hidden;
     }
 
     .layers-panel h2 {
@@ -738,6 +742,51 @@
       justify-content: center;
     }
 
+    /* Slide Properties Panel */
+    .slide-properties-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      flex: 0 0 auto;
+      max-height: 45%;
+    }
+
+    .slide-properties-panel .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .slide-properties-panel label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+    }
+
+    .slide-properties-panel input[type="range"],
+    .slide-properties-panel input[type="number"],
+    .slide-properties-panel select {
+      width: 100%;
+      padding: 0.5rem;
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+    }
+
+    .slide-properties-panel input[type="range"] {
+      padding: 0.25rem;
+    }
+
+    .slide-properties-panel input[type="number"] {
+      width: auto;
+    }
+
     /* Timeline Editor */
     .timeline-panel {
       background: var(--bg-card);
@@ -747,6 +796,7 @@
       overflow-y: auto;
       display: flex;
       flex-direction: column;
+      flex: 1;
     }
 
     .timeline-header {
@@ -1022,16 +1072,12 @@
       </div>
     </aside>
 
-    <!-- Layers Panel -->
+    <!-- Right Sidebar Panel -->
     <aside class="right-panel">
       <!-- Timeline Panel -->
       <div class="timeline-panel" id="timeline-panel">
         <div class="timeline-header">
           <h2>📹 Timeline</h2>
-          <div class="timeline-tabs">
-            <button class="timeline-tab active" data-tab="timeline" onclick="switchTimelineTab('timeline')">View</button>
-            <button class="timeline-tab" data-tab="layers" onclick="switchTimelineTab('layers')">Layers</button>
-          </div>
         </div>
         
         <div class="timeline-scrubber">
@@ -1061,43 +1107,74 @@
             <p>No slides yet</p>
           </div>
         </div>
-
-        <div class="timeline-footer">
-          <div class="history-buttons">
-            <button class="btn btn-sm btn-secondary" id="undo-btn" onclick="editorAPI.history.undo()" title="Undo (Ctrl+Z)">
-              ↶ Undo
-            </button>
-            <button class="btn btn-sm btn-secondary" id="redo-btn" onclick="editorAPI.history.redo()" title="Redo (Ctrl+Shift+Z)">
-              ↷ Redo
-            </button>
-          </div>
-        </div>
       </div>
 
-      <!-- Layers Panel -->
-      <div class="layers-panel" id="layers-panel" style="display: none;">
+      <!-- Slide Properties Panel -->
+      <div class="slide-properties-panel" id="slide-properties-panel">
         <div class="timeline-header">
-          <h2>📊 Layers</h2>
-          <div class="timeline-tabs">
-            <button class="timeline-tab" data-tab="timeline" onclick="switchTimelineTab('timeline')">View</button>
-            <button class="timeline-tab active" data-tab="layers" onclick="switchTimelineTab('layers')">Layers</button>
+          <h2>⚙️ Slide Properties</h2>
+        </div>
+        
+        <div id="slide-properties-content" style="padding: 1rem; display: none;">
+          <div class="form-group">
+            <label>Duration (seconds)</label>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <input type="range" id="props-duration-slider" min="1" max="60" value="10" style="flex: 1;">
+              <input type="number" id="props-duration-input" min="1" max="600" value="10" style="width: 60px;">
+              <span id="props-duration-display" style="min-width: 40px;">10s</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Transition</label>
+            <select id="props-transition">
+              <option value="slide">Slide</option>
+              <option value="fade">Fade</option>
+              <option value="zoom">Zoom</option>
+              <option value="convex">Convex</option>
+              <option value="concave">Concave</option>
+              <option value="none">None</option>
+            </select>
+          </div>
+
+          <div style="padding-top: 1rem; border-top: 1px solid var(--border);">
+            <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Slide Info</div>
+            <div id="props-slide-type" style="font-size: 0.85rem; margin-bottom: 0.3rem;"><strong>Type:</strong> —</div>
+            <div id="props-slide-index" style="font-size: 0.85rem; margin-bottom: 0.3rem;"><strong>Position:</strong> —</div>
+            <div id="props-slide-count" style="font-size: 0.85rem;"><strong>Total Slides:</strong> —</div>
           </div>
         </div>
-        <div class="layers-list" id="layers-list">
-          <div class="layers-empty">Select a slide</div>
-        </div>
-        <div class="timeline-footer">
-          <div class="history-buttons">
-            <button class="btn btn-sm btn-secondary" id="undo-btn-layers" onclick="editorAPI.history.undo()" title="Undo (Ctrl+Z)">
-              ↶ Undo
-            </button>
-            <button class="btn btn-sm btn-secondary" id="redo-btn-layers" onclick="editorAPI.history.redo()" title="Redo (Ctrl+Shift+Z)">
-              ↷ Redo
-            </button>
-          </div>
+
+        <div id="slide-properties-empty" style="padding: 2rem 1rem; text-align: center; color: var(--text-secondary);">
+          <p>No slide selected</p>
+          <p style="font-size: 0.85rem; margin-top: 0.5rem;">Select a slide to edit properties</p>
         </div>
       </div>
     </aside>
+
+    <!-- Old Layers Panel (hidden) -->
+    <div class="layers-panel" id="layers-panel" style="display: none;">
+      <div class="timeline-header">
+        <h2>📊 Layers</h2>
+        <div class="timeline-tabs">
+          <button class="timeline-tab" data-tab="timeline" onclick="switchTimelineTab('timeline')">View</button>
+          <button class="timeline-tab active" data-tab="layers" onclick="switchTimelineTab('layers')">Layers</button>
+        </div>
+      </div>
+      <div class="layers-list" id="layers-list">
+        <div class="layers-empty">Select a slide</div>
+      </div>
+      <div class="timeline-footer">
+        <div class="history-buttons">
+          <button class="btn btn-sm btn-secondary" id="undo-btn-layers" onclick="editorAPI.history.undo()" title="Undo (Ctrl+Z)">
+            ↶ Undo
+          </button>
+          <button class="btn btn-sm btn-secondary" id="redo-btn-layers" onclick="editorAPI.history.redo()" title="Redo (Ctrl+Shift+Z)">
+            ↷ Redo
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- Main Editor -->
     <main class="main-editor">
@@ -1463,7 +1540,7 @@
           dimensions: [1920, 1080],
           baseUnit: 'px',
           noDefaultExtensions: true,  // Load only required extensions
-          extensions: ['ext-opensave'],
+          extensions: ['ext-opensave', 'ext-grid', 'ext-eyedropper', 'ext-shapes', 'ext-polystar'],
           userExtensions: []
         });
 
@@ -1733,15 +1810,22 @@
             ...typeInfo.defaultProps
           };
           
+          console.log('[EDITOR] Adding slide:', slide);
+          
           editorState.dispatch({
             type: 'ADD_SLIDE',
             payload: slide
           });
           
+          console.log('[EDITOR] Slideshow after add:', editorState.currentSlideshow);
+          
           renderSlides();
           editorState.selectedSlideIndex = editorState.currentSlideshow.slides.length - 1;
           selectSlide(editorState.selectedSlideIndex);
           showToast(`Added ${typeInfo.label}`);
+          
+          // Auto-save after adding slide
+          autoSave();
         },
 
         remove: (index) => {
@@ -1756,6 +1840,9 @@
           editorState.selectedSlideIndex = null;
           renderProperties();
           showToast('Slide deleted');
+          
+          // Auto-save after removing slide
+          autoSave();
         },
 
         duplicate: (index) => {
@@ -1769,6 +1856,9 @@
           
           renderSlides();
           showToast('Slide duplicated');
+          
+          // Auto-save after duplicating slide
+          autoSave();
         },
 
         update: (index, updates) => {
@@ -1781,6 +1871,9 @@
           });
           
           renderSlides();
+          
+          // Auto-save after updating slide
+          autoSave();
         },
 
         reorder: (oldIndex, newIndex) => {
@@ -1791,6 +1884,9 @@
           });
           
           renderSlides();
+          
+          // Auto-save after reordering slides
+          autoSave();
         }
       },
 
@@ -1929,6 +2025,8 @@
       const container = document.getElementById('slides-container');
       const { slides } = editorState.currentSlideshow;
       
+      console.log('[EDITOR] Rendering slides, count:', slides.length);
+      
       if (slides.length === 0) {
         container.innerHTML = `
           <div class="empty-state">
@@ -2016,26 +2114,7 @@
     }
 
     function renderLayers(selectedSlide) {
-      const layersList = document.getElementById('layers-list');
-      
-      if (!selectedSlide || editorState.selectedSlideIndex === null) {
-        layersList.innerHTML = '<div class="layers-empty">Select a slide</div>';
-        return;
-      }
-
-      if (selectedSlide.type === 'slide' && selectedSlide.elements?.length > 0) {
-        layersList.innerHTML = selectedSlide.elements.map((element, index) => `
-          <div class="layer-item" onclick="selectCanvasElement(${index})">
-            <span class="layer-icon">${element.type === 'image' ? '🖼️' : '📦'}</span>
-            <span class="layer-label">${element.type === 'image' ? 'Image' : 'Element'} ${index + 1}</span>
-            <div class="layer-actions">
-              <button class="btn btn-sm btn-icon btn-danger" onclick="event.stopPropagation(); removeElement(${index})" title="Delete">🗑️</button>
-            </div>
-          </div>
-        `).join('');
-      } else {
-        layersList.innerHTML = '<div class="layers-empty">No elements in this slide</div>';
-      }
+      // Layers panel removed - this function is kept for backward compatibility
     }
 
     function getSlideIcon(type) {
@@ -2108,64 +2187,26 @@
     }
 
     function switchTimelineTab(tab) {
+      // Layers tab removed - only show timeline
       const timelinePanel = document.getElementById('timeline-panel');
-      const layersPanel = document.getElementById('layers-panel');
-      const timelineTabs = document.querySelectorAll('.timeline-tabs .timeline-tab');
-      
-      const allTabs = document.querySelectorAll('.timeline-tabs');
-      allTabs.forEach(tabGroup => {
-        const buttons = tabGroup.querySelectorAll('.timeline-tab');
-        buttons.forEach(btn => btn.classList.remove('active'));
-        tabGroup.querySelector(`[data-tab="${tab}"]`)?.classList.add('active');
-      });
-      
-      if (tab === 'timeline') {
+      if (timelinePanel) {
         timelinePanel.style.display = 'flex';
-        layersPanel.style.display = 'none';
         renderTimeline();
-      } else {
-        timelinePanel.style.display = 'none';
-        layersPanel.style.display = 'flex';
-        const selectedSlide = editorState.currentSlideshow.slides[editorState.selectedSlideIndex];
-        renderLayers(selectedSlide);
       }
     }
 
     function showLayersPanel() {
-      // Called when editing a Slide type to show layers panel
-      const timelinePanel = document.getElementById('timeline-panel');
-      const layersPanel = document.getElementById('layers-panel');
-      
-      if (layersPanel && timelinePanel) {
-        timelinePanel.style.display = 'none';
-        layersPanel.style.display = 'flex';
-        // Update tab indicators
-        document.querySelectorAll('.timeline-tabs .timeline-tab').forEach(tab => {
-          tab.classList.remove('active');
-        });
-        document.querySelectorAll('[data-tab="layers"]').forEach(tab => {
-          tab.classList.add('active');
-        });
-      }
+      // Layers panel removed - this is now a no-op
     }
 
     function showTimelinePanel() {
-      // Called when not editing a Slide type to show timeline panel
+      // Always show timeline and properties panels
       const timelinePanel = document.getElementById('timeline-panel');
-      const layersPanel = document.getElementById('layers-panel');
+      const propsPanel = document.getElementById('slide-properties-panel');
       
-      if (timelinePanel && layersPanel) {
-        timelinePanel.style.display = 'flex';
-        layersPanel.style.display = 'none';
-        // Update tab indicators
-        document.querySelectorAll('.timeline-tabs .timeline-tab').forEach(tab => {
-          tab.classList.remove('active');
-        });
-        document.querySelectorAll('[data-tab="timeline"]').forEach(tab => {
-          tab.classList.add('active');
-        });
-        renderTimeline();
-      }
+      if (timelinePanel) timelinePanel.style.display = 'flex';
+      if (propsPanel) propsPanel.style.display = 'flex';
+      renderTimeline();
     }
 
     function backToTimeline() {
@@ -2188,6 +2229,7 @@
       
       renderSlides();
       renderTimeline();
+      updateSlideProperties(selectedSlide, index);
       
       // Hide visual editor since we're using SVG Edit
       const visualEditor = document.getElementById('visual-editor');
@@ -2196,9 +2238,74 @@
       if (backBtn) backBtn.style.display = 'none';
     }
 
+    function updateSlideProperties(slide, index) {
+      if (!slide) {
+        document.getElementById('slide-properties-content').style.display = 'none';
+        document.getElementById('slide-properties-empty').style.display = 'block';
+        return;
+      }
+
+      const duration = (slide.duration || 5000) / 1000; // Convert ms to seconds
+      const transition = slide.transition || 'slide';
+
+      // Update all fields
+      document.getElementById('props-duration-slider').value = Math.min(duration, 60);
+      document.getElementById('props-duration-input').value = duration;
+      document.getElementById('props-duration-display').textContent = duration + 's';
+      document.getElementById('props-transition').value = transition;
+      document.getElementById('props-slide-type').innerHTML = `<strong>Type:</strong> ${slide.type}`;
+      document.getElementById('props-slide-index').innerHTML = `<strong>Position:</strong> ${index + 1}`;
+      document.getElementById('props-slide-count').innerHTML = `<strong>Total Slides:</strong> ${editorState.currentSlideshow.slides.length}`;
+
+      // Show content, hide empty
+      document.getElementById('slide-properties-content').style.display = 'block';
+      document.getElementById('slide-properties-empty').style.display = 'none';
+
+      // Attach event listeners
+      const durationSlider = document.getElementById('props-duration-slider');
+      const durationInput = document.getElementById('props-duration-input');
+      const transitionSelect = document.getElementById('props-transition');
+
+      durationSlider.oninput = (e) => {
+        const val = parseInt(e.target.value);
+        durationInput.value = val;
+        document.getElementById('props-duration-display').textContent = val + 's';
+        updateSlideProperty(index, 'duration', val * 1000);
+      };
+
+      durationInput.onchange = (e) => {
+        const val = Math.max(1, Math.min(600, parseInt(e.target.value) || 1));
+        durationSlider.value = Math.min(val, 60);
+        document.getElementById('props-duration-display').textContent = val + 's';
+        updateSlideProperty(index, 'duration', val * 1000);
+      };
+
+      transitionSelect.onchange = (e) => {
+        updateSlideProperty(index, 'transition', e.target.value);
+      };
+    }
+
+    function updateSlideProperty(slideIndex, property, value) {
+      const slide = editorState.currentSlideshow.slides[slideIndex];
+      if (slide) {
+        editorAPI.slides.update(slideIndex, { [property]: value });
+        renderTimeline();
+        showToast(`${property.charAt(0).toUpperCase() + property.slice(1)} updated`);
+      }
+    }
+
+    function editSelectedSlide() {
+      if (editorState.selectedSlideIndex !== null) {
+        showEditModal(editorState.selectedSlideIndex);
+      }
+    }
+
     function renderProperties() {
-      // Properties panel removed - editing now done via full-page modal
-      // This function is kept for backward compatibility but does nothing
+      // Properties panel now updated automatically via updateSlideProperties
+      const selectedSlide = editorState.currentSlideshow.slides[editorState.selectedSlideIndex];
+      if (selectedSlide && editorState.selectedSlideIndex !== null) {
+        updateSlideProperties(selectedSlide, editorState.selectedSlideIndex);
+      }
     }
 
     function updateSlide(property, value) {
@@ -2300,6 +2407,9 @@
       });
       document.getElementById('slideshow-name').textContent = name;
 
+      console.log('[EDITOR] Saving slideshow:', editorState.currentSlideshow);
+      console.log('[EDITOR] Number of slides:', editorState.currentSlideshow.slides.length);
+
       try {
         // First try to POST (create new)
         let response = await fetch('/api/slideshows', {
@@ -2323,10 +2433,41 @@
           throw new Error(`Save failed with status ${response.status}`);
         }
 
+        console.log('[EDITOR] Save successful. Current state:', editorState.currentSlideshow);
         showToast('Slideshow saved successfully!');
         closeModal('save-modal');
       } catch (error) {
         alert('Failed to save: ' + error.message);
+      }
+    }
+
+    async function autoSave() {
+      const name = editorState.currentSlideshow.name;
+      
+      // Don't auto-save if the slideshow doesn't have a name yet
+      if (!name || name === 'new-slideshow') {
+        console.log('[EDITOR] Skipping auto-save - no name set');
+        return;
+      }
+
+      try {
+        console.log('[EDITOR] Auto-saving...', name);
+        
+        // Always use PUT for auto-save since the slideshow should already exist
+        const response = await fetch(`/api/slideshows/${encodeURIComponent(name)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(editorState.currentSlideshow)
+        });
+
+        if (!response.ok) {
+          console.warn('[EDITOR] Auto-save failed:', response.status);
+        } else {
+          console.log('[EDITOR] Auto-saved successfully');
+        }
+      } catch (error) {
+        console.error('[EDITOR] Auto-save error:', error);
       }
     }
 

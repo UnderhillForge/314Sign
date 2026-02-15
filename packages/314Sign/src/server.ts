@@ -204,7 +204,7 @@ app.get(['/guest', '/guest/'], (req, res) => {
 
     if (guestDisplay.mode === 'slideshow' && guestDisplay.slideshow_name) {
       const slideshow = encodeURIComponent(guestDisplay.slideshow_name);
-      return res.redirect(`/?slideshow=${slideshow}&guest=1`);
+      return res.redirect(`/slideshows/reveal-player.html?slideshow=${slideshow}`);
     }
 
     return res.redirect('/?guest=1');
