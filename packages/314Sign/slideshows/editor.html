@@ -35,7 +35,7 @@
 
     .app-container {
       display: grid;
-      grid-template-columns: 280px 1fr 400px;
+      grid-template-columns: 250px 220px 1fr 380px;
       grid-template-rows: auto 1fr;
       height: 100vh;
       gap: 1rem;
@@ -562,6 +562,100 @@
       margin-bottom: 0.5rem;
       opacity: 0.5;
     }
+
+    /* Layers Panel */
+    .layers-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .layers-panel h2 {
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .layers-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .layer-item {
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .layer-item:hover {
+      border-color: var(--accent);
+      background: rgba(88, 166, 255, 0.05);
+    }
+
+    .layer-item.selected {
+      border-color: var(--accent);
+      background: rgba(88, 166, 255, 0.1);
+      font-weight: 500;
+    }
+
+    .layer-icon {
+      font-size: 1.1rem;
+      min-width: 20px;
+    }
+
+    .layer-label {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .layer-actions {
+      display: flex;
+      gap: 0.25rem;
+      opacity: 0;
+    }
+
+    .layer-item:hover .layer-actions {
+      opacity: 1;
+    }
+
+    .layers-empty {
+      text-align: center;
+      color: var(--text-secondary);
+      padding: 1rem;
+      font-size: 0.85rem;
+    }
+
+    /* History Panel */
+    .history-panel {
+      margin-top: auto;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .history-buttons {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .history-buttons .btn {
+      flex: 1;
+      justify-content: center;
+    }
   </style>
 </head>
 <body>
@@ -610,6 +704,24 @@
         <div class="slide-template" data-type="composite" draggable="true">
           <div class="template-icon">🎨</div>
           <div class="template-name">Composite</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Layers Panel -->
+    <aside class="layers-panel">
+      <h2>📊 Layers</h2>
+      <div class="layers-list" id="layers-list">
+        <div class="layers-empty">Select a slide</div>
+      </div>
+      <div class="history-panel">
+        <div class="history-buttons">
+          <button class="btn btn-sm btn-secondary" id="undo-btn" onclick="editorAPI.history.undo()" title="Undo (Ctrl+Z)">
+            ↶
+          </button>
+          <button class="btn btn-sm btn-secondary" id="redo-btn" onclick="editorAPI.history.redo()" title="Redo (Ctrl+Shift+Z)">
+            ↷
+          </button>
         </div>
       </div>
     </aside>
@@ -718,16 +830,200 @@
   </div>
 
   <script>
-    // Global state
-    let currentSlideshow = {
-      name: 'new-slideshow',
-      description: '',
-      defaultDuration: 5000,
-      defaultTransition: 'slide',
-      slides: []
+    // ============ SLIDE TYPE REGISTRY ============
+    const slideTypeRegistry = {
+      text: {
+        icon: '📝',
+        label: 'Text Slide',
+        defaultProps: {
+          title: 'Untitled Slide',
+          subtitle: '',
+          content: 'Click to edit...',
+          markdown: false,
+          textColor: '#ffffff',
+          backgroundColor: '#000000'
+        }
+      },
+      image: {
+        icon: '🖼️',
+        label: 'Image',
+        defaultProps: {
+          src: '',
+          caption: '',
+          fit: 'cover',
+          backgroundColor: '#000000'
+        }
+      },
+      weather: {
+        icon: '🌤️',
+        label: 'Weather',
+        defaultProps: {
+          location: 'Current Location',
+          unit: 'C',
+          showForecast: true
+        }
+      },
+      time: {
+        icon: '🕐',
+        label: 'Time & Date',
+        defaultProps: {
+          format: '24h',
+          showSeconds: false,
+          backgroundColor: '#000000',
+          textColor: '#ffffff'
+        }
+      },
+      composite: {
+        icon: '🎨',
+        label: 'Composite',
+        defaultProps: {
+          background: '#000000',
+          elements: []
+        }
+      }
     };
 
-    let selectedSlideIndex = null;
+    // ============ STATE MANAGEMENT ============
+    class EditorState {
+      constructor() {
+        this.currentSlideshow = {
+          name: 'new-slideshow',
+          description: '',
+          defaultDuration: 5000,
+          defaultTransition: 'slide',
+          slides: []
+        };
+        this.selectedSlideIndex = null;
+        this.history = [];
+        this.historyIndex = -1;
+        this.saveInitialState();
+      }
+
+      saveInitialState() {
+        this.history.push(JSON.parse(JSON.stringify(this.currentSlideshow)));
+        this.historyIndex = 0;
+      }
+
+      getState() {
+        return {
+          slideshow: this.currentSlideshow,
+          selectedIndex: this.selectedSlideIndex
+        };
+      }
+
+      dispatch(action) {
+        const state = JSON.parse(JSON.stringify(this.currentSlideshow));
+        
+        switch(action.type) {
+          case 'ADD_SLIDE':
+            state.slides.push(action.payload);
+            break;
+          case 'REMOVE_SLIDE':
+            state.slides.splice(action.index, 1);
+            break;
+          case 'UPDATE_SLIDE':
+            state.slides[action.index] = { ...state.slides[action.index], ...action.payload };
+            break;
+          case 'REORDER_SLIDES':
+            const [item] = state.slides.splice(action.oldIndex, 1);
+            state.slides.splice(action.newIndex, 0, item);
+            break;
+          case 'UPDATE_SLIDESHOW_META':
+            Object.assign(state, action.payload);
+            break;
+          case 'SET_STATE':
+            Object.assign(state, action.payload);
+            break;
+        }
+
+        this.currentSlideshow = state;
+        this.saveToHistory();
+        return state;
+      }
+
+      saveToHistory() {
+        // Remove any redo history if we're making a new change
+        this.history = this.history.slice(0, this.historyIndex + 1);
+        this.history.push(JSON.parse(JSON.stringify(this.currentSlideshow)));
+        this.historyIndex = this.history.length - 1;
+      }
+
+      undo() {
+        if (this.historyIndex > 0) {
+          this.historyIndex--;
+          this.currentSlideshow = JSON.parse(JSON.stringify(this.history[this.historyIndex]));
+          return true;
+        }
+        return false;
+      }
+
+      redo() {
+        if (this.historyIndex < this.history.length - 1) {
+          this.historyIndex++;
+          this.currentSlideshow = JSON.parse(JSON.stringify(this.history[this.historyIndex]));
+          return true;
+        }
+        return false;
+      }
+
+      canUndo() {
+        return this.historyIndex > 0;
+      }
+
+      canRedo() {
+        return this.historyIndex < this.history.length - 1;
+      }
+    }
+
+    // ============ KEYBOARD SHORTCUTS ============
+    class KeyboardShortcutsManager {
+      constructor() {
+        this.shortcuts = new Map();
+        this.registerDefaults();
+      }
+
+      register(keys, callback, description = '') {
+        this.shortcuts.set(keys, { callback, description });
+      }
+
+      registerDefaults() {
+        this.register('ctrl+z', () => editorAPI.history.undo(), 'Undo');
+        this.register('ctrl+shift+z', () => editorAPI.history.redo(), 'Redo');
+        this.register('delete', () => {
+          const state = editorState.getState();
+          if (state.selectedIndex !== null) {
+            editorAPI.slides.remove(state.selectedIndex);
+          }
+        }, 'Delete selected slide');
+        this.register('ctrl+d', () => {
+          const state = editorState.getState();
+          if (state.selectedIndex !== null) {
+            editorAPI.slides.duplicate(state.selectedIndex);
+          }
+        }, 'Duplicate selected slide');
+        this.register('ctrl+s', () => saveSlideshow(), 'Save');
+        this.register('ctrl+l', () => loadSlideshows(), 'Load');
+      }
+
+      handleKeyDown(e) {
+        const keys = [];
+        if (e.ctrlKey || e.metaKey) keys.push('ctrl');
+        if (e.shiftKey) keys.push('shift');
+        if (e.altKey) keys.push('alt');
+        keys.push(e.key.toLowerCase());
+        
+        const shortcut = keys.join('+');
+        
+        if (this.shortcuts.has(shortcut)) {
+          e.preventDefault();
+          this.shortcuts.get(shortcut).callback();
+        }
+      }
+    }
+
+    // ============ GLOBAL INSTANCES ============
+    const editorState = new EditorState();
+    const keyboardManager = new KeyboardShortcutsManager();
     let sortable = null;
     let selectedElement = null;
     let isDraggingElement = false;
@@ -737,11 +1033,120 @@
     let elementStartX = 0;
     let elementStartY = 0;
 
-    // Initialize
+    // ============ EDITOR API ============
+    const editorAPI = {
+      slides: {
+        add: (type) => {
+          const typeInfo = slideTypeRegistry[type];
+          if (!typeInfo) return;
+          
+          const slide = {
+            type,
+            duration: editorState.currentSlideshow.defaultDuration,
+            transition: editorState.currentSlideshow.defaultTransition,
+            ...typeInfo.defaultProps
+          };
+          
+          editorState.dispatch({
+            type: 'ADD_SLIDE',
+            payload: slide
+          });
+          
+          renderSlides();
+          editorState.selectedSlideIndex = editorState.currentSlideshow.slides.length - 1;
+          selectSlide(editorState.selectedSlideIndex);
+          showToast(`Added ${typeInfo.label}`);
+        },
+
+        remove: (index) => {
+          if (index === null || index < 0 || index >= editorState.currentSlideshow.slides.length) return;
+          
+          editorState.dispatch({
+            type: 'REMOVE_SLIDE',
+            index
+          });
+          
+          renderSlides();
+          editorState.selectedSlideIndex = null;
+          renderProperties();
+          showToast('Slide deleted');
+        },
+
+        duplicate: (index) => {
+          if (index === null || index < 0 || index >= editorState.currentSlideshow.slides.length) return;
+          
+          const slide = JSON.parse(JSON.stringify(editorState.currentSlideshow.slides[index]));
+          editorState.dispatch({
+            type: 'ADD_SLIDE',
+            payload: slide
+          });
+          
+          renderSlides();
+          showToast('Slide duplicated');
+        },
+
+        update: (index, updates) => {
+          if (index === null || index < 0 || index >= editorState.currentSlideshow.slides.length) return;
+          
+          editorState.dispatch({
+            type: 'UPDATE_SLIDE',
+            index,
+            payload: updates
+          });
+          
+          renderSlides();
+        },
+
+        reorder: (oldIndex, newIndex) => {
+          editorState.dispatch({
+            type: 'REORDER_SLIDES',
+            oldIndex,
+            newIndex
+          });
+          
+          renderSlides();
+        }
+      },
+
+      history: {
+        undo: () => {
+          if (editorState.undo()) {
+            renderSlides();
+            renderProperties();
+            updateHistoryButtons();
+            showToast('Undo');
+          }
+        },
+
+        redo: () => {
+          if (editorState.redo()) {
+            renderSlides();
+            renderProperties();
+            updateHistoryButtons();
+            showToast('Redo');
+          }
+        }
+      },
+
+      state: {
+        get: () => editorState.getState(),
+        getSlideshow: () => editorState.currentSlideshow,
+        getSelectedSlide: () => {
+          if (editorState.selectedSlideIndex !== null) {
+            return editorState.currentSlideshow.slides[editorState.selectedSlideIndex];
+          }
+          return null;
+        }
+      }
+    };
+
+    // ============ INITIALIZATION ============
     document.addEventListener('DOMContentLoaded', () => {
       initializeDragAndDrop();
-      updateSlideCount();
       initializeCanvas();
+      updateSlideCount();
+      updateHistoryButtons();
+      document.addEventListener('keydown', (e) => keyboardManager.handleKeyDown(e));
     });
 
     function initializeDragAndDrop() {
@@ -759,10 +1164,7 @@
           put: false
         },
         onEnd: function(evt) {
-          // Update the slides array order
-          const movedSlide = currentSlideshow.slides.splice(evt.oldIndex, 1)[0];
-          currentSlideshow.slides.splice(evt.newIndex, 0, movedSlide);
-          renderSlides();
+          editorAPI.slides.reorder(evt.oldIndex, evt.newIndex);
         }
       });
       
@@ -777,7 +1179,7 @@
         
         template.addEventListener('click', () => {
           const type = template.getAttribute('data-type');
-          addSlide(type);
+          editorAPI.slides.add(type);
         });
       });
       
@@ -797,7 +1199,7 @@
         container.classList.remove('drag-over');
         const slideType = e.dataTransfer.getData('slideType');
         if (slideType) {
-          addSlide(slideType);
+          editorAPI.slides.add(slideType);
         }
       });
     }
@@ -829,40 +1231,47 @@
 
     function renderSlides() {
       const container = document.getElementById('slides-container');
+      const { slides } = editorState.currentSlideshow;
       
-      if (currentSlideshow.slides.length === 0) {
+      if (slides.length === 0) {
         container.innerHTML = `
           <div class="empty-state">
             <div class="empty-state-icon">📋</div>
             <p>Drag slide types from the left to get started</p>
           </div>
         `;
+        renderLayers(null);
+        updateSlideCount();
         return;
       }
 
-      container.innerHTML = currentSlideshow.slides.map((slide, index) => `
-        <div class="slide-item" onclick="selectSlide(${index})">
+      container.innerHTML = slides.map((slide, index) => {
+        const isSelected = index === editorState.selectedSlideIndex;
+        const typeInfo = slideTypeRegistry[slide.type] || {};
+        return `
+        <div class="slide-item ${isSelected ? 'selected' : ''}" onclick="selectSlide(${index})" style="${isSelected ? 'border-color: var(--accent); background: rgba(88, 166, 255, 0.05);' : ''}">
           <div class="slide-header">
-            <span class="slide-type-badge">${slide.type}</span>
+            <span class="slide-type-badge">${typeInfo.label || slide.type}</span>
             <div class="slide-actions">
-              <button class="btn btn-sm btn-icon btn-secondary" onclick="event.stopPropagation(); duplicateSlide(${index})" title="Duplicate">
+              <button class="btn btn-sm btn-icon btn-secondary" onclick="event.stopPropagation(); editorAPI.slides.duplicate(${index})" title="Duplicate (Ctrl+D)">
                 📋
               </button>
-              <button class="btn btn-sm btn-icon btn-danger" onclick="event.stopPropagation(); deleteSlide(${index})" title="Delete">
+              <button class="btn btn-sm btn-icon btn-danger" onclick="event.stopPropagation(); editorAPI.slides.remove(${index})" title="Delete">
                 🗑️
               </button>
             </div>
           </div>
           <div class="slide-preview">
-            ${slide.vertical ? '↓ ' : ''}${getSlidePreview(slide)}
+            ${getSlidePreview(slide)}
           </div>
           <div class="slide-settings">
             <span>⏱️ ${slide.duration}ms</span>
             <span>🔄 ${slide.transition}</span>
-            ${slide.vertical ? '<span style="color:var(--accent)">⬇️ Vertical</span>' : ''}
           </div>
         </div>
-      `).join('');
+      `}).join('');
+      
+      updateSlideCount();
     }
 
     function getSlidePreview(slide) {
@@ -870,7 +1279,7 @@
         case 'text':
           return slide.title || 'Untitled Slide';
         case 'image':
-          return slide.media ? `Image: ${slide.media.split('/').pop()}` : 'No image selected';
+          return slide.src ? `Image: ${slide.src.split('/').pop()}` : 'No image selected';
         case 'weather':
           return 'Weather forecast';
         case 'time':
@@ -882,36 +1291,50 @@
       }
     }
 
+    function renderLayers(selectedSlide) {
+      const layersList = document.getElementById('layers-list');
+      
+      if (!selectedSlide || editorState.selectedSlideIndex === null) {
+        layersList.innerHTML = '<div class="layers-empty">Select a slide</div>';
+        return;
+      }
+
+      if (selectedSlide.type === 'composite' && selectedSlide.elements?.length > 0) {
+        layersList.innerHTML = selectedSlide.elements.map((element, index) => `
+          <div class="layer-item" onclick="selectCanvasElement(${index})">
+            <span class="layer-icon">${element.type === 'image' ? '🖼️' : '📦'}</span>
+            <span class="layer-label">${element.type === 'image' ? 'Image' : 'Element'} ${index + 1}</span>
+            <div class="layer-actions">
+              <button class="btn btn-sm btn-icon btn-danger" onclick="event.stopPropagation(); removeElement(${index})" title="Delete">🗑️</button>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        layersList.innerHTML = '<div class="layers-empty">No layers in this slide</div>';
+      }
+    }
+
     function selectSlide(index) {
-      selectedSlideIndex = index;
+      editorState.selectedSlideIndex = index;
+      const selectedSlide = editorState.currentSlideshow.slides[index];
       renderProperties();
+      renderLayers(selectedSlide);
+      renderSlides();
       
       // Show/hide visual editor
       const visualEditor = document.getElementById('visual-editor');
-      const slide = currentSlideshow.slides[index];
-      if (slide && slide.type === 'composite') {
+      if (selectedSlide && selectedSlide.type === 'composite') {
         visualEditor.classList.add('active');
         renderCanvas();
       } else {
         visualEditor.classList.remove('active');
       }
-      
-      // Highlight selected slide
-      document.querySelectorAll('.slide-item').forEach((item, i) => {
-        if (i === index) {
-          item.style.borderColor = 'var(--accent)';
-          item.style.boxShadow = '0 0 0 3px rgba(88, 166, 255, 0.2)';
-        } else {
-          item.style.borderColor = 'var(--border)';
-          item.style.boxShadow = 'none';
-        }
-      });
     }
 
     function renderProperties() {
-      if (selectedSlideIndex === null) return;
+      if (editorState.selectedSlideIndex === null) return;
       
-      const slide = currentSlideshow.slides[selectedSlideIndex];
+      const slide = editorState.currentSlideshow.slides[editorState.selectedSlideIndex];
       const container = document.getElementById('properties-content');
       
       let html = `
@@ -1051,54 +1474,45 @@
     }
 
     function updateSlide(property, value) {
-      if (selectedSlideIndex !== null) {
-        currentSlideshow.slides[selectedSlideIndex][property] = value;
-        renderSlides();
-        if (selectedSlideIndex !== null) {
-          selectSlide(selectedSlideIndex);
-        }
-      }
-    }
-
-    function duplicateSlide(index) {
-      const slide = JSON.parse(JSON.stringify(currentSlideshow.slides[index]));
-      currentSlideshow.slides.splice(index + 1, 0, slide);
-      renderSlides();
-      updateSlideCount();
-    }
-
-    function deleteSlide(index) {
-      if (confirm('Delete this slide?')) {
-        currentSlideshow.slides.splice(index, 1);
-        if (selectedSlideIndex === index) {
-          selectedSlideIndex = null;
-        }
-        renderSlides();
-        updateSlideCount();
-      }
-    }
-
-    function clearAllSlides() {
-      if (confirm('Clear all slides?')) {
-        currentSlideshow.slides = [];
-        selectedSlideIndex = null;
-        renderSlides();
-        updateSlideCount();
-        document.getElementById('properties-content').innerHTML = `
-          <p style="color: var(--text-secondary); text-align: center; padding: 2rem;">
-            Select a slide to edit its properties
-          </p>
-        `;
+      if (editorState.selectedSlideIndex !== null) {
+        const updates = { [property]: value };
+        editorAPI.slides.update(editorState.selectedSlideIndex, updates);
+        renderProperties();
       }
     }
 
     function updateSlideCount() {
-      document.getElementById('slide-count').textContent = currentSlideshow.slides.length;
+      const count = editorState.currentSlideshow.slides.length;
+      const countEl = document.getElementById('slide-count');
+      if (countEl) countEl.textContent = count;
+    }
+
+    function updateHistoryButtons() {
+      const undoBtn = document.getElementById('undo-btn');
+      const redoBtn = document.getElementById('redo-btn');
+      
+      if (undoBtn) undoBtn.disabled = !editorState.canUndo();
+      if (redoBtn) redoBtn.disabled = !editorState.canRedo();
+    }
+
+    function deleteSlide(index) {
+      editorAPI.slides.remove(index);
+    }
+
+    function clearAllSlides() {
+      if (confirm('Are you sure you want to delete all slides?')) {
+        editorState.dispatch({ type: 'SET_STATE', payload: { slides: [] } });
+        editorState.selectedSlideIndex = null;
+        renderSlides();
+        renderProperties();
+        renderLayers(null);
+        showToast('All slides deleted');
+      }
     }
 
     function saveSlideshow() {
-      document.getElementById('save-name').value = currentSlideshow.name;
-      document.getElementById('save-description').value = currentSlideshow.description;
+      document.getElementById('save-name').value = editorState.currentSlideshow.name;
+      document.getElementById('save-description').value = editorState.currentSlideshow.description;
       showModal('save-modal');
     }
 
@@ -1111,8 +1525,10 @@
         return;
       }
 
-      currentSlideshow.name = name;
-      currentSlideshow.description = description;
+      editorState.dispatch({
+        type: 'UPDATE_SLIDESHOW_META',
+        payload: { name, description }
+      });
       document.getElementById('slideshow-name').textContent = name;
 
       try {
@@ -1120,7 +1536,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify(currentSlideshow)
+          body: JSON.stringify(editorState.currentSlideshow)
         });
 
         if (!response.ok) throw new Error('Save failed');
@@ -1133,13 +1549,13 @@
     }
 
     function showPreview() {
-      if (currentSlideshow.slides.length === 0) {
+      if (editorState.currentSlideshow.slides.length === 0) {
         alert('Add some slides first!');
         return;
       }
       
       // Open preview in new window
-      window.open(`/slideshows/reveal-player.html?slideshow=${currentSlideshow.name}`, '_blank');
+      window.open(`/slideshows/reveal-player.html?slideshow=${editorState.currentSlideshow.name}`, '_blank');
     }
 
     async function loadSlideshows() {
@@ -1175,10 +1591,17 @@
         const result = await response.json();
         
         if (result.success) {
-          currentSlideshow = result.data;
-          document.getElementById('slideshow-name').textContent = currentSlideshow.name;
+          const { data } = result;
+          editorState.dispatch({
+            type: 'SET_STATE',
+            payload: data
+          });
+          editorState.selectedSlideIndex = null;
+          document.getElementById('slideshow-name').textContent = data.name;
           renderSlides();
-          updateSlideCount();
+          renderProperties();
+          renderLayers(null);
+          updateHistoryButtons();
           closeModal('load-modal');
           showToast('Slideshow loaded!');
         } else {
@@ -1274,8 +1697,8 @@
     }
 
     function renderCanvas() {
-      if (selectedSlideIndex === null) return;
-      const slide = currentSlideshow.slides[selectedSlideIndex];
+      if (editorState.selectedSlideIndex === null) return;
+      const slide = editorState.currentSlideshow.slides[editorState.selectedSlideIndex];
       if (slide.type !== 'composite') return;
       
       const canvas = document.getElementById('canvas-container');
@@ -1358,6 +1781,11 @@
           el.classList.remove('selected');
         }
       });
+      renderLayers(editorState.currentSlideshow.slides[editorState.selectedSlideIndex]);
+    }
+
+    function selectCanvasElement(index) {
+      selectElement(index);
     }
 
     function startDragElement(e, index) {
@@ -1368,7 +1796,7 @@
       dragStartX = e.clientX;
       dragStartY = e.clientY;
       
-      const slide = currentSlideshow.slides[selectedSlideIndex];
+      const slide = editorState.currentSlideshow.slides[editorState.selectedSlideIndex];
       const element = slide.elements[index];
       elementStartX = element.x;
       elementStartY = element.y;
@@ -1380,7 +1808,7 @@
     }
 
     function dragElement(e) {
-      if (!isDraggingElement || selectedSlideIndex === null || selectedElement === null) return;
+      if (!isDraggingElement || editorState.selectedSlideIndex === null || selectedElement === null) return;
       
       const canvas = document.getElementById('canvas-container');
       const rect = canvas.getBoundingClientRect();
@@ -1388,7 +1816,7 @@
       const deltaX = ((e.clientX - dragStartX) / rect.width) * 100;
       const deltaY = ((e.clientY - dragStartY) / rect.height) * 100;
       
-      const slide = currentSlideshow.slides[selectedSlideIndex];
+      const slide = editorState.currentSlideshow.slides[editorState.selectedSlideIndex];
       const element = slide.elements[selectedElement];
       
       element.x = Math.max(0, Math.min(95, elementStartX + deltaX));
@@ -1405,13 +1833,14 @@
     }
 
     function addElement(element) {
-      if (selectedSlideIndex === null) return;
-      const slide = currentSlideshow.slides[selectedSlideIndex];
+      if (editorState.selectedSlideIndex === null) return;
+      const slide = editorState.currentSlideshow.slides[editorState.selectedSlideIndex];
       if (slide.type !== 'composite') return;
       
       if (!slide.elements) slide.elements = [];
       slide.elements.push(element);
       renderCanvas();
+      renderLayers(slide);
       renderSlides();
     }
 
@@ -1452,24 +1881,29 @@
       });
     }
 
-    function deleteElement(index) {
-      if (selectedSlideIndex === null) return;
-      const slide = currentSlideshow.slides[selectedSlideIndex];
+    function removeElement(index) {
+      if (editorState.selectedSlideIndex === null) return;
+      const slide = editorState.currentSlideshow.slides[editorState.selectedSlideIndex];
       slide.elements.splice(index, 1);
       selectedElement = null;
       renderCanvas();
+      renderLayers(slide);
       renderSlides();
+    }
+
+    function deleteElement(index) {
+      removeElement(index);
     }
 
     function deleteSelectedElement() {
       if (selectedElement !== null) {
-        deleteElement(selectedElement);
+        removeElement(selectedElement);
       }
     }
 
     function rotateElement(index, degrees) {
-      if (selectedSlideIndex === null) return;
-      const slide = currentSlideshow.slides[selectedSlideIndex];
+      if (editorState.selectedSlideIndex === null) return;
+      const slide = editorState.currentSlideshow.slides[editorState.selectedSlideIndex];
       const element = slide.elements[index];
       element.rotation = (element.rotation || 0) + degrees;
       renderCanvas();
