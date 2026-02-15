@@ -78,12 +78,12 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net", "https://unpkg.com"],
       scriptSrcAttr: ["'unsafe-inline'"], // Allow inline event handlers
-      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com", "https://unpkg.com"],
       imgSrc: ["'self'", "data:", "https:"],
       fontSrc: ["'self'", "data:", "https://fonts.gstatic.com", "https://fonts.googleapis.com"],
-      connectSrc: ["'self'", "localhost", "127.0.0.1", "*.local", "http://*.local", "https://*.local", "http://192.168.0.0/16", "http://10.0.0.0/8", "https://192.168.0.0/16", "https://10.0.0.0/8"],
+      connectSrc: ["'self'", "localhost", "127.0.0.1", "*.local", "http://*.local", "https://*.local", "http://192.168.0.0/16", "http://10.0.0.0/8", "https://192.168.0.0/16", "https://10.0.0.0/8", "https://unpkg.com", "https://cdn.jsdelivr.net"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
     },
