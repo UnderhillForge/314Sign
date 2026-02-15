@@ -1237,7 +1237,7 @@
         <h2>SVG Editor</h2>
         <button class="btn btn-icon btn-secondary" onclick="closeSvgEditor()">✕</button>
       </div>
-      <div id="svg-editor-container" style="flex: 1; width: 100%; height: 100%; position: relative;"></div>
+      <div id="svg-editor-container" style="flex: 1; width: calc(100% - 2rem); height: calc(100% - 150px); margin: 1rem; position: relative; border: 1px solid var(--border); border-radius: 8px; background: #1f2937;"></div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeSvgEditor()">Cancel</button>
         <button class="btn btn-success" onclick="saveSvgEditor()">Save SVG</button>
@@ -1279,23 +1279,21 @@
         svgEditor = new Editor(container);
         svgEditor.setConfig({
           allowInitialUserOverride: true,
-          noDefaultExtensions: false,  // Enable extensions - now available locally
-          userExtensions: [
-            './svgedit/extensions/ext-connector/ext-connector.js',
-            './svgedit/extensions/ext-shapes/ext-shapes.js',
-            './svgedit/extensions/ext-eyedropper/ext-eyedropper.js',
-            './svgedit/extensions/ext-grid/ext-grid.js',
-            './svgedit/extensions/ext-panning/ext-panning.js',
-            './svgedit/extensions/ext-storage/ext-storage.js'
-          ]
+          noDefaultExtensions: true,  // Disable extensions - server MIME type issues
+          userExtensions: []
         });
 
         await svgEditor.init();
 
-        // Ensure container has proper sizing for SVG canvas
+        // Wait for SVG canvas to initialize, then ensure proper sizing
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         const containerRect = container.getBoundingClientRect();
-        container.style.width = containerRect.width + 'px';
-        container.style.height = containerRect.height + 'px';
+        const svgElement = container.querySelector('svg');
+        if (svgElement) {
+          svgElement.setAttribute('width', Math.max(containerRect.width, 800));
+          svgElement.setAttribute('height', Math.max(containerRect.height, 600));
+        }
 
         // Load existing SVG content if available
         if (slide.svgContent) {
