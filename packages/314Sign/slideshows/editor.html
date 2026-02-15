@@ -893,6 +893,9 @@
         <button class="btn btn-secondary" onclick="loadSlideshows()">
           📂 Load
         </button>
+        <button class="btn btn-secondary" id="back-to-timeline-btn" onclick="backToTimeline()" style="display: none;">
+          ← Timeline
+        </button>
         <button class="btn btn-primary" onclick="showPreview()">
           👁️ Preview
         </button>
@@ -1038,7 +1041,6 @@
     <!-- Properties Panel -->
     <!-- Visual Editor -->
     <div class="visual-editor" id="visual-editor" style="grid-column: 2; grid-row: 2;">
-        <h3 style="margin-bottom: 1rem;">📐 Visual Editor</h3>
         <div class="canvas-container" id="canvas-container">
           <div class="canvas-overlay" id="canvas-overlay"></div>
           <div class="dropzone-hint" id="dropzone-hint">
@@ -1717,6 +1719,17 @@
       }
     }
 
+    function backToTimeline() {
+      // Hide visual editor and show timeline panel
+      const visualEditor = document.getElementById('visual-editor');
+      const backBtn = document.getElementById('back-to-timeline-btn');
+      
+      visualEditor.classList.remove('active');
+      if (backBtn) backBtn.style.display = 'none';
+      
+      showTimelinePanel();
+    }
+
     function selectSlide(index) {
       editorState.selectedSlideIndex = index;
       const selectedSlide = editorState.currentSlideshow.slides[index];
@@ -1734,11 +1747,14 @@
       
       // Show/hide visual editor for slide type
       const visualEditor = document.getElementById('visual-editor');
+      const backBtn = document.getElementById('back-to-timeline-btn');
       if (selectedSlide && selectedSlide.type === 'slide') {
         visualEditor.classList.add('active');
+        if (backBtn) backBtn.style.display = 'inline-block';
         renderCanvas();
       } else {
         visualEditor.classList.remove('active');
+        if (backBtn) backBtn.style.display = 'none';
       }
     }
 
