@@ -17,6 +17,7 @@ type DisplayConfig = {
   position_x?: number
   position_y?: number
   xrandr_output?: string
+  resolution?: string
 }
 
 type DisplayWindowState = {
@@ -397,7 +398,24 @@ async function startKiosk() {
     }
   }
 
+  // Apply xrandr configuration before creating display windows
+  try {
+    const response = await fetch(`${SERVER_URL}/api/kiosk/displays/apply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    })
+    if (response.ok) {
+      console.log('[KIOSK] Applied xrandr configuration at startup')
+      await new Promise((resolve) => setTimeout(resolve, 500))
+    } else {
+      console.warn('[KIOSK] Failed to apply xrandr configuration:', response.status)
+    }
+  } catch (error) {
+    console.error('[KIOSK] Error applying xrandr configuration:', error)
+  }
+
   await refreshDisplayWindows(true)
+  
   setTimeout(() => {
     refreshDisplayWindows(true).catch((error) => {
       console.error('[KIOSK] Failed to refresh display config (startup retry):', error)

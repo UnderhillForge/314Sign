@@ -99,8 +99,8 @@ router.put('/:port', requireAdmin, (req: AuthenticatedRequest, res: Response) =>
       return res.status(400).json({ errors: validation.errors });
     }
     
-    // Validate slideshow reference if present
-    if (req.body.slideshow_name) {
+    // Validate slideshow reference only if mode is 'slideshow' AND slideshow_name is provided
+    if (req.body.mode === 'slideshow' && req.body.slideshow_name) {
       const slideshow = dbHelpers.getSlideshowByName(req.body.slideshow_name);
       if (!slideshow) {
         return res.status(400).json({ error: 'Referenced slideshow not found' });

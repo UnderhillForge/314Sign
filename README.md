@@ -1,16 +1,24 @@
 # 314Sign Electron Kiosk
 
-Electron-based kiosk display application for the 314Sign menu system with dual HDMI support and native display orientation control via xrandr and the Screen Orientation API.
+Welcome to 314Sign, the dual-screen menu kiosk that runs in the real world and behaves like it. This app powers restaurant menu displays, rotating screens on demand, playing slideshows, and keeping everything crisp at full-screen scale.
 
-## Features
+It is an Electron-based kiosk app with dual HDMI support, native display orientation control via xrandr, and browser-level orientation handling for display pages.
 
-- ✅ **Display Orientation Control**: Set display orientation (0°, 90°, 180°, 270°) for each HDMI output
-- ✅ **Dual HDMI Support**: Configure HDMI-1 and HDMI-2 independently
-- ✅ **Native Display API**: Uses xrandr for system-level control and Screen Orientation API for browser-level control
-- ✅ **Menu Display**: Fetches and displays menu from 314Sign API server
-- ✅ **Full Screen Kiosk Mode**: Runs in fullscreen with no window decorations
-- ✅ **TypeScript Support**: Full type safety throughout
-- ✅ **IPC Communication**: Secure inter-process communication between main and renderer
+## Highlights
+
+- ✅ **Dual-screen ready**: Configure HDMI-1 and HDMI-2 independently
+- ✅ **Rotation that sticks**: System-level xrandr plus browser-level orientation handling
+- ✅ **Menus and slideshows**: Built for daily menus and timed slide decks
+- ✅ **Kiosk-first UX**: Fullscreen, minimal chrome, fast startup
+- ✅ **TypeScript everywhere**: Safer changes, clearer intent
+- ✅ **Secure IPC**: Clean bridge between Electron main and renderer
+
+## What 314Sign Does
+
+- Shows restaurant menus at full screen resolution
+- Runs slideshows for promotions, specials, and events
+- Supports test patterns and identify screens for setup
+- Keeps display orientation consistent across reboots
 
 ## Architecture
 

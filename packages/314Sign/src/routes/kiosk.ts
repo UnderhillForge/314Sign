@@ -1,5 +1,6 @@
 import express from 'express';
 import { dbHelpers } from '../database.js';
+import { applyXrandrConfig, type DisplayConfig } from '../utils/system-control.js';
 
 const router = express.Router();
 
@@ -42,6 +43,43 @@ router.get('/displays', (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to retrieve display configuration'
+    });
+  }
+});
+
+router.post('/displays/apply', async (req, res) => {
+  try {
+    const displays = (dbHelpers.getAllDisplays() || []) as DisplayConfig[];
+
+    if (displays.length === 0) {
+      return res.status(500).json({
+        success: false,
+        error: 'No display configurations found'
+      });
+    }
+
+    console.log(`[KIOSK] Applying xrandr configuration for ${displays.length} displays`);
+    const success = await applyXrandrConfig(displays);
+
+    if (!success) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to apply xrandr configuration'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Display configuration applied successfully',
+      displays_affected: displays.length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Failed to apply kiosk display configuration:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to apply display configuration',
+      details: error instanceof Error ? error.message : String(error)
     });
   }
 });
