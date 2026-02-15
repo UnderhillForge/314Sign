@@ -381,6 +381,7 @@ let getSlideshowByNameStmt: any;
 let createSlideshowStmt: any;
 let updateSlideshowStmt: any;
 let deleteSlideshowStmt: any;
+let renameSlideshowStmt: any;
 
 // Initialize prepared statements after database setup
 function initializeStatements() {
@@ -472,6 +473,7 @@ function initializeStatements() {
     WHERE name = ?
   `);
   deleteSlideshowStmt = db.prepare('DELETE FROM slideshows WHERE name = ?');
+  renameSlideshowStmt = db.prepare('UPDATE slideshows SET name = ? WHERE name = ?');
 }
 
 // Export functions instead of prepared statements
@@ -524,6 +526,7 @@ export const dbHelpers = {
   createSlideshow: (name: string, data: string) => createSlideshowStmt.run(name, data),
   updateSlideshow: (name: string, data: string) => updateSlideshowStmt.run(data, name),
   deleteSlideshow: (name: string) => deleteSlideshowStmt.run(name),
+  renameSlideshow: (oldName: string, newName: string) => renameSlideshowStmt.run(newName, oldName),
 
   // Remotes (sync & config)
   getRemoteByCode: (code: string) => db.prepare('SELECT * FROM remotes WHERE code = ?').get(code) as any,

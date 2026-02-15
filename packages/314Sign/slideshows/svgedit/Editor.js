@@ -47187,8 +47187,61 @@ class S9 {
    *
    * @returns {void}
    */
-  clickImage() {
-    this.updateLeftPanel("tool_image") && this.editor.svgCanvas.setMode("image");
+  async clickImage() {
+    if (!this.updateLeftPanel("tool_image")) return;
+    
+    try {
+      // Fetch available images from slideshow-media directory
+      const response = await fetch('/api/slideshows/media/list');
+      if (!response.ok) {
+        alert('Failed to load media files from server');
+        return;
+      }
+      
+      const files = await response.json();
+      
+      // Filter for image files only
+      const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+      const imageFiles = files.filter(file => {
+        const ext = file.name.split('.').pop().toLowerCase();
+        return imageExtensions.includes(ext);
+      });
+      
+      if (imageFiles.length === 0) {
+        alert('No image files found in slideshow-media directory');
+        return;
+      }
+      
+      // Display numbered list of files
+      let fileList = 'Available Images:\n\n';
+      imageFiles.forEach((file, index) => {
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        fileList += `${index + 1}. ${file.name} (${sizeMB} MB)\n`;
+      });
+      fileList += '\nEnter the number of the image to insert:';
+      
+      const choice = prompt(fileList);
+      if (!choice) return;
+      
+      const fileIndex = parseInt(choice) - 1;
+      if (isNaN(fileIndex) || fileIndex < 0 || fileIndex >= imageFiles.length) {
+        alert('Invalid selection');
+        return;
+      }
+      
+      const selectedFile = imageFiles[fileIndex];
+      const imageUrl = selectedFile.path;
+      
+      // Set mode to image and insert the selected image
+      this.editor.svgCanvas.setMode("image");
+      
+      // Store the URL for use by promptImgURL
+      this._pendingImageUrl = imageUrl;
+      
+    } catch (error) {
+      console.error('Error loading image files:', error);
+      alert('Failed to load image files from server');
+    }
   }
   /**
    *
@@ -47336,6 +47389,15 @@ class L9 {
    * @returns {void} Resolves to `undefined`
    */
   promptImgURL({ cancelDeletes: e = !1 } = {}) {
+    // If we have a pending image URL from clickImage, use it
+    if (this._pendingImageUrl) {
+      const url = this._pendingImageUrl;
+      this._pendingImageUrl = null;
+      this.setImageURL(url);
+      return;
+    }
+    
+    // Otherwise, prompt for URL (for backward compatibility)
     let t = this.editor.svgCanvas.getHref(this.editor.selectedElement);
     t = t.startsWith("data:") ? "" : t;
     const r = prompt(
@@ -48274,6 +48336,130 @@ class R9 {
     ));
   }
   /**
+   * Load an SVG file from the server
+   * @returns {void}
+   */
+  async loadFile() {
+    try {
+      // Fetch list of SVG files from server
+      const response = await fetch('/api/slideshows/media/list');
+      if (!response.ok) {
+        seAlert('Error loading file list from server');
+        return;
+      }
+      
+      const files = await response.json();
+      const svgFiles = files.filter(f => f.filename.toLowerCase().endsWith('.svg'));
+      
+      if (svgFiles.length === 0) {
+        seAlert('No SVG files found on server in /slideshow-media/');
+        return;
+      }
+      
+      // Create a simple selection dialog
+      const fileList = svgFiles.map((f, i) => `${i + 1}. ${f.filename}`).join('\n');
+      const selection = prompt(
+        `Select an SVG file to load (enter number 1-${svgFiles.length}):\n\n${fileList}`,
+        '1'
+      );
+      
+      if (!selection) return;
+      
+      const index = parseInt(selection) - 1;
+      if (index < 0 || index >= svgFiles.length) {
+        seAlert('Invalid selection');
+        return;
+      }
+      
+      const selectedFile = svgFiles[index];
+      
+      // Load the selected SVG
+      const svgResponse = await fetch(selectedFile.path);
+      if (!svgResponse.ok) {
+        seAlert('Error loading SVG file');
+        return;
+      }
+      
+      const svgContent = await svgResponse.text();
+      this.editor.loadSvgString(svgContent);
+      this.editor.updateCanvas();
+      
+    } catch (error) {
+      console.error('Error loading SVG from server:', error);
+      seAlert('Error loading SVG file from server');
+    }
+  }
+  /**
+   * Import an image from server or desktop and insert into current SVG
+   * @returns {void}
+   */
+  /**
+   * Import an image from desktop and upload to slideshow-media
+   * @returns {void}
+   */
+  importImage() {
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = "image/*";
+    fileInput.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      try {
+        // Upload to slideshow-media directory
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const response = await fetch('/slideshow-media/upload.php', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          alert(`Image uploaded successfully: ${result.filename}`);
+        } else {
+          alert(`Upload failed: ${result.message || 'Unknown error'}`);
+        }
+      } catch (error) {
+        console.error("Error uploading image:", error);
+        alert("Error uploading image file");
+      }
+    };
+    fileInput.click();
+  }
+    
+    img.onerror = () => {
+      seAlert('Error loading image');
+      this.editor.svgCanvas.setMode('select');
+    };
+    
+    img.src = imageUrl;
+  }
+  /**
+   * Save the current SVG with a custom filename
+   * @returns {void}
+   */
+  saveFileAs() {
+    const e = this.editor.svgCanvas.getSvgString();
+    const t = prompt(
+      "Enter filename (without extension):",
+      this.editor.svgCanvas.getDocumentTitle() || "drawing"
+    );
+    if (t) {
+      const r = new Blob([e], { type: "image/svg+xml;charset=utf-8" });
+      const n = document.createElement("a");
+      const i = URL.createObjectURL(r);
+      n.href = i;
+      n.download = t.endsWith(".svg") ? t : t + ".svg";
+      document.body.appendChild(n);
+      n.click();
+      document.body.removeChild(n);
+      URL.revokeObjectURL(i);
+    }
+  }
+  /**
    *
    * @returns {void}
    */
@@ -48318,24 +48504,26 @@ class R9 {
     const e = document.createElement("template");
     e.innerHTML = `
     <se-menu id="main_button" label="SVG-Edit" src="logo.svg" alt="logo">
-        <se-menu-item id="tool_export" label="tools.export_img" src="export.svg"></se-menu-item>
+        <se-menu-item id="tool_load" label="Load from Server" src="open.svg"></se-menu-item>
+        <se-menu-item id="tool_import" label="Import Image" src="image.svg"></se-menu-item>
+        <se-menu-item id="tool_save_as" label="Save As" src="save.svg"></se-menu-item>
         <se-menu-item id="tool_docprops" label="tools.docprops" shortcut="shift+D" src="docprop.svg"></se-menu-item>
         <se-menu-item id="tool_editor_prefs" label="config.editor_prefs" src="editPref.svg"></se-menu-item>
-        <se-menu-item id="tool_editor_homepage" label="tools.editor_homepage" src="logo.svg"></se-menu-item>
-    </se-menu>`, this.editor.$svgEditor.append(e.content.cloneNode(!0)), I9(Pi("tool_export"), function() {
-      document.getElementById("se-export-dialog").setAttribute("dialog", "open");
-    }), Pi("se-export-dialog").addEventListener(
-      "change",
-      this.clickExport.bind(this)
+    </se-menu>`, this.editor.$svgEditor.append(e.content.cloneNode(!0)), Pi("tool_load").addEventListener(
+      "click",
+      this.loadFile.bind(this)
+    ), Pi("tool_import").addEventListener(
+      "click",
+      this.importImage.bind(this)
+    ), Pi("tool_save_as").addEventListener(
+      "click",
+      this.saveFileAs.bind(this)
     ), Pi("tool_docprops").addEventListener(
       "click",
       this.showDocProperties.bind(this)
     ), Pi("tool_editor_prefs").addEventListener(
       "click",
       this.showPreferences.bind(this)
-    ), Pi("tool_editor_homepage").addEventListener(
-      "click",
-      this.openHomePage.bind(this)
     ), Pi("se-img-prop").addEventListener(
       "change",
       (function(t) {

@@ -220,6 +220,17 @@
       font-size: 0.9rem;
       color: var(--text-secondary);
       margin-bottom: 0.5rem;
+      min-height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .slide-preview img {
+      max-width: 100%;
+      max-height: 70px;
+      object-fit: contain;
+      display: block;
     }
 
     .slide-settings {
@@ -905,6 +916,14 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      overflow: hidden;
+    }
+
+    .timeline-slide-thumbnail img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
     }
 
     .timeline-slide-icon {
@@ -950,6 +969,9 @@
         <button class="btn btn-secondary" onclick="loadSlideshows()">
           📂 Load
         </button>
+        <button class="btn btn-secondary" onclick="showFileManager()">
+          📋 Manage
+        </button>
         <button class="btn btn-secondary" id="back-to-timeline-btn" onclick="backToTimeline()" style="display: none;">
           ← Timeline
         </button>
@@ -977,6 +999,14 @@
         <div class="slide-template" data-type="time" draggable="true">
           <div class="template-icon">🕐</div>
           <div class="template-name">Time & Date</div>
+        </div>
+        <div class="slide-template" data-type="fact" draggable="true">
+          <div class="template-icon">💡</div>
+          <div class="template-name">Random Fact</div>
+        </div>
+        <div class="slide-template" data-type="history" draggable="true">
+          <div class="template-icon">📜</div>
+          <div class="template-name">Today in History</div>
         </div>
       </div>
       <div class="form-group" style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
@@ -1183,6 +1213,7 @@
       <div class="form-group">
         <label>Slideshow Name</label>
         <input type="text" id="save-name" placeholder="my-slideshow">
+        <div id="save-name-status" style="font-size: 0.85rem; margin-top: 0.5rem; display: none;"></div>
       </div>
       <div class="form-group">
         <label>Description</label>
@@ -1190,7 +1221,23 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('save-modal')">Cancel</button>
-        <button class="btn btn-success" onclick="confirmSave()">Save</button>
+        <button class="btn btn-success" id="save-confirm-btn" onclick="confirmSave()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- File Manager Modal -->
+  <div class="modal" id="file-manager-modal">
+    <div class="modal-content" style="width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto;">
+      <div class="modal-header">
+        <h2>Manage Slideshows</h2>
+        <button class="btn btn-icon btn-secondary" onclick="closeModal('file-manager-modal')">✕</button>
+      </div>
+      <div id="file-manager-content" style="min-height: 300px;">
+        <p style="text-align: center; color: var(--text-secondary);">Loading...</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('file-manager-modal')">Close</button>
       </div>
     </div>
   </div>
@@ -1234,7 +1281,6 @@
   <div class="modal" id="svg-editor-modal" style="z-index: 1002;">
     <div class="modal-content" style="width: 100%; height: 100vh; display: flex; flex-direction: column; margin: 0; border-radius: 0; padding: 0; max-width: none;">
       <div class="modal-header">
-        <h2>SVG Editor</h2>
         <button class="btn btn-icon btn-secondary" onclick="closeSvgEditor()">✕</button>
       </div>
       <div id="svg-editor-container" style="flex: 1; width: calc(100% - 2rem); height: calc(100% - 150px); margin: 1rem; position: relative; border: 1px solid var(--border); border-radius: 8px; background: #1f2937;"></div>
@@ -1251,13 +1297,139 @@
     let currentSvgSlideIndex = null;
 
     async function initSvgEditor() {
-      // Dynamically load SVG Editor from local distribution
+      // Load the IIFE build to avoid module parsing issues
       try {
-        const module = await import('./svgedit/Editor.js');
-        return module.default;
+        if (window.Editor) {
+          return window.Editor;
+        }
+
+        if (!window._svgEditorLoading) {
+          window._svgEditorLoading = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = './svgedit/iife-Editor.js';
+            script.onload = () => resolve(window.Editor || null);
+            script.onerror = (err) => reject(err);
+            document.head.appendChild(script);
+          });
+        }
+
+        return await window._svgEditorLoading;
       } catch (error) {
         console.error('Failed to load SVG Editor:', error);
         return null;
+      }
+    }
+
+    function setupSvgImportButton(svgEditor) {
+      try {
+        const { svgCanvas } = svgEditor;
+        if (!svgCanvas) {
+          console.warn("svgCanvas not available");
+          return;
+        }
+        
+        const { $id, $click } = svgCanvas;
+        if (!$id || !$click) {
+          console.warn("$id or $click not available");
+          return;
+        }
+
+        // Create file input element
+        const imgImport = document.createElement("input");
+        imgImport.type = "file";
+        imgImport.accept = "image/*";
+        imgImport.style.display = "none";
+
+        // Handle image import
+        imgImport.addEventListener("change", async (e) => {
+          const file = e.currentTarget?.files?.[0];
+          if (!file || !file.type.startsWith("image/")) {
+            console.warn("Invalid file selected");
+            return;
+          }
+
+          try {
+            // Upload image to server
+            const formData = new FormData();
+            formData.append("media", file);
+            const response = await fetch("/api/slideshows/media/upload", {
+              method: "POST",
+              body: formData
+            });
+            
+            if (!response.ok) {
+              throw new Error(`Upload failed (${response.status})`);
+            }
+            
+            const payload = await response.json();
+            if (!payload?.success || !payload?.data?.path) {
+              throw new Error("Upload response invalid");
+            }
+
+            const imageUrl = payload.data.path;
+            console.log("Image uploaded to:", imageUrl);
+
+            // Get image dimensions
+            const img = new Image();
+            img.onload = () => {
+              const imgWidth = img.width || 100;
+              const imgHeight = img.height || 100;
+
+              // Add to SVG canvas
+              const newImage = svgCanvas.addSVGElementsFromJson({
+                element: "image",
+                attr: {
+                  x: 0,
+                  y: 0,
+                  width: imgWidth,
+                  height: imgHeight,
+                  id: svgCanvas.getNextId(),
+                  style: "pointer-events:inherit"
+                }
+              });
+              svgCanvas.setHref(newImage, imageUrl);
+              svgCanvas.selectOnly([newImage]);
+              svgCanvas.alignSelectedElements("m", "page");
+              svgCanvas.alignSelectedElements("c", "page");
+              
+              if (svgEditor.topPanel?.updateContextPanel) {
+                svgEditor.topPanel.updateContextPanel();
+              }
+              console.log("Image inserted into SVG canvas");
+            };
+            img.onerror = () => {
+              console.error("Failed to load image:", imageUrl);
+              alert("Failed to load uploaded image");
+            };
+            img.src = imageUrl;
+          } catch (error) {
+            console.error("Image import failed:", error);
+            alert("Image upload failed: " + error.message);
+          }
+          
+          // Reset file input
+          e.currentTarget.value = "";
+        });
+
+        // Append file input to document
+        document.body.appendChild(imgImport);
+
+        // Try to add menu item
+        const mainButton = $id("main_button");
+        if (mainButton) {
+          const importButtonTemplate = '<se-menu-item id="tool_import" label="Import Image" src="importImg.svg"></se-menu-item>';
+          svgCanvas.insertChildAtIndex(mainButton, importButtonTemplate, 4);
+          
+          const importBtn = $id("tool_import");
+          if (importBtn) {
+            $click(importBtn, (ev) => {
+              imgImport.click();
+            });
+            console.log("Import button added successfully");
+          }
+        }
+      } catch (error) {
+        console.error("Error setting up import button:", error);
       }
     }
 
@@ -1269,6 +1441,13 @@
       const container = document.getElementById('svg-editor-container');
       container.innerHTML = '';
 
+      showModal('svg-editor-modal');
+
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      const containerRect = container.getBoundingClientRect();
+      container.style.width = Math.max(containerRect.width, 800) + 'px';
+      container.style.height = Math.max(containerRect.height, 600) + 'px';
+
       try {
         const Editor = await initSvgEditor();
         if (!Editor) {
@@ -1279,34 +1458,34 @@
         svgEditor = new Editor(container);
         svgEditor.setConfig({
           allowInitialUserOverride: true,
-          noDefaultExtensions: true,  // Disable extensions - server MIME type issues
+          imgPath: './svgedit/images/',
+          extPath: './svgedit/extensions',
+          dimensions: [1920, 1080],
+          baseUnit: 'px',
+          noDefaultExtensions: true,  // Load only required extensions
+          extensions: ['ext-opensave'],
           userExtensions: []
         });
 
         await svgEditor.init();
 
-        // Wait for SVG canvas to initialize, then ensure proper sizing
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        const containerRect = container.getBoundingClientRect();
-        const svgElement = container.querySelector('svg');
-        if (svgElement) {
-          svgElement.setAttribute('width', Math.max(containerRect.width, 800));
-          svgElement.setAttribute('height', Math.max(containerRect.height, 600));
+        // Add import image functionality directly
+        setupSvgImportButton(svgEditor);
+
+        const canvas = svgEditor.canvas || svgEditor.svgCanvas;
+        if (canvas?.setResolution) {
+          canvas.setResolution(1920, 1080);
         }
 
         // Load existing SVG content if available
         if (slide.svgContent) {
           try {
-            const canvas = svgEditor.canvas || svgEditor.svgCanvas;
             await canvas.setSvgString(slide.svgContent);
           } catch (err) {
             // If content fails to load, start with blank
             console.warn('Could not load existing SVG content:', err);
           }
         }
-
-        showModal('svg-editor-modal');
       } catch (error) {
         console.error('SVG Editor error:', error);
         showToast('Error opening SVG editor');
@@ -1324,12 +1503,8 @@
         }
 
         const svgContent = await canvas.getSvgString();
-        const slide = editorState.currentSlideshow.slides[currentSvgSlideIndex];
-        slide.svgContent = svgContent;
-
-        closeModal('svg-editor-modal');
-        renderSlides();
-        renderTimeline();
+        editorAPI.slides.update(currentSvgSlideIndex, { svgContent });
+        closeSvgEditor();
         showToast('SVG saved successfully');
       } catch (error) {
         console.error('Error saving SVG:', error);
@@ -1357,9 +1532,10 @@
         icon: '🌤️',
         label: 'Weather',
         defaultProps: {
-          location: 'Current Location',
-          unit: 'C',
-          showForecast: true
+          location: 'auto',
+          units: 'F',
+          showForecast: true,
+          duration: 10000
         }
       },
       time: {
@@ -1370,6 +1546,25 @@
           showSeconds: false,
           backgroundColor: '#000000',
           textColor: '#ffffff'
+        }
+      },
+      fact: {
+        icon: '💡',
+        label: 'Random Fact',
+        defaultProps: {
+          duration: 8000,
+          backgroundColor: '#1a1a2e',
+          textColor: '#ffffff'
+        }
+      },
+      history: {
+        icon: '📜',
+        label: 'Today in History',
+        defaultProps: {
+          duration: 15000,
+          backgroundColor: '#2c1810',
+          textColor: '#f5deb3',
+          eventType: 'events'
         }
       }
     };
@@ -1780,10 +1975,20 @@
       updateSlideCount();
     }
 
+    function createSvgPreviewUrl(svgContent) {
+      const compactSvg = svgContent
+        .replace(/>\s+</g, '><')
+        .replace(/[\r\n\t]/g, '');
+      return `data:image/svg+xml;utf8,${encodeURIComponent(compactSvg)}`;
+    }
+
     function getSlidePreview(slide) {
       switch (slide.type) {
         case 'slide':
-          return `SVG Slide${slide.svgContent ? ' ✓' : ' (empty)'}`;
+          if (!slide.svgContent) {
+            return 'SVG Slide (empty)';
+          }
+          return `<img src="${createSvgPreviewUrl(slide.svgContent)}" alt="SVG preview">`;
         case 'weather':
           return 'Weather forecast';
         case 'time':
@@ -1791,6 +1996,23 @@
         default:
           return 'Slide';
       }
+    }
+
+    function getSlidePreviewTitle(slide) {
+      if (slide.type === 'slide') {
+        return slide.svgContent ? 'SVG Slide' : 'SVG Slide (empty)';
+      }
+      if (slide.type === 'weather') return 'Weather forecast';
+      if (slide.type === 'time') return 'Current time & date';
+      return 'Slide';
+    }
+
+    function getTimelineThumbnail(slide, fallbackIcon) {
+      if (slide.type === 'slide' && slide.svgContent) {
+        const src = createSvgPreviewUrl(slide.svgContent);
+        return `<img src="${src}" alt="SVG thumbnail">`;
+      }
+      return `<div class="timeline-slide-icon">${fallbackIcon}</div>`;
     }
 
     function renderLayers(selectedSlide) {
@@ -1867,13 +2089,13 @@
       timelineSlidesList.innerHTML = slides.map((slide, index) => {
         const duration = getSlideDefaultDuration(slide);
         const icon = getSlideIcon(slide.type);
-        const preview = getSlidePreview(slide);
+        const previewTitle = getSlidePreviewTitle(slide);
         const isSelected = editorState.selectedSlideIndex === index;
         
         return `
-          <div class="timeline-slide-item ${isSelected ? 'active' : ''}" onclick="selectSlide(${index})" title="${preview}">
+          <div class="timeline-slide-item ${isSelected ? 'active' : ''}" onclick="selectSlide(${index})" title="${previewTitle}">
             <div class="timeline-slide-thumbnail">
-              <div class="timeline-slide-icon">${icon}</div>
+              ${getTimelineThumbnail(slide, icon)}
             </div>
             <div class="timeline-slide-info">
               <div class="timeline-slide-number">Slide ${index + 1}</div>
@@ -2024,7 +2246,43 @@
     function saveSlideshow() {
       document.getElementById('save-name').value = editorState.currentSlideshow.name;
       document.getElementById('save-description').value = editorState.currentSlideshow.description;
+      document.getElementById('save-name-status').style.display = 'none';
+      document.getElementById('save-name').onkeyup = checkSlideshowName;
       showModal('save-modal');
+      // Check initial name status
+      setTimeout(() => checkSlideshowName(), 100);
+    }
+
+    async function checkSlideshowName() {
+      const name = document.getElementById('save-name').value.trim();
+      const statusDiv = document.getElementById('save-name-status');
+      const btn = document.getElementById('save-confirm-btn');
+      
+      if (!name) {
+        statusDiv.style.display = 'none';
+        btn.textContent = 'Save';
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/slideshows/${encodeURIComponent(name)}`, { 
+          credentials: 'include' 
+        });
+        
+        if (response.ok) {
+          // File exists
+          statusDiv.style.display = 'block';
+          statusDiv.innerHTML = '<span style="color: var(--accent);">ℹ️ This slideshow already exists</span>';
+          btn.textContent = 'Overwrite';
+        } else {
+          // File doesn't exist
+          statusDiv.style.display = 'block';
+          statusDiv.innerHTML = '<span style="color: var(--success);">✓ New slideshow</span>';
+          btn.textContent = 'Save';
+        }
+      } catch (error) {
+        statusDiv.style.display = 'none';
+      }
     }
 
     async function confirmSave() {
@@ -2043,14 +2301,27 @@
       document.getElementById('slideshow-name').textContent = name;
 
       try {
-        const response = await fetch('/api/slideshows', {
+        // First try to POST (create new)
+        let response = await fetch('/api/slideshows', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify(editorState.currentSlideshow)
         });
 
-        if (!response.ok) throw new Error('Save failed');
+        // If it already exists (409), use PUT to update
+        if (response.status === 409) {
+          response = await fetch(`/api/slideshows/${encodeURIComponent(name)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(editorState.currentSlideshow)
+          });
+        }
+
+        if (!response.ok) {
+          throw new Error(`Save failed with status ${response.status}`);
+        }
 
         showToast('Slideshow saved successfully!');
         closeModal('save-modal');
@@ -2124,6 +2395,172 @@
       }
     }
 
+    async function showFileManager() {
+      try {
+        const response = await fetch('/api/slideshows', { credentials: 'include' });
+        const result = await response.json();
+        
+        const content = document.getElementById('file-manager-content');
+        
+        if (!result.success || result.data.length === 0) {
+          content.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No slideshows found</p>';
+          showModal('file-manager-modal');
+          return;
+        }
+
+        const slideshows = result.data;
+        let html = '<div style="display: grid; gap: 0.75rem;">';
+        
+        for (const slideshow of slideshows) {
+          const slides = slideshow.slides?.length || 0;
+          const duration = (slideshow.defaultDuration / 1000) || 5;
+          
+          html += `
+            <div style="background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; display: flex; justify-content: space-between; align-items: center;">
+              <div style="flex: 1;">
+                <div style="font-weight: 600; color: var(--text-primary);">${escapeHtml(slideshow.name)}</div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                  ${slides} slide${slides !== 1 ? 's' : ''} • ${duration}s default duration
+                </div>
+                ${slideshow.description ? `<div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">${escapeHtml(slideshow.description)}</div>` : ''}
+              </div>
+              <div style="display: flex; gap: 0.5rem; margin-left: 1rem;">
+                <button class="btn btn-sm btn-primary" onclick="loadSlideshowByName('${escapeHtml(slideshow.name)}')">
+                  📂 Load
+                </button>
+                <button class="btn btn-sm btn-secondary" onclick="duplicateSlideshow('${escapeHtml(slideshow.name)}')">
+                  📋 Duplicate
+                </button>
+                <button class="btn btn-sm btn-secondary" onclick="renameSlideshow('${escapeHtml(slideshow.name)}')">
+                  ✏️ Rename
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="deleteSlideshow('${escapeHtml(slideshow.name)}')">
+                  🗑️ Delete
+                </button>
+              </div>
+            </div>
+          `;
+        }
+        
+        html += '</div>';
+        content.innerHTML = html;
+        showModal('file-manager-modal');
+      } catch (error) {
+        alert('Failed to load slideshows: ' + error.message);
+      }
+    }
+
+    function escapeHtml(text) {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    async function loadSlideshowByName(name) {
+      try {
+        const response = await fetch(`/api/slideshows/${encodeURIComponent(name)}`, { credentials: 'include' });
+        const result = await response.json();
+        
+        if (result.success) {
+          const { data } = result;
+          editorState.dispatch({
+            type: 'SET_STATE',
+            payload: data
+          });
+          editorState.selectedSlideIndex = null;
+          document.getElementById('slideshow-name').textContent = data.name;
+          renderSlides();
+          renderProperties();
+          renderLayers(null);
+          showTimelinePanel();
+          updateHistoryButtons();
+          closeModal('file-manager-modal');
+          showToast('Slideshow loaded!');
+        } else {
+          alert('Failed to load slideshow');
+        }
+      } catch (error) {
+        alert('Failed to load: ' + error.message);
+      }
+    }
+
+    async function deleteSlideshow(name) {
+      if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+      
+      try {
+        const response = await fetch(`/api/slideshows/${encodeURIComponent(name)}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          showToast(`Slideshow "${name}" deleted!`);
+          showFileManager(); // Refresh file manager
+        } else {
+          alert('Failed to delete slideshow');
+        }
+      } catch (error) {
+        alert('Failed to delete: ' + error.message);
+      }
+    }
+
+    async function duplicateSlideshow(name) {
+      const newName = prompt('New slideshow name:', name + ' (copy)');
+      if (!newName) return;
+
+      try {
+        const response = await fetch(`/api/slideshows/${encodeURIComponent(name)}/clone`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ newName })
+        });
+
+        if (response.ok) {
+          showToast(`Slideshow duplicated as "${newName}"!`);
+          showFileManager(); // Refresh file manager
+        } else {
+          alert('Failed to duplicate slideshow');
+        }
+      } catch (error) {
+        alert('Failed to duplicate: ' + error.message);
+      }
+    }
+
+    async function renameSlideshow(oldName) {
+      const newName = prompt('New slideshow name:', oldName);
+      if (!newName || newName === oldName) return;
+
+      try {
+        const response = await fetch(`/api/slideshows/${encodeURIComponent(oldName)}/rename`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ newName })
+        });
+
+        if (response.ok) {
+          showToast(`Slideshow renamed to "${newName}"!`);
+          // If this is the currently open slideshow, update it
+          if (editorState.currentSlideshow.name === oldName) {
+            editorState.currentSlideshow.name = newName;
+            document.getElementById('slideshow-name').textContent = newName;
+          }
+          showFileManager(); // Refresh file manager
+        } else {
+          const result = await response.json();
+          alert('Failed to rename: ' + (result.message || 'Unknown error'));
+        }
+      } catch (error) {
+        alert('Failed to rename: ' + error.message);
+      }
+    }
+
     function showModal(id) {
       document.getElementById(id).classList.add('active');
     }
@@ -2186,13 +2623,16 @@
           html += `
             <div class="form-group">
               <label>Location</label>
-              <input type="text" id="editor-location" value="${slide.location || 'Current Location'}" placeholder="auto or city name">
+              <input type="text" id="editor-location" value="${slide.location || 'auto'}" placeholder="auto, city name, or lat,lon">
+              <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                Examples: 'auto', 'New York', '40.7128,-74.0060'
+              </div>
             </div>
             <div class="form-group">
               <label>Temperature Unit</label>
-              <select id="editor-unit">
-                <option value="C" ${slide.unit === 'C' ? 'selected' : ''}>Celsius</option>
-                <option value="F" ${slide.unit === 'F' ? 'selected' : ''}>Fahrenheit</option>
+              <select id="editor-units">
+                <option value="F" ${slide.units === 'F' ? 'selected' : ''}>Fahrenheit</option>
+                <option value="C" ${slide.units === 'C' ? 'selected' : ''}>Celsius</option>
               </select>
             </div>
             <div class="form-group">
@@ -2230,6 +2670,52 @@
           `;
           break;
           
+        case 'fact':
+          html += `
+            <div class="form-group">
+              <label>Background Color</label>
+              <input type="color" id="editor-factBackgroundColor" value="${slide.backgroundColor || '#1a1a2e'}">
+            </div>
+            <div class="form-group">
+              <label>Text Color</label>
+              <input type="color" id="editor-factTextColor" value="${slide.textColor || '#ffffff'}">
+            </div>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">
+              Random facts are fetched from thefactspace API. Each fact is displayed from their public database.
+            </p>
+          `;
+          break;
+          
+        case 'history':
+          html += `
+            <div class="form-group">
+              <label>Event Type</label>
+              <select id="editor-historyEventType" value="${slide.eventType || 'events'}">
+                <option value="events" ${slide.eventType === 'events' ? 'selected' : ''}>Events</option>
+                <option value="births" ${slide.eventType === 'births' ? 'selected' : ''}>Births</option>
+                <option value="deaths" ${slide.eventType === 'deaths' ? 'selected' : ''}>Deaths</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" id="editor-historyShowImages" ${slide.showImages ? 'checked' : ''}>
+                Show Wikipedia Images
+              </label>
+            </div>
+            <div class="form-group">
+              <label>Background Color</label>
+              <input type="color" id="editor-historyBackgroundColor" value="${slide.backgroundColor || '#2c1810'}">
+            </div>
+            <div class="form-group">
+              <label>Text Color</label>
+              <input type="color" id="editor-historyTextColor" value="${slide.textColor || '#f5deb3'}">
+            </div>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">
+              Historical events are fetched from Wikipedia's "On This Day" API. Shows events, births, or deaths from today's date in history.
+            </p>
+          `;
+          break;
+        
         case 'slide':
           html += `
             <div class="form-group">
@@ -2262,8 +2748,8 @@
       switch (slide.type) {
         
         case 'weather':
-          updates.location = document.getElementById('editor-location')?.value || 'Current Location';
-          updates.unit = document.getElementById('editor-unit')?.value || 'C';
+          updates.location = document.getElementById('editor-location')?.value || 'auto';
+          updates.units = document.getElementById('editor-units')?.value || 'F';
           updates.showForecast = document.getElementById('editor-showForecast')?.checked || false;
           break;
           
@@ -2272,6 +2758,18 @@
           updates.showSeconds = document.getElementById('editor-showSeconds')?.checked || false;
           updates.backgroundColor = document.getElementById('editor-timeBackgroundColor')?.value || '#000000';
           updates.textColor = document.getElementById('editor-textColor')?.value || '#ffffff';
+          break;
+          
+        case 'fact':
+          updates.backgroundColor = document.getElementById('editor-factBackgroundColor')?.value || '#1a1a2e';
+          updates.textColor = document.getElementById('editor-factTextColor')?.value || '#ffffff';
+          break;
+          
+        case 'history':
+          updates.eventType = document.getElementById('editor-historyEventType')?.value || 'events';
+          updates.showImages = document.getElementById('editor-historyShowImages')?.checked || false;
+          updates.backgroundColor = document.getElementById('editor-historyBackgroundColor')?.value || '#2c1810';
+          updates.textColor = document.getElementById('editor-historyTextColor')?.value || '#f5deb3';
           break;
           
         case 'slide':

@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
-const mediaDir = path.join(__dirname, '../../slideshows/media');
+const mediaDir = path.join(__dirname, '../../slideshow-media');
 const mediaStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     try {
@@ -313,6 +313,64 @@ router.delete('/:name', async (req, res) => {
 });
 
 /**
+ * POST /api/slideshows/:name/rename - Rename slideshow
+ * Requires body: { newName: string }
+ */
+router.post('/:name/rename', async (req, res) => {
+  try {
+    const { name } = req.params;
+    const { newName } = req.body;
+
+    if (!newName || typeof newName !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid request body',
+        message: 'newName is required and must be a string'
+      } as ApiResponse);
+    }
+
+    // Verify old slideshow exists
+    const existing = dbHelpers.getSlideshowByName(name);
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        error: 'Slideshow not found',
+        message: `Slideshow '${name}' does not exist`
+      } as ApiResponse);
+    }
+
+    // Check if new name already exists
+    const newNameExists = dbHelpers.getSlideshowByName(newName);
+    if (newNameExists) {
+      return res.status(409).json({
+        success: false,
+        error: 'Name already exists',
+        message: `Slideshow '${newName}' already exists`
+      } as ApiResponse);
+    }
+
+    // Rename the slideshow
+    dbHelpers.renameSlideshow(name, newName);
+
+    res.json({
+      success: true,
+      data: {
+        oldName: name,
+        newName
+      },
+      message: `Slideshow renamed from '${name}' to '${newName}'`
+    } as ApiResponse<any>);
+  } catch (error) {
+    console.error('Error renaming slideshow:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to rename slideshow',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    } as ApiResponse);
+  }
+});
+
+/**
  * POST /api/slideshows/:name/clone - Duplicate slideshow with new name
  * Requires body: { newName: string }
  */
@@ -373,11 +431,11 @@ router.post('/:name/clone', async (req, res) => {
 
 /**
  * GET /api/slideshows/media/list - List available media files
- * Returns array of media files in slideshows/media directory
+ * Returns array of media files in slideshow-media directory
  */
 router.get('/media/list', async (req, res) => {
   try {
-    const mediaDir = path.join(__dirname, '../../slideshows/media');
+    const mediaDir = path.join(__dirname, '../../slideshow-media');
     
     // Ensure directory exists
     try {
@@ -387,7 +445,7 @@ router.get('/media/list', async (req, res) => {
     }
 
     const files = await fs.readdir(mediaDir);
-    const supportedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'avif'];
+    const supportedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'avif', 'webp'];
     
     const mediaFiles = await Promise.all(
       files
@@ -401,7 +459,7 @@ router.get('/media/list', async (req, res) => {
             const stats = await fs.stat(filePath);
             return {
               filename: file,
-              path: `/slideshows/media/${file}`,
+              path: `/slideshow-media/${file}`,
               size: stats.size,
               modified: stats.mtime.getTime()
             };
@@ -444,7 +502,7 @@ router.post('/media/upload', mediaUpload.single('media'), async (req, res) => {
     success: true,
     data: {
       filename: req.file.filename,
-      path: `/slideshows/media/${req.file.filename}`,
+      path: `/slideshow-media/${req.file.filename}`,
       size: req.file.size,
       mimeType: req.file.mimetype
     },

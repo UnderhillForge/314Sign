@@ -83,7 +83,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com", "https://unpkg.com"],
       imgSrc: ["'self'", "data:", "https:"],
       fontSrc: ["'self'", "data:", "https://fonts.gstatic.com", "https://fonts.googleapis.com"],
-      connectSrc: ["'self'", "localhost", "127.0.0.1", "*.local", "http://*.local", "https://*.local", "http://192.168.0.0/16", "http://10.0.0.0/8", "https://192.168.0.0/16", "https://10.0.0.0/8", "https://unpkg.com", "https://cdn.jsdelivr.net"],
+      connectSrc: ["'self'", "localhost", "127.0.0.1", "*.local", "http://*.local", "https://*.local", "http://192.168.0.0/16", "http://10.0.0.0/8", "https://192.168.0.0/16", "https://10.0.0.0/8", "https://unpkg.com", "https://cdn.jsdelivr.net", "https://www.thefact.space", "https://byabbe.se", "https://api.weather.gov", "https://nominatim.openstreetmap.org", "https://en.wikipedia.org"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
     },
@@ -230,6 +230,7 @@ app.use((req, res, next) => {
 app.use('/bg', express.static(path.join(__dirname, '../bg')));
 app.use('/fonts', express.static(path.join(__dirname, '../fonts')));
 app.use('/media', express.static(path.join(__dirname, '../media')));
+app.use('/slideshow-media', express.static(path.join(__dirname, '../slideshow-media')));
 
 // Static file serving for all root directory files (pages, config, etc.)
 app.use(express.static(path.join(__dirname, '../')));
