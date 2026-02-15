@@ -461,6 +461,7 @@
       padding: 1.5rem;
       margin-top: 1rem;
       display: none;
+      position: relative;
     }
 
     .visual-editor.active {
@@ -544,6 +545,59 @@
       gap: 0.5rem;
       margin-top: 1rem;
       padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .text-editor-panel {
+      display: none;
+      position: absolute;
+      bottom: 120px;
+      left: 0;
+      right: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+      margin: 0 0.5rem 0.5rem 0.5rem;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .text-editor-panel.active {
+      display: block;
+    }
+
+    .text-editor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .text-editor-header h3 {
+      margin: 0;
+      font-size: 0.95rem;
+    }
+
+    .text-editor-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .text-editor-group.full {
+      grid-template-columns: 1fr;
+    }
+
+    .text-editor-buttons {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+      margin-top: 1rem;
+      padding-top: 0.75rem;
       border-top: 1px solid var(--border);
     }
 
@@ -1048,6 +1102,56 @@
             <div>Drag images here or click to add elements</div>
           </div>
         </div>
+        <div class="text-editor-panel" id="text-editor-panel">
+          <div class="text-editor-header">
+            <h3>✏️ Text Editor</h3>
+            <button class="btn btn-icon btn-secondary" onclick="closeTextEditor()" title="Close">✕</button>
+          </div>
+          
+          <div class="text-editor-group full">
+            <div class="form-group">
+              <label>Text Content</label>
+              <textarea id="text-content" placeholder="Enter text..." onchange="updateTextProperty('content', this.value)" oninput="updateTextProperty('content', this.value)"></textarea>
+            </div>
+          </div>
+
+          <div class="text-editor-group">
+            <div class="form-group">
+              <label>Font Family</label>
+              <select id="text-font" onchange="updateTextProperty('font', this.value)">
+                <option value="Arial">Arial</option>
+                <option value="Verdana">Verdana</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Times New Roman">Times New Roman</option>
+                <option value="Courier New">Courier New</option>
+                <option value="Comic Sans MS">Comic Sans MS</option>
+                <option value="Trebuchet MS">Trebuchet MS</option>
+                <option value="Impact">Impact</option>
+                <option value="Lucida Console">Lucida Console</option>
+                <option value="Palatino">Palatino</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Font Size (px)</label>
+              <input type="number" id="text-font-size" min="8" max="200" value="24" onchange="updateTextProperty('fontSize', parseInt(this.value))" oninput="updateTextProperty('fontSize', parseInt(this.value))">
+            </div>
+          </div>
+
+          <div class="text-editor-group">
+            <div class="form-group">
+              <label>Text Color</label>
+              <input type="color" id="text-color" value="#ffffff" onchange="updateTextProperty('color', this.value)" oninput="updateTextProperty('color', this.value)">
+            </div>
+            <div class="form-group">
+              <label style="display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" id="text-bold" onchange="updateTextProperty('bold', this.checked)" style="width: auto;"> Bold</label>
+            </div>
+          </div>
+
+          <div class="text-editor-buttons">
+            <button class="btn btn-sm btn-secondary" onclick="closeTextEditor()">Done</button>
+          </div>
+        </div>
+
         <div class="canvas-toolbar">
           <button class="btn btn-sm btn-secondary" onclick="addTextElement()">
             ➕ Text
@@ -2176,7 +2280,8 @@
       
       // Content based on type
       if (element.type === 'text') {
-        el.innerHTML = `<div style="padding:10px;font-size:${element.fontSize || 24}px;color:${element.color || '#fff'};font-weight:${element.bold ? 'bold' : 'normal'};">${element.content || 'Text'}</div>`;
+        const fontFamily = element.font || 'Arial';
+        el.innerHTML = `<div style="padding:10px;font-size:${element.fontSize || 24}px;color:${element.color || '#fff'};font-weight:${element.bold ? 'bold' : 'normal'};font-family:${fontFamily};word-wrap:break-word;overflow:hidden;">${element.content || 'Text'}</div>`;
       } else if (element.type === 'image') {
         el.innerHTML = `<img src="${element.src}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">`;
       } else if (element.type === 'weather') {
@@ -2213,6 +2318,9 @@
     function selectElement(index) {
       selectedElement = index;
       const canvas = document.getElementById('canvas-container');
+      const slide = editorState.currentSlideshow.slides[editorState.selectedSlideIndex];
+      const element = slide.elements[index];
+      
       canvas.querySelectorAll('.canvas-element').forEach((el, i) => {
         if (i === index) {
           el.classList.add('selected');
@@ -2220,11 +2328,49 @@
           el.classList.remove('selected');
         }
       });
-      renderLayers(editorState.currentSlideshow.slides[editorState.selectedSlideIndex]);
+      
+      // Show text editor if text element is selected
+      if (element && element.type === 'text') {
+        openTextEditor(element);
+      } else {
+        closeTextEditor();
+      }
+      
+      renderLayers(slide);
     }
 
     function selectCanvasElement(index) {
       selectElement(index);
+    }
+
+    function openTextEditor(element) {
+      const panel = document.getElementById('text-editor-panel');
+      document.getElementById('text-content').value = element.content || '';
+      document.getElementById('text-font').value = element.font || 'Arial';
+      document.getElementById('text-font-size').value = element.fontSize || 24;
+      document.getElementById('text-color').value = element.color || '#ffffff';
+      document.getElementById('text-bold').checked = element.bold || false;
+      panel.classList.add('active');
+    }
+
+    function closeTextEditor() {
+      const panel = document.getElementById('text-editor-panel');
+      panel.classList.remove('active');
+    }
+
+    function updateTextProperty(property, value) {
+      if (selectedElement === null || editorState.selectedSlideIndex === null) return;
+      
+      const slide = editorState.currentSlideshow.slides[editorState.selectedSlideIndex];
+      const element = slide.elements[selectedElement];
+      
+      if (!element || element.type !== 'text') return;
+      
+      // Update the property
+      element[property] = value;
+      
+      // Re-render immediately for real-time feedback
+      renderCanvas();
     }
 
     function startDragElement(e, index) {
@@ -2294,6 +2440,7 @@
         rotation: 0,
         fontSize: 24,
         color: '#ffffff',
+        font: 'Arial',
         bold: false
       });
     }
@@ -2325,6 +2472,7 @@
       const slide = editorState.currentSlideshow.slides[editorState.selectedSlideIndex];
       slide.elements.splice(index, 1);
       selectedElement = null;
+      closeTextEditor();
       renderCanvas();
       renderLayers(slide);
       renderSlides();
