@@ -35,7 +35,7 @@
 
     .app-container {
       display: grid;
-      grid-template-columns: 250px 220px 1fr 380px;
+      grid-template-columns: 250px 1fr 220px;
       grid-template-rows: auto 1fr;
       height: 100vh;
       gap: 1rem;
@@ -685,10 +685,6 @@
     <aside class="sidebar">
       <h2>📚 Slide Types</h2>
       <div class="slide-templates" id="slide-templates">
-        <div class="slide-template" data-type="text" draggable="true">
-          <div class="template-icon">📝</div>
-          <div class="template-name">Text Slide</div>
-        </div>
         <div class="slide-template" data-type="image" draggable="true">
           <div class="template-icon">🖼️</div>
           <div class="template-name">Image</div>
@@ -705,6 +701,17 @@
           <div class="template-icon">🎨</div>
           <div class="template-name">Composite</div>
         </div>
+      </div>
+      <div class="form-group" style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+        <label>Default Transition</label>
+        <select id="default-transition" onchange="editorState.currentSlideshow.defaultTransition = this.value; showToast('Transition updated');">
+          <option value="slide">Slide</option>
+          <option value="fade">Fade</option>
+          <option value="zoom">Zoom</option>
+          <option value="convex">Convex</option>
+          <option value="concave">Concave</option>
+          <option value="none">None</option>
+        </select>
       </div>
     </aside>
 
@@ -753,16 +760,8 @@
     </main>
 
     <!-- Properties Panel -->
-    <aside class="properties-panel" id="properties-panel">
-      <h2>⚙️ Properties</h2>
-      <div id="properties-content">
-        <p style="color: var(--text-secondary); text-align: center; padding: 2rem;">
-          Select a slide to edit its properties
-        </p>
-      </div>
-
-      <!-- Visual Editor -->
-      <div class="visual-editor" id="visual-editor">
+    <!-- Visual Editor -->
+    <div class="visual-editor" id="visual-editor" style="grid-column: 2; grid-row: 2;">
         <h3 style="margin-bottom: 1rem;">📐 Visual Editor</h3>
         <div class="canvas-container" id="canvas-container">
           <div class="canvas-overlay" id="canvas-overlay"></div>
@@ -829,21 +828,26 @@
     </div>
   </div>
 
+  <!-- Full-Page Slide Editor Modal -->
+  <div class="modal" id="slide-editor-modal" style="z-index: 1001;">
+    <div class="modal-content" style="width: 90%; max-width: 900px; max-height: 90vh; overflow-y: auto;">
+      <div class="modal-header">
+        <h2>Edit Slide</h2>
+        <button class="btn btn-icon btn-secondary" onclick="closeModal('slide-editor-modal')">✕</button>
+      </div>
+      <div id="slide-editor-content">
+        <!-- Dynamically populated -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('slide-editor-modal')">Cancel</button>
+        <button class="btn btn-success" onclick="saveSlideEdits()">Save</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // ============ SLIDE TYPE REGISTRY ============
     const slideTypeRegistry = {
-      text: {
-        icon: '📝',
-        label: 'Text Slide',
-        defaultProps: {
-          title: 'Untitled Slide',
-          subtitle: '',
-          content: 'Click to edit...',
-          markdown: false,
-          textColor: '#ffffff',
-          backgroundColor: '#000000'
-        }
-      },
       image: {
         icon: '🖼️',
         label: 'Image',
@@ -1253,6 +1257,9 @@
           <div class="slide-header">
             <span class="slide-type-badge">${typeInfo.label || slide.type}</span>
             <div class="slide-actions">
+              <button class="btn btn-sm btn-icon btn-primary" onclick="event.stopPropagation(); openSlideEditor(${index})" title="Edit">
+                ✎️
+              </button>
               <button class="btn btn-sm btn-icon btn-secondary" onclick="event.stopPropagation(); editorAPI.slides.duplicate(${index})" title="Duplicate (Ctrl+D)">
                 📋
               </button>
@@ -1332,153 +1339,13 @@
     }
 
     function renderProperties() {
-      if (editorState.selectedSlideIndex === null) return;
-      
-      const slide = editorState.currentSlideshow.slides[editorState.selectedSlideIndex];
-      const container = document.getElementById('properties-content');
-      
-      let html = `
-        <div class="form-group">
-          <label>Duration (ms)</label>
-          <input type="number" value="${slide.duration}" 
-                 onchange="updateSlide('duration', parseInt(this.value))">
-        </div>
-        
-        <div class="form-group">
-          <label>Transition</label>
-          <select onchange="updateSlide('transition', this.value)">
-            <option value="none" ${slide.transition === 'none' ? 'selected' : ''}>None</option>
-            <option value="fade" ${slide.transition === 'fade' ? 'selected' : ''}>Fade</option>
-            <option value="slide" ${slide.transition === 'slide' ? 'selected' : ''}>Slide</option>
-            <option value="convex" ${slide.transition === 'convex' ? 'selected' : ''}>Convex</option>
-            <option value="concave" ${slide.transition === 'concave' ? 'selected' : ''}>Concave</option>
-            <option value="zoom" ${slide.transition === 'zoom' ? 'selected' : ''}>Zoom</option>
-          </select>
-        </div>
-        
-        <div class="form-group">
-          <label>
-            <input type="checkbox" ${slide.vertical ? 'checked' : ''} 
-                   onchange="updateSlide('vertical', this.checked)">
-            Vertical Slide (nested below previous)
-          </label>
-          <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.5rem;">
-            Vertical slides appear below the previous slide. Press ↓ to navigate down.
-          </p>
-        </div>
-        
-        <div class="form-group">
-          <label>Background</label>
-          <input type="color" value="${slide.background}" 
-                 onchange="updateSlide('background', this.value)">
-          <input type="text" value="${slide.background}" 
-                 onchange="updateSlide('background', this.value)" 
-                 placeholder="#000000 or image URL"
-                 style="margin-top: 0.5rem;">
-        </div>
-      `;
-
-      // Add type-specific properties
-      switch (slide.type) {
-        case 'text':
-          html += `
-            <div class="form-group">
-              <label>Title</label>
-              <input type="text" value="${slide.title || ''}" 
-                     onchange="updateSlide('title', this.value)">
-            </div>
-            <div class="form-group">
-              <label>Subtitle</label>
-              <input type="text" value="${slide.subtitle || ''}" 
-                     onchange="updateSlide('subtitle', this.value)">
-            </div>
-            <div class="form-group">
-              <label>
-                <input type="checkbox" ${slide.markdown ? 'checked' : ''} 
-                       onchange="updateSlide('markdown', this.checked)">
-                Use Markdown formatting
-              </label>
-            </div>
-            <div class="form-group">
-              <label>Content</label>
-              <textarea onchange="updateSlide('content', this.value)" 
-                        style="min-height: 150px; ${slide.markdown ? 'font-family: monospace;' : ''}">${slide.content || ''}</textarea>
-            </div>
-          `;
-          break;
-        
-        case 'image':
-          html += `
-            <div class="form-group">
-              <label>Image URL</label>
-              <input type="text" value="${slide.media || ''}" 
-                     onchange="updateSlide('media', this.value)">
-            </div>
-            <div class="form-group">
-              <label>Caption</label>
-              <input type="text" value="${slide.caption || ''}" 
-                     onchange="updateSlide('caption', this.value)">
-            </div>
-          `;
-          break;
-        
-        case 'weather':
-          html += `
-            <div class="form-group">
-              <label>Location</label>
-              <input type="text" value="${slide.location || 'auto'}" 
-                     onchange="updateSlide('location', this.value)"
-                     placeholder="auto or city name">
-            </div>
-            <div class="form-group">
-              <label>Units</label>
-              <select onchange="updateSlide('units', this.value)">
-                <option value="F" ${slide.units === 'F' ? 'selected' : ''}>Fahrenheit</option>
-                <option value="C" ${slide.units === 'C' ? 'selected' : ''}>Celsius</option>
-              </select>
-            </div>
-          `;
-          break;
-        
-        case 'time':
-          html += `
-            <div class="form-group">
-              <label>Time Format</label>
-              <select onchange="updateSlide('format', this.value)">
-                <option value="12h" ${slide.format === '12h' ? 'selected' : ''}>12 Hour</option>
-                <option value="24h" ${slide.format === '24h' ? 'selected' : ''}>24 Hour</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>
-                <input type="checkbox" ${slide.showDate ? 'checked' : ''} 
-                       onchange="updateSlide('showDate', this.checked)">
-                Show Date
-              </label>
-            </div>
-          `;
-          break;
-        
-        case 'composite':
-          html += `
-            <div class="form-group">
-              <p style="color:var(--text-secondary);font-size:0.9rem;">
-                Use the visual editor below to add and arrange elements on this slide.
-              </p>
-            </div>
-          `;
-          break;
-      }
-
-      container.innerHTML = html;
+      // Properties panel removed - editing now done via full-page modal
+      // This function is kept for backward compatibility but does nothing
     }
 
     function updateSlide(property, value) {
-      if (editorState.selectedSlideIndex !== null) {
-        const updates = { [property]: value };
-        editorAPI.slides.update(editorState.selectedSlideIndex, updates);
-        renderProperties();
-      }
+      // Legacy function - editing now done via full-page modal
+      // This is kept for backward compatibility but shouldn't be called
     }
 
     function updateSlideCount() {
@@ -1631,6 +1498,171 @@
       }, 3000);
     }
 
+    // ============ FULL-PAGE SLIDE EDITOR ============
+
+    function openSlideEditor(index) {
+      if (index < 0 || index >= editorState.currentSlideshow.slides.length) return;
+      
+      const slide = editorState.currentSlideshow.slides[index];
+      const typeInfo = slideTypeRegistry[slide.type] || {};
+      const container = document.getElementById('slide-editor-content');
+      
+      // Generate form based on slide type
+      let html = `
+        <div class="form-group">
+          <label>Duration (ms)</label>
+          <input type="number" id="editor-duration" value="${slide.duration}">
+        </div>
+        
+        <div class="form-group">
+          <label>Transition</label>
+          <select id="editor-transition">
+            <option value="slide" ${slide.transition === 'slide' ? 'selected' : ''}>Slide</option>
+            <option value="fade" ${slide.transition === 'fade' ? 'selected' : ''}>Fade</option>
+            <option value="zoom" ${slide.transition === 'zoom' ? 'selected' : ''}>Zoom</option>
+            <option value="convex" ${slide.transition === 'convex' ? 'selected' : ''}>Convex</option>
+            <option value="concave" ${slide.transition === 'concave' ? 'selected' : ''}>Concave</option>
+            <option value="none" ${slide.transition === 'none' ? 'selected' : ''}>None</option>
+          </select>
+        </div>
+      `;
+      
+      // Type-specific fields
+      switch (slide.type) {
+        case 'image':
+          html += `
+            <div class="form-group">
+              <label>Image URL</label>
+              <input type="text" id="editor-src" value="${slide.src || ''}">
+            </div>
+            <div class="form-group">
+              <label>Caption</label>
+              <input type="text" id="editor-caption" value="${slide.caption || ''}">
+            </div>
+            <div class="form-group">
+              <label>Fit Mode</label>
+              <select id="editor-fit">
+                <option value="cover" ${slide.fit === 'cover' ? 'selected' : ''}>Cover</option>
+                <option value="contain" ${slide.fit === 'contain' ? 'selected' : ''}>Contain</option>
+                <option value="fill" ${slide.fit === 'fill' ? 'selected' : ''}>Fill</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Background Color</label>
+              <input type="color" id="editor-backgroundColor" value="${slide.backgroundColor || '#000000'}">
+            </div>
+          `;
+          break;
+          
+        case 'weather':
+          html += `
+            <div class="form-group">
+              <label>Location</label>
+              <input type="text" id="editor-location" value="${slide.location || 'Current Location'}" placeholder="auto or city name">
+            </div>
+            <div class="form-group">
+              <label>Temperature Unit</label>
+              <select id="editor-unit">
+                <option value="C" ${slide.unit === 'C' ? 'selected' : ''}>Celsius</option>
+                <option value="F" ${slide.unit === 'F' ? 'selected' : ''}>Fahrenheit</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>
+                <input type="checkbox" id="editor-showForecast" ${slide.showForecast ? 'checked' : ''}>
+                Show 3-Day Forecast
+              </label>
+            </div>
+          `;
+          break;
+          
+        case 'time':
+          html += `
+            <div class="form-group">
+              <label>Time Format</label>
+              <select id="editor-format">
+                <option value="12h" ${slide.format === '12h' ? 'selected' : ''}>12 Hour (AM/PM)</option>
+                <option value="24h" ${slide.format === '24h' ? 'selected' : ''}>24 Hour</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>
+                <input type="checkbox" id="editor-showSeconds" ${slide.showSeconds ? 'checked' : ''}>
+                Show Seconds
+              </label>
+            </div>
+            <div class="form-group">
+              <label>Background Color</label>
+              <input type="color" id="editor-timeBackgroundColor" value="${slide.backgroundColor || '#000000'}">
+            </div>
+            <div class="form-group">
+              <label>Text Color</label>
+              <input type="color" id="editor-textColor" value="${slide.textColor || '#ffffff'}">
+            </div>
+          `;
+          break;
+          
+        case 'composite':
+          html += `
+            <div class="form-group">
+              <label>Background Color</label>
+              <input type="color" id="editor-background" value="${slide.background || '#000000'}">
+            </div>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">
+              Use the visual editor on the left to arrange elements on this composite slide.
+            </p>
+          `;
+          break;
+      }
+      
+      container.innerHTML = html;
+      window.currentEditingSlideIndex = index;
+      showModal('slide-editor-modal');
+    }
+
+    function saveSlideEdits() {
+      const index = window.currentEditingSlideIndex;
+      if (index === undefined || index < 0 || index >= editorState.currentSlideshow.slides.length) return;
+      
+      const slide = editorState.currentSlideshow.slides[index];
+      const updates = {
+        duration: parseInt(document.getElementById('editor-duration')?.value || slide.duration),
+        transition: document.getElementById('editor-transition')?.value || slide.transition
+      };
+      
+      // Collect type-specific updates
+      switch (slide.type) {
+        case 'image':
+          updates.src = document.getElementById('editor-src')?.value || '';
+          updates.caption = document.getElementById('editor-caption')?.value || '';
+          updates.fit = document.getElementById('editor-fit')?.value || 'cover';
+          updates.backgroundColor = document.getElementById('editor-backgroundColor')?.value || '#000000';
+          break;
+          
+        case 'weather':
+          updates.location = document.getElementById('editor-location')?.value || 'Current Location';
+          updates.unit = document.getElementById('editor-unit')?.value || 'C';
+          updates.showForecast = document.getElementById('editor-showForecast')?.checked || false;
+          break;
+          
+        case 'time':
+          updates.format = document.getElementById('editor-format')?.value || '24h';
+          updates.showSeconds = document.getElementById('editor-showSeconds')?.checked || false;
+          updates.backgroundColor = document.getElementById('editor-timeBackgroundColor')?.value || '#000000';
+          updates.textColor = document.getElementById('editor-textColor')?.value || '#ffffff';
+          break;
+          
+        case 'composite':
+          updates.background = document.getElementById('editor-background')?.value || '#000000';
+          break;
+      }
+      
+      editorAPI.slides.update(index, updates);
+      closeModal('slide-editor-modal');
+      renderSlides();
+      selectSlide(index);
+      showToast('Slide updated');
+    }
 
 
     // ============ VISUAL CANVAS EDITOR ============
