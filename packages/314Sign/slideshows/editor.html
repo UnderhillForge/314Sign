@@ -685,9 +685,9 @@
     <aside class="sidebar">
       <h2>📚 Slide Types</h2>
       <div class="slide-templates" id="slide-templates">
-        <div class="slide-template" data-type="image" draggable="true">
-          <div class="template-icon">🖼️</div>
-          <div class="template-name">Image</div>
+        <div class="slide-template" data-type="slide" draggable="true">
+          <div class="template-icon">🎨</div>
+          <div class="template-name">Slide</div>
         </div>
         <div class="slide-template" data-type="weather" draggable="true">
           <div class="template-icon">🌤️</div>
@@ -696,10 +696,6 @@
         <div class="slide-template" data-type="time" draggable="true">
           <div class="template-icon">🕐</div>
           <div class="template-name">Time & Date</div>
-        </div>
-        <div class="slide-template" data-type="composite" draggable="true">
-          <div class="template-icon">🎨</div>
-          <div class="template-name">Composite</div>
         </div>
       </div>
       <div class="form-group" style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
@@ -848,14 +844,12 @@
   <script>
     // ============ SLIDE TYPE REGISTRY ============
     const slideTypeRegistry = {
-      image: {
-        icon: '🖼️',
-        label: 'Image',
+      slide: {
+        icon: '🎨',
+        label: 'Slide',
         defaultProps: {
-          src: '',
-          caption: '',
-          fit: 'cover',
-          backgroundColor: '#000000'
+          background: '#000000',
+          elements: []
         }
       },
       weather: {
@@ -875,14 +869,6 @@
           showSeconds: false,
           backgroundColor: '#000000',
           textColor: '#ffffff'
-        }
-      },
-      composite: {
-        icon: '🎨',
-        label: 'Composite',
-        defaultProps: {
-          background: '#000000',
-          elements: []
         }
       }
     };
@@ -1226,7 +1212,7 @@
           return { ...base, location: 'auto', units: 'F' };
         case 'time':
           return { ...base, format: '12h', showDate: true };
-        case 'composite':
+        case 'slide':
           return { ...base, elements: [] };
         default:
           return base;
@@ -1283,16 +1269,12 @@
 
     function getSlidePreview(slide) {
       switch (slide.type) {
-        case 'text':
-          return slide.title || 'Untitled Slide';
-        case 'image':
-          return slide.src ? `Image: ${slide.src.split('/').pop()}` : 'No image selected';
+        case 'slide':
+          return `Slide (${slide.elements?.length || 0} elements)`;
         case 'weather':
           return 'Weather forecast';
         case 'time':
           return 'Current time & date';
-        case 'composite':
-          return `Composite (${slide.elements?.length || 0} elements)`;
         default:
           return 'Slide';
       }
@@ -1306,7 +1288,7 @@
         return;
       }
 
-      if (selectedSlide.type === 'composite' && selectedSlide.elements?.length > 0) {
+      if (selectedSlide.type === 'slide' && selectedSlide.elements?.length > 0) {
         layersList.innerHTML = selectedSlide.elements.map((element, index) => `
           <div class="layer-item" onclick="selectCanvasElement(${index})">
             <span class="layer-icon">${element.type === 'image' ? '🖼️' : '📦'}</span>
@@ -1317,20 +1299,19 @@
           </div>
         `).join('');
       } else {
-        layersList.innerHTML = '<div class="layers-empty">No layers in this slide</div>';
+        layersList.innerHTML = '<div class="layers-empty">No elements in this slide</div>';
       }
     }
 
     function selectSlide(index) {
       editorState.selectedSlideIndex = index;
       const selectedSlide = editorState.currentSlideshow.slides[index];
-      renderProperties();
       renderLayers(selectedSlide);
       renderSlides();
       
-      // Show/hide visual editor
+      // Show/hide visual editor for slide type
       const visualEditor = document.getElementById('visual-editor');
-      if (selectedSlide && selectedSlide.type === 'composite') {
+      if (selectedSlide && selectedSlide.type === 'slide') {
         visualEditor.classList.add('active');
         renderCanvas();
       } else {
@@ -1504,6 +1485,14 @@
       if (index < 0 || index >= editorState.currentSlideshow.slides.length) return;
       
       const slide = editorState.currentSlideshow.slides[index];
+      
+      // For slide type, show canvas instead
+      if (slide.type === 'slide') {
+        editorState.selectedSlideIndex = index;
+        selectSlide(index);
+        return;
+      }
+      
       const typeInfo = slideTypeRegistry[slide.type] || {};
       const container = document.getElementById('slide-editor-content');
       
@@ -1529,31 +1518,7 @@
       
       // Type-specific fields
       switch (slide.type) {
-        case 'image':
-          html += `
-            <div class="form-group">
-              <label>Image URL</label>
-              <input type="text" id="editor-src" value="${slide.src || ''}">
-            </div>
-            <div class="form-group">
-              <label>Caption</label>
-              <input type="text" id="editor-caption" value="${slide.caption || ''}">
-            </div>
-            <div class="form-group">
-              <label>Fit Mode</label>
-              <select id="editor-fit">
-                <option value="cover" ${slide.fit === 'cover' ? 'selected' : ''}>Cover</option>
-                <option value="contain" ${slide.fit === 'contain' ? 'selected' : ''}>Contain</option>
-                <option value="fill" ${slide.fit === 'fill' ? 'selected' : ''}>Fill</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Background Color</label>
-              <input type="color" id="editor-backgroundColor" value="${slide.backgroundColor || '#000000'}">
-            </div>
-          `;
-          break;
-          
+        
         case 'weather':
           html += `
             <div class="form-group">
@@ -1602,14 +1567,14 @@
           `;
           break;
           
-        case 'composite':
+        case 'slide':
           html += `
             <div class="form-group">
               <label>Background Color</label>
               <input type="color" id="editor-background" value="${slide.background || '#000000'}">
             </div>
             <p style="color: var(--text-secondary); font-size: 0.9rem;">
-              Use the visual editor on the left to arrange elements on this composite slide.
+              Use the visual editor on the left to arrange elements on this slide.
             </p>
           `;
           break;
@@ -1632,13 +1597,7 @@
       
       // Collect type-specific updates
       switch (slide.type) {
-        case 'image':
-          updates.src = document.getElementById('editor-src')?.value || '';
-          updates.caption = document.getElementById('editor-caption')?.value || '';
-          updates.fit = document.getElementById('editor-fit')?.value || 'cover';
-          updates.backgroundColor = document.getElementById('editor-backgroundColor')?.value || '#000000';
-          break;
-          
+        
         case 'weather':
           updates.location = document.getElementById('editor-location')?.value || 'Current Location';
           updates.unit = document.getElementById('editor-unit')?.value || 'C';
@@ -1652,7 +1611,7 @@
           updates.textColor = document.getElementById('editor-textColor')?.value || '#ffffff';
           break;
           
-        case 'composite':
+        case 'slide':
           updates.background = document.getElementById('editor-background')?.value || '#000000';
           break;
       }
@@ -1688,7 +1647,7 @@
         
         if (selectedSlideIndex === null) return;
         const slide = currentSlideshow.slides[selectedSlideIndex];
-        if (slide.type !== 'composite') return;
+        if (slide.type !== 'slide') return;
         
         const files = Array.from(e.dataTransfer.files);
         for (const file of files) {
@@ -1731,7 +1690,7 @@
     function renderCanvas() {
       if (editorState.selectedSlideIndex === null) return;
       const slide = editorState.currentSlideshow.slides[editorState.selectedSlideIndex];
-      if (slide.type !== 'composite') return;
+      if (slide.type !== 'slide') return;
       
       const canvas = document.getElementById('canvas-container');
       
@@ -1771,7 +1730,7 @@
       if (element.type === 'text') {
         el.innerHTML = `<div style="padding:10px;font-size:${element.fontSize || 24}px;color:${element.color || '#fff'};font-weight:${element.bold ? 'bold' : 'normal'};">${element.content || 'Text'}</div>`;
       } else if (element.type === 'image') {
-        el.innerHTML = `<img src="${element.src}" style="width:100%;height:100%;object-fit:cover;">`;
+        el.innerHTML = `<img src="${element.src}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">`;
       } else if (element.type === 'weather') {
         el.innerHTML = `<div style="padding:10px;background:rgba(0,0,0,0.5);color:#fff;border-radius:8px;">🌤️ Weather</div>`;
       }
@@ -1867,7 +1826,7 @@
     function addElement(element) {
       if (editorState.selectedSlideIndex === null) return;
       const slide = editorState.currentSlideshow.slides[editorState.selectedSlideIndex];
-      if (slide.type !== 'composite') return;
+      if (slide.type !== 'slide') return;
       
       if (!slide.elements) slide.elements = [];
       slide.elements.push(element);
