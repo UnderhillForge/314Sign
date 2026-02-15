@@ -572,6 +572,19 @@
       overflow-y: auto;
       display: flex;
       flex-direction: column;
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      bottom: 0;
+    }
+
+    .right-panel {
+      grid-column: 3;
+      grid-row: 2;
+      position: relative;
+      background: transparent;
+      border: none;
     }
 
     .layers-panel h2 {
@@ -656,6 +669,214 @@
       flex: 1;
       justify-content: center;
     }
+
+    /* Timeline Editor */
+    .timeline-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .timeline-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .timeline-header h2 {
+      font-size: 1rem;
+      margin: 0;
+    }
+
+    .timeline-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .timeline-tab {
+      flex: 1;
+      padding: 0.5rem;
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .timeline-tab.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    .timeline-tab:hover {
+      border-color: var(--accent);
+    }
+
+    .timeline-scrubber {
+      margin-bottom: 1.5rem;
+    }
+
+    .timeline-scrubber-label {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .timeline-scrubber-track {
+      position: relative;
+      height: 8px;
+      background: var(--bg-dark);
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    .timeline-scrubber-progress {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #4a8fe7);
+      width: 0%;
+      border-radius: 4px;
+      transition: width 0.1s linear;
+    }
+
+    .timeline-scrubber-handle {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 16px;
+      height: 16px;
+      background: var(--accent);
+      border: 2px solid white;
+      border-radius: 50%;
+      cursor: grab;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .timeline-scrubber-handle:active {
+      cursor: grabbing;
+    }
+
+    .timeline-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: var(--bg-dark);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+
+    .timeline-info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .timeline-info-label {
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+    }
+
+    .timeline-info-value {
+      color: var(--text-primary);
+      font-weight: 500;
+      font-family: monospace;
+    }
+
+    .timeline-content {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    .timeline-content.hidden {
+      display: none;
+    }
+
+    .timeline-footer {
+      margin-top: auto;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .timeline-slide-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 0.5rem;
+    }
+
+    .timeline-slide-item:hover {
+      border-color: var(--accent);
+      background: rgba(88, 166, 255, 0.05);
+    }
+
+    .timeline-slide-item.active {
+      border-color: var(--accent);
+      background: rgba(88, 166, 255, 0.1);
+    }
+
+    .timeline-slide-thumbnail {
+      min-width: 50px;
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(135deg, rgba(88, 166, 255, 0.1), rgba(88, 166, 255, 0.05));
+      border: 1px solid rgba(88, 166, 255, 0.2);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .timeline-slide-icon {
+      font-size: 1.5rem;
+    }
+
+    .timeline-slide-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .timeline-slide-number {
+      font-weight: 500;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+    }
+
+    .timeline-slide-type {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      text-transform: capitalize;
+    }
+
+    .timeline-slide-duration {
+      font-size: 0.8rem;
+      color: var(--accent);
+      font-family: monospace;
+      font-weight: 500;
+    }
   </style>
 </head>
 <body>
@@ -712,19 +933,78 @@
     </aside>
 
     <!-- Layers Panel -->
-    <aside class="layers-panel">
-      <h2>📊 Layers</h2>
-      <div class="layers-list" id="layers-list">
-        <div class="layers-empty">Select a slide</div>
+    <aside class="right-panel">
+      <!-- Timeline Panel -->
+      <div class="timeline-panel" id="timeline-panel">
+        <div class="timeline-header">
+          <h2>📹 Timeline</h2>
+          <div class="timeline-tabs">
+            <button class="timeline-tab active" data-tab="timeline" onclick="switchTimelineTab('timeline')">View</button>
+            <button class="timeline-tab" data-tab="layers" onclick="switchTimelineTab('layers')">Layers</button>
+          </div>
+        </div>
+        
+        <div class="timeline-scrubber">
+          <div class="timeline-scrubber-label">
+            <span>Playback Position</span>
+            <span id="timeline-time">0:00 / 0:00</span>
+          </div>
+          <div class="timeline-scrubber-track" id="timeline-scrubber-track">
+            <div class="timeline-scrubber-progress" id="timeline-scrubber-progress"></div>
+            <div class="timeline-scrubber-handle" id="timeline-scrubber-handle"></div>
+          </div>
+        </div>
+
+        <div class="timeline-info">
+          <div class="timeline-info-item">
+            <div class="timeline-info-label">Total Slides</div>
+            <div class="timeline-info-value" id="timeline-slide-count">0</div>
+          </div>
+          <div class="timeline-info-item">
+            <div class="timeline-info-label">Duration</div>
+            <div class="timeline-info-value" id="timeline-duration">0:00</div>
+          </div>
+        </div>
+
+        <div class="timeline-content" id="timeline-slides-list">
+          <div style="text-align: center; color: var(--text-secondary); padding: 2rem 1rem;">
+            <p>No slides yet</p>
+          </div>
+        </div>
+
+        <div class="timeline-footer">
+          <div class="history-buttons">
+            <button class="btn btn-sm btn-secondary" id="undo-btn" onclick="editorAPI.history.undo()" title="Undo (Ctrl+Z)">
+              ↶ Undo
+            </button>
+            <button class="btn btn-sm btn-secondary" id="redo-btn" onclick="editorAPI.history.redo()" title="Redo (Ctrl+Shift+Z)">
+              ↷ Redo
+            </button>
+          </div>
+        </div>
       </div>
-      <div class="history-panel">
-        <div class="history-buttons">
-          <button class="btn btn-sm btn-secondary" id="undo-btn" onclick="editorAPI.history.undo()" title="Undo (Ctrl+Z)">
-            ↶
-          </button>
-          <button class="btn btn-sm btn-secondary" id="redo-btn" onclick="editorAPI.history.redo()" title="Redo (Ctrl+Shift+Z)">
-            ↷
-          </button>
+
+      <!-- Layers Panel -->
+      <div class="layers-panel" id="layers-panel" style="display: none;">
+        <div class="timeline-header">
+          <h2>📊 Layers</h2>
+          <div class="timeline-tabs">
+            <button class="timeline-tab" data-tab="timeline" onclick="switchTimelineTab('timeline')">View</button>
+            <button class="timeline-tab active" data-tab="layers" onclick="switchTimelineTab('layers')">Layers</button>
+          </div>
+        </div>
+        <div class="layers-list" id="layers-list">
+          <div class="layers-empty">Select a slide</div>
+        </div>
+        <div class="timeline-footer">
+          <div class="history-buttons">
+            <button class="btn btn-sm btn-secondary" id="undo-btn-layers" onclick="editorAPI.history.undo()" title="Undo (Ctrl+Z)">
+              ↶ Undo
+            </button>
+            <button class="btn btn-sm btn-secondary" id="redo-btn-layers" onclick="editorAPI.history.redo()" title="Redo (Ctrl+Shift+Z)">
+              ↷ Redo
+            </button>
+          </div>
         </div>
       </div>
     </aside>
@@ -1134,8 +1414,10 @@
     document.addEventListener('DOMContentLoaded', () => {
       initializeDragAndDrop();
       initializeCanvas();
+      renderTimeline();
       updateSlideCount();
       updateHistoryButtons();
+      showTimelinePanel();
       document.addEventListener('keydown', (e) => keyboardManager.handleKeyDown(e));
     });
 
@@ -1231,6 +1513,7 @@
           </div>
         `;
         renderLayers(null);
+        renderTimeline();
         updateSlideCount();
         return;
       }
@@ -1264,6 +1547,7 @@
         </div>
       `}).join('');
       
+      renderTimeline();
       updateSlideCount();
     }
 
@@ -1303,11 +1587,150 @@
       }
     }
 
+    function getSlideIcon(type) {
+      const icons = {
+        'slide': '📄',
+        'weather': '🌤️',
+        'time': '🕐'
+      };
+      return icons[type] || '📋';
+    }
+
+    function getSlideDefaultDuration(slide) {
+      const durations = {
+        'slide': 5,
+        'weather': 30,
+        'time': 10
+      };
+      return (slide.duration || slide.transition?.speed || durations[slide.type] || 5);
+    }
+
+    function formatDuration(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function calculateTotalDuration() {
+      const slides = editorState.currentSlideshow.slides;
+      let total = 0;
+      slides.forEach(slide => {
+        total += getSlideDefaultDuration(slide);
+      });
+      return total;
+    }
+
+    function renderTimeline() {
+      const timelineSlidesList = document.getElementById('timeline-slides-list');
+      const slides = editorState.currentSlideshow.slides;
+      
+      if (slides.length === 0) {
+        timelineSlidesList.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 2rem 1rem;"><p>No slides yet</p></div>';
+        document.getElementById('timeline-slide-count').textContent = '0';
+        document.getElementById('timeline-duration').textContent = '0:00';
+        return;
+      }
+
+      const totalDuration = calculateTotalDuration();
+      document.getElementById('timeline-slide-count').textContent = slides.length;
+      document.getElementById('timeline-duration').textContent = formatDuration(totalDuration);
+
+      timelineSlidesList.innerHTML = slides.map((slide, index) => {
+        const duration = getSlideDefaultDuration(slide);
+        const icon = getSlideIcon(slide.type);
+        const preview = getSlidePreview(slide);
+        const isSelected = editorState.selectedSlideIndex === index;
+        
+        return `
+          <div class="timeline-slide-item ${isSelected ? 'active' : ''}" onclick="selectSlide(${index})" title="${preview}">
+            <div class="timeline-slide-thumbnail">
+              <div class="timeline-slide-icon">${icon}</div>
+            </div>
+            <div class="timeline-slide-info">
+              <div class="timeline-slide-number">Slide ${index + 1}</div>
+              <div class="timeline-slide-type">${slide.type}</div>
+              <div class="timeline-slide-duration">${formatDuration(duration)}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function switchTimelineTab(tab) {
+      const timelinePanel = document.getElementById('timeline-panel');
+      const layersPanel = document.getElementById('layers-panel');
+      const timelineTabs = document.querySelectorAll('.timeline-tabs .timeline-tab');
+      
+      const allTabs = document.querySelectorAll('.timeline-tabs');
+      allTabs.forEach(tabGroup => {
+        const buttons = tabGroup.querySelectorAll('.timeline-tab');
+        buttons.forEach(btn => btn.classList.remove('active'));
+        tabGroup.querySelector(`[data-tab="${tab}"]`)?.classList.add('active');
+      });
+      
+      if (tab === 'timeline') {
+        timelinePanel.style.display = 'flex';
+        layersPanel.style.display = 'none';
+        renderTimeline();
+      } else {
+        timelinePanel.style.display = 'none';
+        layersPanel.style.display = 'flex';
+        const selectedSlide = editorState.currentSlideshow.slides[editorState.selectedSlideIndex];
+        renderLayers(selectedSlide);
+      }
+    }
+
+    function showLayersPanel() {
+      // Called when editing a Slide type to show layers panel
+      const timelinePanel = document.getElementById('timeline-panel');
+      const layersPanel = document.getElementById('layers-panel');
+      
+      if (layersPanel && timelinePanel) {
+        timelinePanel.style.display = 'none';
+        layersPanel.style.display = 'flex';
+        // Update tab indicators
+        document.querySelectorAll('.timeline-tabs .timeline-tab').forEach(tab => {
+          tab.classList.remove('active');
+        });
+        document.querySelectorAll('[data-tab="layers"]').forEach(tab => {
+          tab.classList.add('active');
+        });
+      }
+    }
+
+    function showTimelinePanel() {
+      // Called when not editing a Slide type to show timeline panel
+      const timelinePanel = document.getElementById('timeline-panel');
+      const layersPanel = document.getElementById('layers-panel');
+      
+      if (timelinePanel && layersPanel) {
+        timelinePanel.style.display = 'flex';
+        layersPanel.style.display = 'none';
+        // Update tab indicators
+        document.querySelectorAll('.timeline-tabs .timeline-tab').forEach(tab => {
+          tab.classList.remove('active');
+        });
+        document.querySelectorAll('[data-tab="timeline"]').forEach(tab => {
+          tab.classList.add('active');
+        });
+        renderTimeline();
+      }
+    }
+
     function selectSlide(index) {
       editorState.selectedSlideIndex = index;
       const selectedSlide = editorState.currentSlideshow.slides[index];
-      renderLayers(selectedSlide);
+      
+      // Show layers panel for Slide type, timeline for others
+      if (selectedSlide && selectedSlide.type === 'slide') {
+        showLayersPanel();
+        renderLayers(selectedSlide);
+      } else {
+        showTimelinePanel();
+      }
+      
       renderSlides();
+      renderTimeline();
       
       // Show/hide visual editor for slide type
       const visualEditor = document.getElementById('visual-editor');
@@ -1338,9 +1761,16 @@
     function updateHistoryButtons() {
       const undoBtn = document.getElementById('undo-btn');
       const redoBtn = document.getElementById('redo-btn');
+      const undoBtnLayers = document.getElementById('undo-btn-layers');
+      const redoBtnLayers = document.getElementById('redo-btn-layers');
       
-      if (undoBtn) undoBtn.disabled = !editorState.canUndo();
-      if (redoBtn) redoBtn.disabled = !editorState.canRedo();
+      const canUndo = editorState.canUndo();
+      const canRedo = editorState.canRedo();
+      
+      if (undoBtn) undoBtn.disabled = !canUndo;
+      if (redoBtn) redoBtn.disabled = !canRedo;
+      if (undoBtnLayers) undoBtnLayers.disabled = !canUndo;
+      if (redoBtnLayers) redoBtnLayers.disabled = !canRedo;
     }
 
     function deleteSlide(index) {
@@ -1354,6 +1784,7 @@
         renderSlides();
         renderProperties();
         renderLayers(null);
+        showTimelinePanel();
         showToast('All slides deleted');
       }
     }
@@ -1449,6 +1880,7 @@
           renderSlides();
           renderProperties();
           renderLayers(null);
+          showTimelinePanel();
           updateHistoryButtons();
           closeModal('load-modal');
           showToast('Slideshow loaded!');
