@@ -185,6 +185,12 @@
       cursor: grabbing;
     }
 
+    .slides-list.drag-over {
+      background: rgba(88, 166, 255, 0.1);
+      border-color: var(--accent);
+      box-shadow: inset 0 0 10px rgba(88, 166, 255, 0.2);
+    }
+
     .slide-header {
       display: flex;
       justify-content: space-between;
@@ -585,23 +591,23 @@
     <aside class="sidebar">
       <h2>📚 Slide Types</h2>
       <div class="slide-templates" id="slide-templates">
-        <div class="slide-template" data-type="text">
+        <div class="slide-template" data-type="text" draggable="true">
           <div class="template-icon">📝</div>
           <div class="template-name">Text Slide</div>
         </div>
-        <div class="slide-template" data-type="image">
+        <div class="slide-template" data-type="image" draggable="true">
           <div class="template-icon">🖼️</div>
           <div class="template-name">Image</div>
         </div>
-        <div class="slide-template" data-type="weather">
+        <div class="slide-template" data-type="weather" draggable="true">
           <div class="template-icon">🌤️</div>
           <div class="template-name">Weather</div>
         </div>
-        <div class="slide-template" data-type="time">
+        <div class="slide-template" data-type="time" draggable="true">
           <div class="template-icon">🕐</div>
           <div class="template-name">Time & Date</div>
         </div>
-        <div class="slide-template" data-type="composite">
+        <div class="slide-template" data-type="composite" draggable="true">
           <div class="template-icon">🎨</div>
           <div class="template-name">Composite</div>
         </div>
@@ -747,6 +753,11 @@
         ghostClass: 'sortable-ghost',
         dragClass: 'sortable-drag',
         handle: '.slide-item',
+        group: {
+          name: 'slides',
+          pull: 'clone',
+          put: false
+        },
         onEnd: function(evt) {
           // Update the slides array order
           const movedSlide = currentSlideshow.slides.splice(evt.oldIndex, 1)[0];
@@ -754,25 +765,41 @@
           renderSlides();
         }
       });
-
+      
       // Make slide templates draggable
       const templates = document.querySelectorAll('.slide-template');
       templates.forEach(template => {
+        template.addEventListener('dragstart', (e) => {
+          const type = template.getAttribute('data-type');
+          e.dataTransfer.effectAllowed = 'copy';
+          e.dataTransfer.setData('slideType', type);
+        });
+        
         template.addEventListener('click', () => {
           const type = template.getAttribute('data-type');
           addSlide(type);
         });
       });
-    }
-
-    function addSlide(type) {
-      const slide = createSlideTemplate(type);
-      currentSlideshow.slides.push(slide);
-      renderSlides();
-      updateSlideCount();
       
-      // Select the new slide
-      selectSlide(currentSlideshow.slides.length - 1);
+      // Add drop zone handlers to slides container
+      container.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        container.classList.add('drag-over');
+      });
+      
+      container.addEventListener('dragleave', () => {
+        container.classList.remove('drag-over');
+      });
+      
+      container.addEventListener('drop', (e) => {
+        e.preventDefault();
+        container.classList.remove('drag-over');
+        const slideType = e.dataTransfer.getData('slideType');
+        if (slideType) {
+          addSlide(slideType);
+        }
+      });
     }
 
     function createSlideTemplate(type) {

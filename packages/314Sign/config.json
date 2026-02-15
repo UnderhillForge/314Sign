@@ -1,7 +1,7 @@
 {
   "version": "1.0.1.1",
   "bg": "backgd.jpg",
-  "font": "Georgia, serif",
+  "font": "'Comic Sans MS', cursive",
   "headerFont": "Arial, sans-serif",
   "headerText": "Specials",
   "headerSizePercent": 20,
