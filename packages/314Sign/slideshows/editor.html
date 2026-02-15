@@ -8,6 +8,9 @@
   <!-- Sortable.js for drag and drop -->
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.1/Sortable.min.js"></script>
   
+  <!-- SVG Edit - Full editor from CDN -->
+  <link href="https://unpkg.com/svgedit@latest/dist/editor/svgedit.css" rel="stylesheet"></link>
+  
   <style>
     * {
       margin: 0;
@@ -1227,7 +1230,100 @@
     </div>
   </div>
 
+  <!-- SVG Editor Modal for Slide Type -->
+  <div class="modal" id="svg-editor-modal" style="z-index: 1002;">
+    <div class="modal-content" style="width: 95%; height: 95vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <h2>SVG Editor</h2>
+        <button class="btn btn-icon btn-secondary" onclick="closeSvgEditor()">✕</button>
+      </div>
+      <div id="svg-editor-container" style="flex: 1; min-height: 0;"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeSvgEditor()">Cancel</button>
+        <button class="btn btn-success" onclick="saveSvgEditor()">Save SVG</button>
+      </div>
+    </div>
+  </div>
+
   <script>
+    // ============ SVG EDITOR GLOBALS ============
+    let svgEditor = null;
+    let currentSvgSlideIndex = null;
+
+    async function initSvgEditor() {
+      // Dynamically load SVG Editor from CDN
+      try {
+        const module = await import('https://unpkg.com/svgedit@latest/dist/editor/Editor.js');
+        return module.default;
+      } catch (error) {
+        console.error('Failed to load SVG Editor:', error);
+        return null;
+      }
+    }
+
+    async function openSvgEditor(index) {
+      const slide = editorState.currentSlideshow.slides[index];
+      if (slide.type !== 'slide') return;
+
+      currentSvgSlideIndex = index;
+      const container = document.getElementById('svg-editor-container');
+      container.innerHTML = '';
+
+      try {
+        const Editor = await initSvgEditor();
+        if (!Editor) {
+          showToast('Failed to load SVG Editor');
+          return;
+        }
+
+        svgEditor = new Editor(container);
+        svgEditor.setConfig({
+          allowInitialUserOverride: true,
+          noDefaultExtensions: false,
+          userExtensions: []
+        });
+
+        await svgEditor.init();
+
+        // Load existing SVG content if available
+        if (slide.svgContent) {
+          const canvas = svgEditor.canvas || svgEditor.svgCanvas;
+          await canvas.setSvgString(slide.svgContent);
+        }
+
+        showModal('svg-editor-modal');
+      } catch (error) {
+        console.error('SVG Editor error:', error);
+        showToast('Error opening SVG editor');
+      }
+    }
+
+    async function saveSvgEditor() {
+      if (!svgEditor || currentSvgSlideIndex === null) return;
+
+      try {
+        const canvas = svgEditor.canvas || svgEditor.svgCanvas;
+        const svgContent = await canvas.getSvgString();
+
+        const slide = editorState.currentSlideshow.slides[currentSvgSlideIndex];
+        slide.svgContent = svgContent;
+
+        closeModal('svg-editor-modal');
+        renderSlides();
+        renderTimeline();
+        showToast('SVG saved successfully');
+      } catch (error) {
+        console.error('Error saving SVG:', error);
+        showToast('Error saving SVG');
+      }
+    }
+
+    function closeSvgEditor() {
+      closeModal('svg-editor-modal');
+      svgEditor = null;
+      currentSvgSlideIndex = null;
+    }
+
     // ============ SLIDE TYPE REGISTRY ============
     const slideTypeRegistry = {
       slide: {
@@ -1601,7 +1697,11 @@
         case 'time':
           return { ...base, format: '12h', showDate: true };
         case 'slide':
-          return { ...base, elements: [] };
+          // Create a blank SVG canvas
+          const blankSvg = `<svg viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+            <rect width="1920" height="1080" fill="#000000"/>
+          </svg>`;
+          return { ...base, svgContent: blankSvg };
         default:
           return base;
       }
@@ -1660,7 +1760,7 @@
     function getSlidePreview(slide) {
       switch (slide.type) {
         case 'slide':
-          return `Slide (${slide.elements?.length || 0} elements)`;
+          return `SVG Slide${slide.svgContent ? ' ✓' : ' (empty)'}`;
         case 'weather':
           return 'Weather forecast';
         case 'time':
@@ -1838,28 +1938,17 @@
       editorState.selectedSlideIndex = index;
       const selectedSlide = editorState.currentSlideshow.slides[index];
       
-      // Show layers panel for Slide type, timeline for others
-      if (selectedSlide && selectedSlide.type === 'slide') {
-        showLayersPanel();
-        renderLayers(selectedSlide);
-      } else {
-        showTimelinePanel();
-      }
+      // Always show timeline panel - no more inline visual editor
+      showTimelinePanel();
       
       renderSlides();
       renderTimeline();
       
-      // Show/hide visual editor for slide type
+      // Hide visual editor since we're using SVG Edit
       const visualEditor = document.getElementById('visual-editor');
       const backBtn = document.getElementById('back-to-timeline-btn');
-      if (selectedSlide && selectedSlide.type === 'slide') {
-        visualEditor.classList.add('active');
-        if (backBtn) backBtn.style.display = 'inline-block';
-        renderCanvas();
-      } else {
-        visualEditor.classList.remove('active');
-        if (backBtn) backBtn.style.display = 'none';
-      }
+      visualEditor.classList.remove('active');
+      if (backBtn) backBtn.style.display = 'none';
     }
 
     function renderProperties() {
@@ -2038,10 +2127,9 @@
       
       const slide = editorState.currentSlideshow.slides[index];
       
-      // For slide type, show canvas instead
+      // For slide type, open SVG editor
       if (slide.type === 'slide') {
-        editorState.selectedSlideIndex = index;
-        selectSlide(index);
+        openSvgEditor(index);
         return;
       }
       
@@ -2430,6 +2518,11 @@
     }
 
     function addTextElement() {
+      const svgContent = `<svg viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+        <rect width="1920" height="1080" fill="#000000"/>
+        <text x="960" y="540" font-size="48" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">Edit me</text>
+      </svg>`;
+      
       addElement({
         type: 'text',
         content: 'Edit me',
