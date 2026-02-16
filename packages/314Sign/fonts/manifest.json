@@ -1,0 +1,100 @@
+{
+  "curatedFonts": [
+    {
+      "name": "Roboto",
+      "filename": "Roboto-Regular.woff2",
+      "family": "Roboto, sans-serif",
+      "category": "sans-serif",
+      "weight": 400,
+      "style": "normal"
+    },
+    {
+      "name": "Open Sans",
+      "filename": "OpenSans-Regular.woff2",
+      "family": "Open Sans, sans-serif",
+      "category": "sans-serif",
+      "weight": 400,
+      "style": "normal"
+    },
+    {
+      "name": "Lato",
+      "filename": "Lato-Regular.woff2",
+      "family": "Lato, sans-serif",
+      "category": "sans-serif",
+      "weight": 400,
+      "style": "normal"
+    },
+    {
+      "name": "Source Sans Pro",
+      "filename": "SourceSansPro-Regular.woff2",
+      "family": "Source Sans Pro, sans-serif",
+      "category": "sans-serif",
+      "weight": 400,
+      "style": "normal"
+    },
+    {
+      "name": "Nunito",
+      "filename": "Nunito-Regular.woff2",
+      "family": "Nunito, sans-serif",
+      "category": "sans-serif",
+      "weight": 400,
+      "style": "normal"
+    },
+    {
+      "name": "Raleway",
+      "filename": "Raleway-Regular.woff2",
+      "family": "Raleway, sans-serif",
+      "category": "sans-serif",
+      "weight": 400,
+      "style": "normal"
+    },
+    {
+      "name": "Indie Flower",
+      "filename": "IndieFlower-Regular.woff2",
+      "family": "Indie Flower, cursive",
+      "category": "display",
+      "weight": 400,
+      "style": "normal"
+    },
+    {
+      "name": "Permanent Marker",
+      "filename": "PermanentMarker-Regular.woff2",
+      "family": "Permanent Marker, cursive",
+      "category": "display",
+      "weight": 400,
+      "style": "normal"
+    },
+    {
+      "name": "Caveat",
+      "filename": "Caveat-Regular.woff2",
+      "family": "Caveat, cursive",
+      "category": "display",
+      "weight": 400,
+      "style": "normal"
+    },
+    {
+      "name": "Amatic SC",
+      "filename": "AmaticSC-Regular.woff2",
+      "family": "Amatic SC, cursive",
+      "category": "display",
+      "weight": 400,
+      "style": "normal"
+    },
+    {
+      "name": "Bebas Neue",
+      "filename": "BebasNeue-Regular.woff2",
+      "family": "Bebas Neue, sans-serif",
+      "category": "block",
+      "weight": 400,
+      "style": "normal"
+    },
+    {
+      "name": "Oswald",
+      "filename": "Oswald-Regular.woff2",
+      "family": "Oswald, sans-serif",
+      "category": "block",
+      "weight": 400,
+      "style": "normal"
+    }
+  ]
+}

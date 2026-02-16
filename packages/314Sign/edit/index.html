@@ -986,32 +986,61 @@ Welcome to our special ${menuName.toLowerCase()} menu!
       const contentSizeInput = document.getElementById('contentSize');
       const contentSizeValue = document.getElementById('contentSizeValue');
 
-      return fetch('../api/config')
-        .then(r => r.ok ? r.json() : { data: {} })
-        .then(response => {
-          const config = response.data || {};
+      return Promise.all([
+        fetch('../api/fonts').then(r => r.ok ? r.json() : { data: { curatedFonts: [], customFonts: [] } }),
+        fetch('../api/config').then(r => r.ok ? r.json() : { data: {} })
+      ]).then(([fontsResponse, configResponse]) => {
+          const fontData = fontsResponse.data || {};
+          const config = configResponse.data || {};
           
-          // Load available fonts from config (same as /design)
-          const availableFonts = config.availableFonts || {
-            'Lato': 'Lato, sans-serif',
-            'Arial': 'Arial, sans-serif',
-            'Georgia': 'Georgia, serif',
-            'Comic Sans': "'Comic Sans MS', cursive",
-            'Indie Flower': "'Indie Flower', cursive",
-            'Permanent Marker': "'Permanent Marker', cursive",
-            'Caveat': "'Caveat', cursive",
-            'Dancing Script': "'Dancing Script', cursive"
-          };
+          const curatedFonts = fontData.curatedFonts || [];
+          const customFonts = fontData.customFonts || [];
 
-          // Populate font dropdown
+          // Populate font dropdown with optgroups
           fontSelect.innerHTML = '';
-          Object.keys(availableFonts).forEach(fontName => {
-            const option = document.createElement('option');
-            option.value = availableFonts[fontName];
-            option.textContent = fontName;
-            option.selected = (availableFonts[fontName] === config.font);
-            fontSelect.appendChild(option);
+          
+          // Group curated fonts by category
+          const categories = { 'sans-serif': [], 'display': [], 'block': [] };
+          curatedFonts.forEach(font => {
+            if (categories[font.category]) {
+              categories[font.category].push(font);
+            }
           });
+          
+          // Add curated fonts with optgroups
+          Object.entries(categories).forEach(([category, fonts]) => {
+            if (fonts.length === 0) return;
+            
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = category.charAt(0).toUpperCase() + category.slice(1) + ' Fonts';
+            
+            fonts.forEach(font => {
+              const option = document.createElement('option');
+              option.value = font.family;
+              option.textContent = font.name;
+              option.selected = (font.family === config.font);
+              optgroup.appendChild(option);
+            });
+            
+            fontSelect.appendChild(optgroup);
+          });
+          
+          // Add custom fonts if any
+          if (customFonts.length > 0) {
+            const customGroup = document.createElement('optgroup');
+            customGroup.label = 'Custom Fonts';
+            
+            customFonts.forEach(font => {
+              const option = document.createElement('option');
+              const fontFamily = `'${font.filename}', sans-serif`;
+              option.value = fontFamily;
+              option.textContent = font.name;
+              option.selected = (fontFamily === config.font);
+              customGroup.appendChild(option);
+            });
+            
+            fontSelect.appendChild(customGroup);
+          }
 
           // Set content size from config
           const contentSize = Number.isFinite(config.contentSizePercent) 
@@ -1032,10 +1061,10 @@ Welcome to our special ${menuName.toLowerCase()} menu!
           return Promise.resolve();
         })
         .catch(() => {
-          // If API fails, just show default fonts
+          // If API fails, show minimal fallback
           fontSelect.innerHTML = `
             <option value="Arial, sans-serif">Arial</option>
-            <option value="'Comic Sans MS', cursive">Comic Sans</option>
+            <option value="Roboto, sans-serif">Roboto</option>
           `;
           return Promise.resolve();
         });

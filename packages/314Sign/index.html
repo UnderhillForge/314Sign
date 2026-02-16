@@ -260,15 +260,21 @@ const __orientationParam = parseInt(new URLSearchParams(window.location.search).
     // Load and inject custom fonts
     function loadCustomFonts() {
       return fetch('/api/fonts')
-        .then(r => r.ok ? r.json() : { data: { customFonts: [] } })
+        .then(r => r.ok ? r.json() : { data: { curatedFonts: [], customFonts: [] } })
         .then(response => {
-          const fonts = response.data?.customFonts || [];
-          if (fonts.length === 0) return;
+          const curatedFonts = response.data?.curatedFonts || [];
+          const customFonts = response.data?.customFonts || [];
+          const allFonts = [...curatedFonts, ...customFonts];
+          
+          if (allFonts.length === 0) return;
 
-          const formatMap = { WOFF2: 'woff2', WOFF: 'woff', TTF: 'truetype' };
-          const fontFaceCSS = fonts.map(font => {
-            const format = formatMap[font.format] || 'truetype';
-            return `@font-face {\n  font-family: '${font.filename}';\n  src: url('${font.url}') format('${format}');\n  font-display: swap;\n}`;
+          const fontFaceCSS = allFonts.map(font => {
+            // Curated fonts use font.family (e.g., "Roboto"), custom fonts use font.filename
+            const fontFamily = font.family ? font.family.split(',')[0].trim().replace(/['"]/g, '') : font.filename;
+            const format = font.format ? font.format.toLowerCase() : 'woff2';
+            const formatString = format === 'ttf' ? 'truetype' : format;
+            
+            return `@font-face {\n  font-family: '${fontFamily}';\n  src: url('${font.url}') format('${formatString}');\n  font-weight: ${font.weight || 400};\n  font-style: ${font.style || 'normal'};\n  font-display: swap;\n}`;
           }).join('\n');
           
           let styleTag = document.getElementById('customFonts');

@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>Design Kiosk Page</title>
   <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
-  <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&family=Permanent+Marker&family=Caveat&family=Dancing+Script&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
@@ -75,22 +74,29 @@
     <div class="section">
       <label>2. Header Font Style</label>
       <select id="headerFont">
-        <!-- Populated dynamically from page.json availableFonts -->
+        <!-- Populated dynamically from /api/fonts -->
       </select>
     </div>
 
     <div class="section">
-      <label>3. Header Text</label>
+      <label>3. Content Font Style</label>
+      <select id="contentFont">
+        <!-- Populated dynamically from /api/fonts -->
+      </select>
+    </div>
+
+    <div class="section">
+      <label>4. Header Text</label>
       <input type="text" id="headerText" placeholder="Specials" maxlength="50" />
     </div>
     
     <div class="section">
-      <label for="headerSize">4. Header Size (% of screen): <span id="headerSizeValue">20%</span></label>
+      <label for="headerSize">5. Header Size (% of screen): <span id="headerSizeValue">20%</span></label>
       <input type="range" id="headerSize" min="20" max="60" value="20" step="1" style="width: 100%" />
     </div>
     
     <div class="section">
-      <label for="bgBrightness">5. Background Brightness: <span id="bgBrightnessValue">100%</span></label>
+      <label for="bgBrightness">6. Background Brightness: <span id="bgBrightnessValue">100%</span></label>
       <input type="range" id="bgBrightness" min="20" max="150" value="100" step="5" style="width: 100%" />
       <small style="color: #666; display: block; margin-top: 0.25rem;">Lower values darken, higher values brighten</small>
     </div>
@@ -122,7 +128,7 @@
     </div>
 
     <div class="section">
-      <label>6. Auto-Format Colors</label>
+      <label>7. Auto-Format Colors</label>
       <small style="color: #999; display: block; margin-bottom: 0.75rem;">Choose colors for the ✨ Auto-Format button in the editor</small>
       
       <label style="font-size: 0.9rem; margin-top: 0.5rem;">Item Names:</label>
@@ -180,6 +186,7 @@
     // const logoUpload = document.getElementById('logoUpload');
     // const logoPreview = document.getElementById('logoPreview');
     const headerFontSelect = document.getElementById('headerFont');
+    const contentFontSelect = document.getElementById('contentFont');
     const headerTextInput = document.getElementById('headerText');
     const headerSizeInput = document.getElementById('headerSize');
     const headerSizeValue = document.getElementById('headerSizeValue');
@@ -428,30 +435,102 @@
       
       // Load fonts from API and config
       Promise.all([
-        fetch('../api/fonts').then(r => r.ok ? r.json() : { data: { allFonts: {} } }),
+        fetch('../api/fonts').then(r => r.ok ? r.json() : { data: { curatedFonts: [], customFonts: [] } }),
         fetch('../api/config?' + Date.now(), { cache: 'no-store' })
           .then(r => r.ok ? r.json() : { data: {} })
       ]).then(([fontsResponse, configResponse]) => {
         const fontData = fontsResponse.data || {};
         const cfg = configResponse.data || {};
 
-        console.log('[Fonts] Loaded web-safe fonts:', Object.keys(fontData.allFonts || {}).length);
+        const curatedFonts = fontData.curatedFonts || [];
+        const customFonts = fontData.customFonts || [];
+        
+        console.log('[Fonts] Loaded', curatedFonts.length, 'curated fonts and', customFonts.length, 'custom fonts');
 
-        // Use web-safe fonts from API
-        const fonts = fontData.allFonts || {
-          "Arial": "Arial, sans-serif",
-          "Times New Roman": "Times New Roman, serif"
-        };
+        // Load fonts into @font-face rules for live preview
+        const allFonts = [...curatedFonts, ...customFonts];
+        if (allFonts.length > 0) {
+          const fontFaceCSS = allFonts.map(font => {
+            const fontFamily = font.family ? font.family.split(',')[0].trim().replace(/['"]/g, '') : font.filename;
+            const format = font.format ? font.format.toLowerCase() : 'woff2';
+            const formatString = format === 'ttf' ? 'truetype' : format;
+            
+            return `@font-face {
+  font-family: '${fontFamily}';
+  src: url('..${font.url}') format('${formatString}');
+  font-weight: ${font.weight || 400};
+  font-style: ${font.style || 'normal'};
+  font-display: swap;
+}`;
+          }).join('\\n');
+          
+          let styleTag = document.getElementById('customFonts');
+          if (!styleTag) {
+            styleTag = document.createElement('style');
+            styleTag.id = 'customFonts';
+            document.head.appendChild(styleTag);
+          }
+          styleTag.textContent = fontFaceCSS;
+        }
 
-        // Populate font dropdown
-        headerFontSelect.innerHTML = '';
-        Object.entries(fonts).forEach(([name, value]) => {
-          const headerOption = document.createElement('option');
-          headerOption.value = value;
-          headerOption.textContent = name;
-          headerFontSelect.appendChild(headerOption);
-        });
-        console.log('Fonts loaded:', Object.keys(fonts).length + ' web-safe fonts');
+        // Helper to populate font dropdown with categories
+        function populateFontDropdown(selectElement, selectedValue) {
+          selectElement.innerHTML = '';
+          
+          // Group curated fonts by category
+          const categories = { 'sans-serif': [], 'display': [], 'block': [] };
+          curatedFonts.forEach(font => {
+            if (categories[font.category]) {
+              categories[font.category].push(font);
+            }
+          });
+          
+          // Add curated fonts with optgroups
+          Object.entries(categories).forEach(([category, fonts]) => {
+            if (fonts.length === 0) return;
+            
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = category.charAt(0).toUpperCase() + category.slice(1) + ' Fonts';
+            
+            fonts.forEach(font => {
+              const option = document.createElement('option');
+              option.value = font.family;
+              option.textContent = font.name;
+              option.style.fontFamily = font.family.split(',')[0].trim().replace(/['"]/g, '');
+              optgroup.appendChild(option);
+            });
+            
+            selectElement.appendChild(optgroup);
+          });
+          
+          // Add custom fonts if any
+          if (customFonts.length > 0) {
+            const customGroup = document.createElement('optgroup');
+            customGroup.label = 'Custom Fonts';
+            
+            customFonts.forEach(font => {
+              const option = document.createElement('option');
+              const fontFamily = `'${font.filename}', sans-serif`;
+              option.value = fontFamily;
+              option.textContent = font.name;
+              option.style.fontFamily = font.filename;
+              customGroup.appendChild(option);
+            });
+            
+            selectElement.appendChild(customGroup);
+          }
+          
+          // Set selected value
+          if (selectedValue) {
+            selectElement.value = selectedValue;
+          }
+        }
+
+        // Populate both font dropdowns
+        populateFontDropdown(headerFontSelect, cfg.headerFont || cfg.font);
+        populateFontDropdown(contentFontSelect, cfg.font);
+        
+        console.log('Font dropdowns populated');
           
           if (cfg.bg) {
             if (cfg.bg.startsWith('data:')) {
@@ -629,6 +708,7 @@
             ('bg/' + (uploadResults.find(r => r.type === 'bg')?.filename || selectedBg)) :
             selectedBg,
           headerFont: headerFontSelect.value.includes(',') ? headerFontSelect.value : headerFontSelect.value + ', sans-serif',
+          font: contentFontSelect.value.includes(',') ? contentFontSelect.value : contentFontSelect.value + ', sans-serif',
           headerText: headerTextInput.value.trim() || 'Specials',
           headerSizePercent: parseFloat(headerSizeInput.value),
           bgBrightness: parseFloat(bgBrightnessInput.value) / 100,
