@@ -12,7 +12,7 @@
   "qrBadgeEnabled": true,
   "qrBadgeTitle": "Scan for menu! You must be on MAH_Guest to view.",
   "qrBadgeUrl": "http://314sign.local/guest",
-  "qrBadgeImage": "qr-menu.png",
+  "qrBadgeImage": "",
   "autoFormatItemColor": "w",
   "autoFormatPriceColor": "y",
   "autoFormatDescColor": "lg",
