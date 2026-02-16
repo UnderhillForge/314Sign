@@ -666,7 +666,7 @@ const __orientationParam = parseInt(new URLSearchParams(window.location.search).
       setupOrientationListener();
     });
     checkReloadTrigger();
-    setInterval(checkReloadTrigger, 10000);
+    setInterval(checkReloadTrigger, 3000); // Check for config changes every 3 seconds
     window.addEventListener('resize', () => applyResponsiveSizing(lastConfig));
   </script>
 </body>
