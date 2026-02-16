@@ -219,7 +219,7 @@ const __orientationParam = parseInt(new URLSearchParams(window.location.search).
      * @property {function(): void} unlock - Unlock the orientation
      */
 
-    let currentMenu = 'dinner';
+    let currentMenu = null; // Will be set by schedule rules
     let isPlayingSlideshow = false;
     let clock24Hour = true;
     let lastConfig = {};
@@ -670,12 +670,12 @@ const __orientationParam = parseInt(new URLSearchParams(window.location.search).
 
     // Load initial menu (unless a slideshow is being played)
     loadCustomFonts().then(() => {
-      // Skip loading menu if slideshow parameter is in URL
-      if (!slideshowParam && !isPlayingSlideshow) {
-        console.log('[INIT] Loading menu: dinner');
-        loadMenu('dinner');
-      } else if (slideshowParam) {
+      // Skip loading menu if slideshow parameter is in URL - let rules determine the menu
+      if (slideshowParam) {
         console.log('[INIT] Slideshow parameter detected, skipping menu load');
+      } else {
+        console.log('[INIT] Checking schedule rules for initial menu');
+        checkScheduleRules(); // Let rules determine which menu to load
       }
       loadConfig();
       setupOrientationListener();
