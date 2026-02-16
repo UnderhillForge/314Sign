@@ -406,7 +406,7 @@ async function startKiosk() {
     })
     if (response.ok) {
       console.log('[KIOSK] Applied xrandr configuration at startup')
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      await new Promise((resolve) => setTimeout(resolve, 1000))
     } else {
       console.warn('[KIOSK] Failed to apply xrandr configuration:', response.status)
     }
@@ -414,13 +414,24 @@ async function startKiosk() {
     console.error('[KIOSK] Error applying xrandr configuration:', error)
   }
 
+  console.log('[KIOSK] Creating display windows...')
   await refreshDisplayWindows(true)
   
+  // First retry after 2 seconds to ensure all windows load properly
   setTimeout(() => {
+    console.log('[KIOSK] First refresh retry at 2s...')
     refreshDisplayWindows(true).catch((error) => {
       console.error('[KIOSK] Failed to refresh display config (startup retry):', error)
     })
   }, 2000)
+  
+  // Second retry after 5 seconds for safety
+  setTimeout(() => {
+    console.log('[KIOSK] Second refresh retry at 5s...')
+    refreshDisplayWindows(true).catch((error) => {
+      console.error('[KIOSK] Failed to refresh display config (second retry):', error)
+    })
+  }, 5000)
   setInterval(() => {
     refreshDisplayWindows().catch((error) => {
       console.error('[KIOSK] Failed to refresh display config:', error)
