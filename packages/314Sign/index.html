@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Daily Specials</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     :root {
@@ -83,6 +84,13 @@
       padding: 8px;
       border-radius: 0.8rem;
     }
+    .qr-badge #qr-canvas {
+      width: 172px;
+      height: 172px;
+      background: #fff;
+      padding: 8px;
+      border-radius: 0.8rem;
+    }
     .qr-text {
       font-size: 1.8rem;
       line-height: 1.1;
@@ -99,6 +107,25 @@
         transform-origin: bottom right;
       }
     }
+    
+    /* Guest view styling - mobile-optimized lite version */
+    body.guest-view header {
+      height: 8vh;
+      font-size: 2.5vh;
+      padding: 0.75rem;
+    }
+    body.guest-view #clock {
+      font-size: 3.5vh;
+    }
+    body.guest-view #specials {
+      padding: 1.5rem;
+      font-size: calc(var(--content-size, 1.5rem) * 0.75);
+      line-height: 1.6;
+    }
+    body.guest-view .version {
+      font-size: 0.7rem;
+      padding: 0.35rem;
+    }
   </style>
 </head>
 <body>
@@ -110,7 +137,8 @@
   <div class="version">314Sign - © 2026 J Stekervetz. All Rights Reserved</div>
 
   <div class="qr-badge" id="qr-badge" style="display:none">
-    <img id="qr-image" src="qr-menu.png" alt="Scan for menu" />
+    <div id="qr-canvas"></div>
+    <img id="qr-image" style="display:none;" alt="Scan for menu" />
     <div class="qr-text">
       <div id="qr-title">Scan for menu</div>
       <span class="qr-url" id="qr-url">http://314sign.local/</span>
@@ -189,6 +217,11 @@ const __orientationParam = parseInt(new URLSearchParams(window.location.search).
     const urlParams = new URLSearchParams(window.location.search);
     const isGuestView = urlParams.get('guest') === '1';
     const slideshowParam = urlParams.get('slideshow');
+    
+    // Apply guest view styling
+    if (isGuestView) {
+      document.body.classList.add('guest-view');
+    }
 
     const headerEl = document.getElementById('header');
     const clockEl = document.getElementById('clock');
@@ -239,17 +272,39 @@ const __orientationParam = parseInt(new URLSearchParams(window.location.search).
     }
 
     window.updateQrVisibility = function updateQrVisibility(cfg = lastConfig) {
-      const defaultUrl = 'http://' + window.location.hostname + '/?guest=1';
+      const defaultUrl = 'http://' + window.location.hostname + '/guest';
       const qrEnabled = cfg.qrBadgeEnabled !== false && !isGuestView && !slideshowParam && !isPlayingSlideshow;
 
       if (qrEnabled) {
         qrBadgeEl.style.display = 'flex';
         qrTitleEl.textContent = cfg.qrBadgeTitle || 'Scan for menu';
-        qrUrlEl.textContent = cfg.qrBadgeUrl || defaultUrl;
-        if (cfg.qrBadgeImage) {
+        const targetUrl = cfg.qrBadgeUrl || defaultUrl;
+        qrUrlEl.textContent = targetUrl;
+        
+        // If custom image is specified, use it; otherwise generate QR dynamically
+        const qrCanvasDiv = document.getElementById('qr-canvas');
+        if (cfg.qrBadgeImage && cfg.qrBadgeImage.trim()) {
+          // Use custom uploaded image
+          qrImageEl.style.display = 'block';
+          qrCanvasDiv.style.display = 'none';
           qrImageEl.src = cfg.qrBadgeImage;
         } else {
-          qrImageEl.src = 'qr-menu.png';
+          // Generate QR code dynamically
+          qrImageEl.style.display = 'none';
+          qrCanvasDiv.style.display = 'block';
+          qrCanvasDiv.innerHTML = ''; // Clear previous QR code
+          try {
+            new QRCode(qrCanvasDiv, {
+              text: targetUrl,
+              width: 156,
+              height: 156,
+              colorDark: '#000000',
+              colorLight: '#ffffff',
+              correctLevel: QRCode.CorrectLevel.M
+            });
+          } catch (e) {
+            console.error('Failed to generate QR code:', e);
+          }
         }
       } else {
         qrBadgeEl.style.display = 'none';

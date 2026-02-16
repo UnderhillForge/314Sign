@@ -6,6 +6,7 @@
   <title>Design Kiosk Page</title>
   <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&family=Permanent+Marker&family=Caveat&family=Dancing+Script&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     html, body { height:100%; font-family: -apple-system, sans-serif; background:#1a1a1a; color:#e0e0e0; }
@@ -113,9 +114,13 @@
       <label style="margin-top:0.75rem">QR Badge Title</label>
       <input type="text" id="qrBadgeTitle" placeholder="Scan for menu" maxlength="60" />
       <label style="margin-top:0.75rem">QR Badge URL</label>
-      <input type="text" id="qrBadgeUrl" placeholder="http://314sign.local/" maxlength="200" />
-      <label style="margin-top:0.75rem">QR Badge Image Path</label>
-      <input type="text" id="qrBadgeImage" placeholder="qr-menu.png" maxlength="200" />
+      <input type="text" id="qrBadgeUrl" placeholder="http://314sign.local/guest" maxlength="200" />
+      <div style="margin-top:0.75rem; padding:0.75rem; background:#1a1a1a; border-radius:8px; text-align:center;">
+        <div id="qrGenerated" style="display:inline-block;"></div>
+        <div style="margin-top:0.5rem; font-size:0.85rem; color:#999;">QR code auto-generated from URL above</div>
+      </div>
+      <label style="margin-top:0.75rem">QR Badge Image Path (optional override)</label>
+      <input type="text" id="qrBadgeImage" placeholder="Leave empty for auto-generation" maxlength="200" />
       <label style="margin-top:0.75rem">Or Upload QR Image</label>
       <input type="file" id="qrUpload" accept="image/*" />
       <label style="margin-top:0.75rem">Or Choose From Library</label>
@@ -127,7 +132,7 @@
       </div>
       <img id="qrPreview" class="preview-img" src="" alt="QR preview" />
       <small style="color:#999; display:block; margin-top:0.5rem;">
-        Use a relative path like qr-menu.png or bg/qr.png, or a full URL.
+        Leave empty for auto-generated QR code. To override with a custom image, upload one above or select from the library.
       </small>
     </div>
 
@@ -201,6 +206,8 @@
     const qrBadgeTitleInput = document.getElementById('qrBadgeTitle');
     const qrBadgeUrlInput = document.getElementById('qrBadgeUrl');
     const qrBadgeImageInput = document.getElementById('qrBadgeImage');
+    const qrGeneratedDiv = document.getElementById('qrGenerated');
+    let currentQrCode = null;
     const qrUpload = document.getElementById('qrUpload');
     const qrLibrarySelect = document.getElementById('qrLibrarySelect');
     const qrLibraryReload = document.getElementById('qrLibraryReload');
@@ -224,6 +231,31 @@
     // Update background brightness display
     bgBrightnessInput.addEventListener('input', () => {
       bgBrightnessValue.textContent = bgBrightnessInput.value + '%';
+    });
+    
+    // Generate QR code when URL changes
+    function generateQrCode(url) {
+      if (!url || !qrGeneratedDiv) return;
+      qrGeneratedDiv.innerHTML = '';
+      try {
+        currentQrCode = new QRCode(qrGeneratedDiv, {
+          text: url,
+          width: 200,
+          height: 200,
+          colorDark: '#000000',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      } catch (e) {
+        console.error('Failed to generate QR code:', e);
+      }
+    }
+    
+    qrBadgeUrlInput.addEventListener('input', () => {
+      const url = qrBadgeUrlInput.value.trim();
+      if (url) {
+        generateQrCode(url);
+      }
     });
     
     // Update logo size display
@@ -572,8 +604,11 @@
           // Load QR badge settings
           qrBadgeEnabledCheckbox.checked = cfg.qrBadgeEnabled !== false;
           qrBadgeTitleInput.value = cfg.qrBadgeTitle || 'Scan for menu';
-          qrBadgeUrlInput.value = cfg.qrBadgeUrl || `http://${window.location.hostname}/`;
-          qrBadgeImageInput.value = cfg.qrBadgeImage || 'qr-menu.png';
+          qrBadgeUrlInput.value = cfg.qrBadgeUrl || `http://${window.location.hostname}/guest`;
+          qrBadgeImageInput.value = cfg.qrBadgeImage || '';
+          
+          // Generate QR code from loaded URL
+          generateQrCode(qrBadgeUrlInput.value);
           const qrPreviewSrc = resolvePreviewSrc(qrBadgeImageInput.value);
           if (qrPreviewSrc) {
             qrPreview.src = qrPreviewSrc;
@@ -698,7 +733,7 @@
         const qrUploadResult = uploadResults.find(r => r.type === 'qr');
         const qrImageValue = qrUploadResult
           ? ('media/' + qrUploadResult.filename)
-          : (qrBadgeImageInput.value.trim() || 'qr-menu.png');
+          : (qrBadgeImageInput.value.trim() || ''); // Empty string = dynamic generation
 
         // Build updated config with uploaded filenames
         const updatedConfig = {
@@ -713,7 +748,7 @@
           clock24Hour: clock24HourCheckbox.checked,
           qrBadgeEnabled: qrBadgeEnabledCheckbox.checked,
           qrBadgeTitle: qrBadgeTitleInput.value.trim() || 'Scan for menu',
-          qrBadgeUrl: qrBadgeUrlInput.value.trim() || `http://${window.location.hostname}/`,
+          qrBadgeUrl: qrBadgeUrlInput.value.trim() || `http://${window.location.hostname}/guest`,
           qrBadgeImage: qrImageValue,
           autoFormatItemColor: autoFormatItemColor.value,
           autoFormatPriceColor: autoFormatPriceColor.value,
