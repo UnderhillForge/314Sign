@@ -458,6 +458,14 @@ const __orientationParam = parseInt(new URLSearchParams(window.location.search).
           // Apply orientation lock from config (defaulting to portrait 90° for HDMI-1)
           const orientationValue = lastConfig.displayOrientation || 1; // 1 = landscape-secondary (portrait mode on Raspberry Pi)
           lockOrientation(orientationValue);
+          // Re-apply menu-specific font if a menu is currently loaded
+          if (currentMenu && lastConfig.menuFonts && lastConfig.menuFonts[currentMenu]) {
+            const specialsEl = document.getElementById('specials');
+            if (specialsEl) {
+              specialsEl.style.fontFamily = lastConfig.menuFonts[currentMenu];
+              console.log('[Config] Re-applied menu font:', lastConfig.menuFonts[currentMenu]);
+            }
+          }
         })
         .catch(() => {
           lastConfig = {};
