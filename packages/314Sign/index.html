@@ -615,6 +615,16 @@ const __orientationParam = parseInt(new URLSearchParams(window.location.search).
       currentMenu = normalized;
       specialsEl.innerHTML = 'Loading...';
       
+      // Apply menu-specific font if configured
+      const menuFonts = lastConfig.menuFonts || {};
+      if (menuFonts[normalized] && !isGuestView) {
+        specialsEl.style.fontFamily = menuFonts[normalized];
+        console.log('[Menu] Applied custom font for', normalized, ':', menuFonts[normalized]);
+      } else if (lastConfig.font && !isGuestView) {
+        // Fall back to global font
+        specialsEl.style.fontFamily = lastConfig.font;
+      }
+      
       fetch('/api/menu/' + normalized)
         .then(r => r.json())
         .then(data => {

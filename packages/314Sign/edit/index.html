@@ -1050,7 +1050,7 @@ Welcome to our special ${menuName.toLowerCase()} menu!
           contentSizeValue.textContent = contentSize.toFixed(1) + '%';
 
           // Add event listeners
-          fontSelect.addEventListener('change', () => saveDisplaySetting('font', fontSelect.value));
+          fontSelect.addEventListener('change', () => saveMenuFont());
           contentSizeInput.addEventListener('input', () => {
             contentSizeValue.textContent = contentSizeInput.value + '%';
           });
@@ -1093,6 +1093,65 @@ Welcome to our special ${menuName.toLowerCase()} menu!
         .catch(() => showToast('Failed to save display setting', 'error'));
     }
 
+    // Save font for current menu
+    function saveMenuFont() {
+      if (!currentFile) return;
+      
+      const menuName = currentFile.replace('menus/', '').replace('.txt', '');
+      const selectedFont = document.getElementById('fontSelect').value;
+      
+      // Get current config first
+      fetch('../api/config')
+        .then(r => r.json())
+        .then(response => {
+          const config = response.data || {};
+          const menuFonts = config.menuFonts || {};
+          
+          // Update menuFonts object
+          menuFonts[menuName] = selectedFont;
+          
+          // Save updated config
+          return fetch('../api/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ menuFonts: menuFonts })
+          });
+        })
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(() => {
+          showToast('Menu font saved for ' + menuName, 1000);
+          // Trigger kiosk reload
+          fetch('../api/config/reload-trigger', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ trigger: 1 })
+          }).catch(() => {});
+        })
+        .catch(() => showToast('Failed to save menu font', 'error'));
+    }
+
+    // Load font for current menu
+    function loadMenuFont() {
+      if (!currentFile) return;
+      
+      const menuName = currentFile.replace('menus/', '').replace('.txt', '');
+      
+      fetch('../api/config')
+        .then(r => r.json())
+        .then(response => {
+          const config = response.data || {};
+          const menuFonts = config.menuFonts || {};
+          const fontSelect = document.getElementById('fontSelect');
+          
+          // Set dropdown to menu-specific font, or fall back to global font
+          if (menuFonts[menuName]) {
+            fontSelect.value = menuFonts[menuName];
+          } else if (config.font) {
+            fontSelect.value = config.font;
+          }
+        });
+    }
+
     // Switch between menu files
     function switchMenu(filename) {
       currentFile = filename;
@@ -1131,6 +1190,9 @@ Welcome to our special ${menuName.toLowerCase()} menu!
           textarea.placeholder = "Start typing...";
           
           updatePreview();
+          
+          // Load menu-specific font
+          loadMenuFont();
         })
         .catch(() => {
           // Fallback: try legacy menus/ files if API is unreachable
