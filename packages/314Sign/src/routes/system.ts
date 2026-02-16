@@ -285,4 +285,203 @@ router.post('/restore', upload.single('backup'), async (req, res) => {
   }
 });
 
+// GET /api/system/check-updates - Check GitHub for new releases
+router.get('/check-updates', async (req, res) => {
+  try {
+    const currentVersionPath = path.join(__dirname, '../../version.txt');
+    let currentVersion = '1.0.0';
+    
+    try {
+      const versionContent = await fs.readFile(currentVersionPath, 'utf-8');
+      currentVersion = versionContent.trim();
+    } catch (e) {
+      console.warn('Could not read current version');
+    }
+
+    // Fetch latest release from GitHub API
+    const response = await fetch('https://api.github.com/repos/UnderhillForge/314Sign/releases/latest', {
+      headers: {
+        'Accept': 'application/vnd.github+json',
+        'User-Agent': '314Sign-Updater'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`GitHub API returned ${response.status}`);
+    }
+
+    const release = await response.json() as {
+      tag_name: string;
+      html_url: string;
+      tarball_url: string;
+      body: string;
+      published_at: string;
+    };
+    const latestVersion = release.tag_name.replace(/^v/, ''); // Remove 'v' prefix if present
+    
+    // Compare versions (simple string comparison for now)
+    const isUpdateAvailable = latestVersion !== currentVersion && 
+                              compareVersions(latestVersion, currentVersion) > 0;
+
+    res.json({
+      success: true,
+      data: {
+        currentVersion,
+        latestVersion,
+        updateAvailable: isUpdateAvailable,
+        releaseUrl: release.html_url,
+        downloadUrl: release.tarball_url,
+        releaseNotes: release.body,
+        publishedAt: release.published_at
+      }
+    } as ApiResponse);
+
+  } catch (error) {
+    console.error('Check updates error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to check for updates',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    } as ApiResponse);
+  }
+});
+
+// POST /api/system/install-update - Download and install update from GitHub
+router.post('/install-update', async (req, res) => {
+  try {
+    const { downloadUrl } = req.body;
+    
+    if (!downloadUrl) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing download URL'
+      } as ApiResponse);
+    }
+
+    const tempDir = '/tmp/314sign-update-' + Date.now();
+    const tarballPath = path.join(tempDir, 'update.tar.gz');
+    const rootDir = path.join(__dirname, '../..');
+
+    // Create temp directory
+    await fs.mkdir(tempDir, { recursive: true });
+
+    // Download tarball
+    console.log('Downloading update from:', downloadUrl);
+    const downloadResponse = await fetch(downloadUrl, {
+      headers: {
+        'User-Agent': '314Sign-Updater'
+      }
+    });
+
+    if (!downloadResponse.ok) {
+      throw new Error(`Download failed: ${downloadResponse.status}`);
+    }
+
+    const arrayBuffer = await downloadResponse.arrayBuffer();
+    await fs.writeFile(tarballPath, Buffer.from(arrayBuffer));
+
+    // Extract tarball
+    console.log('Extracting update...');
+    await execPromise(`cd "${tempDir}" && tar -xzf update.tar.gz`);
+
+    // Find extracted directory (GitHub tarballs extract to <user>-<repo>-<hash>/)
+    const files = await fs.readdir(tempDir);
+    const extractedDir = files.find(f => f.startsWith('UnderhillForge-314Sign-') || f.startsWith('314Sign-'));
+    
+    if (!extractedDir) {
+      throw new Error('Could not find extracted directory');
+    }
+
+    const updatePath = path.join(tempDir, extractedDir, 'packages/314Sign');
+
+    // Backup current version
+    console.log('Creating backup of current version...');
+    const backupDir = '/tmp/314sign-backup-pre-update-' + Date.now();
+    await execPromise(`mkdir -p "${backupDir}" && cp -r "${rootDir}" "${backupDir}/"`);
+
+    // Stop database connection before updating
+    const db = req.app.locals.db;
+    if (db) {
+      db.close();
+    }
+
+    // Install update (preserve database, config, and user data)
+    console.log('Installing update...');
+    
+    // Update source files
+    await execPromise(`cp -r "${updatePath}/src" "${rootDir}/src"`);
+    await execPromise(`cp -r "${updatePath}/dist" "${rootDir}/dist" || true`);
+    
+    // Update HTML files
+    await execPromise(`cp "${updatePath}"/*.html "${rootDir}/" || true`);
+    await execPromise(`cp "${updatePath}"/*.js "${rootDir}/" || true`);
+    
+    // Update subdirectories (preserve user data)
+    const dirsToUpdate = ['design', 'edit', 'login', 'maintenance', 'remotes', 'rules', 'screens', 'debug', 'demo', 'start', 'tasks', 'legacy', 'docs'];
+    for (const dir of dirsToUpdate) {
+      await execPromise(`cp -r "${updatePath}/${dir}" "${rootDir}/${dir}" || true`).catch(() => {});
+    }
+
+    // Update version file
+    await execPromise(`cp "${updatePath}/version.txt" "${rootDir}/version.txt" || true`);
+
+    // Update package.json and install dependencies if changed
+    const packageJsonPath = path.join(rootDir, 'package.json');
+    const newPackageJsonPath = path.join(updatePath, 'package.json');
+    
+    try {
+      await execPromise(`cp "${newPackageJsonPath}" "${packageJsonPath}"`);
+      console.log('Running npm install...');
+      await execPromise(`cd "${rootDir}" && npm install --production`);
+    } catch (e) {
+      console.warn('Could not update dependencies:', e);
+    }
+
+    // Rebuild TypeScript
+    console.log('Building TypeScript...');
+    await execPromise(`cd "${rootDir}/../.. && npm run build:314sign`).catch(() => {
+      console.warn('TypeScript build failed, continuing anyway');
+    });
+
+    // Clean up temp directory
+    await execPromise(`rm -rf "${tempDir}"`);
+
+    // Reinitialize database
+    const Database = await import('better-sqlite3');
+    const newDb = new (Database.default)(path.join(rootDir, '314sign.db'));
+    newDb.pragma('journal_mode = WAL');
+    req.app.locals.db = newDb;
+
+    res.json({
+      success: true,
+      message: 'Update installed successfully. Restart the service to complete the update.',
+      backupPath: backupDir
+    } as ApiResponse);
+
+  } catch (error) {
+    console.error('Install update error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to install update',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    } as ApiResponse);
+  }
+});
+
+// Helper function to compare semantic versions
+function compareVersions(v1: string, v2: string): number {
+  const parts1 = v1.split('.').map(Number);
+  const parts2 = v2.split('.').map(Number);
+  
+  for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+    const part1 = parts1[i] || 0;
+    const part2 = parts2[i] || 0;
+    
+    if (part1 > part2) return 1;
+    if (part1 < part2) return -1;
+  }
+  
+  return 0;
+}
+
 export default router;

@@ -398,7 +398,7 @@
           <div class="btn-grid">
             <button class="btn" onclick="clearCache()">🗑️ Clear Cache</button>
             <button class="btn danger" onclick="restartServer()">🔄 Restart</button>
-            <button class="btn" onclick="reloadConfig()">⚙️ Reload Config</button>
+            <button class="btn" onclick="checkForUpdates()">🔄 Check for Updates</button>
           </div>
         </div>
 
@@ -821,20 +821,89 @@
       }
     }
 
-    async function reloadConfig() {
+    async function checkForUpdates() {
       try {
-        const response = await fetch('/api/system/reload-config', {
-          method: 'POST',
+        const checkBtn = event.target;
+        checkBtn.disabled = true;
+        checkBtn.textContent = '🔄 Checking...';
+
+        const response = await fetch('/api/system/check-updates', {
           credentials: 'same-origin'
         });
 
         if (response.ok) {
-          alert('Configuration reloaded successfully');
+          const result = await response.json();
+          
+          if (result.success && result.data.updateAvailable) {
+            const { currentVersion, latestVersion, releaseNotes, downloadUrl } = result.data;
+            const notes = releaseNotes ? '\n\nRelease Notes:\n' + releaseNotes.substring(0, 200) : '';
+            
+            if (confirm(`Update available!\n\nCurrent: ${currentVersion}\nLatest: ${latestVersion}${notes}\n\nInstall now? The service will restart automatically.`)) {
+              await installUpdate(downloadUrl);
+            }
+          } else if (result.success) {
+            alert(`You're up to date!\n\nVersion: ${result.data.currentVersion}`);
+          } else {
+            alert('Failed to check for updates: ' + (result.error || 'Unknown error'));
+          }
         } else {
-          alert('Config reload failed');
+          alert('Failed to check for updates');
         }
       } catch (error) {
-        alert('Config reload error: ' + error.message);
+        alert('Update check error: ' + error.message);
+      } finally {
+        const checkBtn = event.target;
+        checkBtn.disabled = false;
+        checkBtn.textContent = '🔄 Check for Updates';
+      }
+    }
+
+    async function installUpdate(downloadUrl) {
+      try {
+        const updateStatus = document.createElement('div');
+        updateStatus.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 10000; font-size: 18px;';
+        updateStatus.innerHTML = '<div style="text-align: center;">📥 Downloading update...<br><br><div style="font-size: 14px; color: #666;">Please wait, do not close this window</div></div>';
+        document.body.appendChild(updateStatus);
+
+        const response = await fetch('/api/system/install-update', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'same-origin',
+          body: JSON.stringify({ downloadUrl })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          updateStatus.innerHTML = '<div style="text-align: center;">✅ Update installed!<br><br><div style="font-size: 14px; color: #666;">Restarting service...</div></div>';
+          
+          // Wait a moment then restart
+          setTimeout(async () => {
+            await fetch('/api/system/restart', {
+              method: 'POST',
+              credentials: 'same-origin'
+            });
+            
+            // Show countdown and reload page
+            let countdown = 10;
+            const countdownInterval = setInterval(() => {
+              countdown--;
+              updateStatus.innerHTML = `<div style="text-align: center;">✅ Update complete!<br><br><div style="font-size: 14px; color: #666;">Page will reload in ${countdown} seconds...</div></div>`;
+              
+              if (countdown <= 0) {
+                clearInterval(countdownInterval);
+                window.location.reload();
+              }
+            }, 1000);
+          }, 2000);
+        } else {
+          document.body.removeChild(updateStatus);
+          alert('Update installation failed: ' + (result.error || result.message || 'Unknown error'));
+        }
+      } catch (error) {
+        alert('Update installation error: ' + error.message);
       }
     }
 
