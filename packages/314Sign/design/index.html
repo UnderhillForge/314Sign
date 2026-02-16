@@ -117,23 +117,8 @@
       <input type="text" id="qrBadgeUrl" placeholder="http://314sign.local/guest" maxlength="200" />
       <div style="margin-top:0.75rem; padding:0.75rem; background:#1a1a1a; border-radius:8px; text-align:center;">
         <div id="qrGenerated" style="display:inline-block;"></div>
-        <div style="margin-top:0.5rem; font-size:0.85rem; color:#999;">QR code auto-generated from URL above</div>
+        <div style="margin-top:0.5rem; font-size:0.85rem; color:#999;">QR code dynamically generated from URL above</div>
       </div>
-      <label style="margin-top:0.75rem">QR Badge Image Path (optional override)</label>
-      <input type="text" id="qrBadgeImage" placeholder="Leave empty for auto-generation" maxlength="200" />
-      <label style="margin-top:0.75rem">Or Upload QR Image</label>
-      <input type="file" id="qrUpload" accept="image/*" />
-      <label style="margin-top:0.75rem">Or Choose From Library</label>
-      <div style="display:flex; gap:0.5rem; align-items:center;">
-        <select id="qrLibrarySelect" style="flex:1">
-          <option value="">Loading...</option>
-        </select>
-        <button type="button" class="secondary" id="qrLibraryReload" style="flex:0 0 auto; padding:0.5rem 0.75rem; font-size:0.85rem;">Reload</button>
-      </div>
-      <img id="qrPreview" class="preview-img" src="" alt="QR preview" />
-      <small style="color:#999; display:block; margin-top:0.5rem;">
-        Leave empty for auto-generated QR code. To override with a custom image, upload one above or select from the library.
-      </small>
     </div>
 
     <div class="section">
@@ -205,13 +190,8 @@
     const qrBadgeEnabledCheckbox = document.getElementById('qrBadgeEnabled');
     const qrBadgeTitleInput = document.getElementById('qrBadgeTitle');
     const qrBadgeUrlInput = document.getElementById('qrBadgeUrl');
-    const qrBadgeImageInput = document.getElementById('qrBadgeImage');
     const qrGeneratedDiv = document.getElementById('qrGenerated');
     let currentQrCode = null;
-    const qrUpload = document.getElementById('qrUpload');
-    const qrLibrarySelect = document.getElementById('qrLibrarySelect');
-    const qrLibraryReload = document.getElementById('qrLibraryReload');
-    const qrPreview = document.getElementById('qrPreview');
     const autoFormatItemColor = document.getElementById('autoFormatItemColor');
     const autoFormatPriceColor = document.getElementById('autoFormatPriceColor');
     const autoFormatDescColor = document.getElementById('autoFormatDescColor');
@@ -285,8 +265,6 @@
   let selectedBg = null;       // Filename or 'uploaded'
   let uploadedDataUrl = null;
   let uploadedFileName = null; // original filename from file input
-  let uploadedQrDataUrl = null;
-  let uploadedQrFileName = null;
   
   // let selectedLogo = null;     // Logo filename or 'uploaded'
   // let uploadedLogoDataUrl = null;
@@ -417,78 +395,7 @@
       reader.readAsDataURL(file);
     };
 
-    // === QR upload (preview only) ===
-    qrUpload.onchange = () => {
-      const file = qrUpload.files[0];
-      if (!file) return;
-      uploadedQrFileName = file.name || 'qr.png';
-      const reader = new FileReader();
-      reader.onload = e => {
-        uploadedQrDataUrl = e.target.result;
-        qrPreview.src = uploadedQrDataUrl;
-        qrPreview.style.display = 'block';
-        qrBadgeImageInput.value = uploadedQrFileName;
-      };
-      reader.readAsDataURL(file);
-      if (qrLibrarySelect) qrLibrarySelect.value = '';
-    };
 
-    function resolvePreviewSrc(pathValue) {
-      if (!pathValue) return '';
-      if (pathValue.startsWith('data:')) return pathValue;
-      if (pathValue.startsWith('http://') || pathValue.startsWith('https://')) return pathValue;
-      if (pathValue.startsWith('/')) return '..' + pathValue;
-      return '../' + pathValue;
-    }
-
-    function populateQrLibrary(files, currentPath) {
-      if (!qrLibrarySelect) return;
-      qrLibrarySelect.innerHTML = '<option value="">Choose from library...</option>';
-      files.forEach(file => {
-        const option = document.createElement('option');
-        option.value = file;
-        option.textContent = file;
-        qrLibrarySelect.appendChild(option);
-      });
-
-      if (currentPath && currentPath.startsWith('media/')) {
-        const currentFile = currentPath.replace(/^media\//, '');
-        qrLibrarySelect.value = currentFile;
-      }
-    }
-
-    function loadQrLibrary(currentPath) {
-      if (!qrLibrarySelect) return;
-      fetch('../media/index.php?' + Date.now())
-        .then(r => r.ok ? r.json() : [])
-        .then(files => {
-          const list = Array.isArray(files) ? files : [];
-          populateQrLibrary(list, currentPath);
-        })
-        .catch(() => {
-          populateQrLibrary([], currentPath);
-        });
-    }
-
-    if (qrLibrarySelect) {
-      qrLibrarySelect.addEventListener('change', () => {
-        const file = qrLibrarySelect.value;
-        if (!file) return;
-        uploadedQrDataUrl = null;
-        qrBadgeImageInput.value = 'media/' + file;
-        const previewSrc = resolvePreviewSrc(qrBadgeImageInput.value);
-        if (previewSrc) {
-          qrPreview.src = previewSrc;
-          qrPreview.style.display = 'block';
-        }
-      });
-    }
-
-    if (qrLibraryReload) {
-      qrLibraryReload.addEventListener('click', () => {
-        loadQrLibrary(qrBadgeImageInput.value.trim());
-      });
-    }
     
     // === Handle logo upload (preview only) ===
     /*
@@ -605,18 +512,9 @@
           qrBadgeEnabledCheckbox.checked = cfg.qrBadgeEnabled !== false;
           qrBadgeTitleInput.value = cfg.qrBadgeTitle || 'Scan for menu';
           qrBadgeUrlInput.value = cfg.qrBadgeUrl || `http://${window.location.hostname}/guest`;
-          qrBadgeImageInput.value = cfg.qrBadgeImage || '';
           
           // Generate QR code from loaded URL
           generateQrCode(qrBadgeUrlInput.value);
-          const qrPreviewSrc = resolvePreviewSrc(qrBadgeImageInput.value);
-          if (qrPreviewSrc) {
-            qrPreview.src = qrPreviewSrc;
-            qrPreview.style.display = 'block';
-          } else {
-            qrPreview.style.display = 'none';
-          }
-          loadQrLibrary(qrBadgeImageInput.value);
           
           // Load background brightness
           if (Number.isFinite(cfg.bgBrightness)) {
@@ -700,7 +598,6 @@
       const qrBadgeEnabledCheckbox = document.getElementById('qrBadgeEnabled');
       const qrBadgeTitleInput = document.getElementById('qrBadgeTitle');
       const qrBadgeUrlInput = document.getElementById('qrBadgeUrl');
-      const qrBadgeImageInput = document.getElementById('qrBadgeImage');
       const autoFormatItemColor = document.getElementById('autoFormatItemColor');
       const autoFormatPriceColor = document.getElementById('autoFormatPriceColor');
       const autoFormatDescColor = document.getElementById('autoFormatDescColor');
@@ -721,20 +618,11 @@
         uploadPromises.push(uploadImageIfNeeded().then(result => ({ type: 'bg', filename: result.filename })));
       }
 
-      if (uploadedQrDataUrl) {
-        uploadPromises.push(uploadQrIfNeeded().then(result => ({ type: 'qr', filename: result.filename })));
-      }
-
       // if (selectedLogo === 'uploaded' && uploadedLogoDataUrl) {
       //   uploadPromises.push(uploadLogoIfNeeded().then(result => ({ type: 'logo', filename: result.filename })));
       // }
 
       configPromise = Promise.all(uploadPromises).then(uploadResults => {
-        const qrUploadResult = uploadResults.find(r => r.type === 'qr');
-        const qrImageValue = qrUploadResult
-          ? ('media/' + qrUploadResult.filename)
-          : (qrBadgeImageInput.value.trim() || ''); // Empty string = dynamic generation
-
         // Build updated config with uploaded filenames
         const updatedConfig = {
           bg: selectedBg === 'uploaded' ?
@@ -749,7 +637,7 @@
           qrBadgeEnabled: qrBadgeEnabledCheckbox.checked,
           qrBadgeTitle: qrBadgeTitleInput.value.trim() || 'Scan for menu',
           qrBadgeUrl: qrBadgeUrlInput.value.trim() || `http://${window.location.hostname}/guest`,
-          qrBadgeImage: qrImageValue,
+          qrBadgeImage: '', // Always use dynamic generation
           autoFormatItemColor: autoFormatItemColor.value,
           autoFormatPriceColor: autoFormatPriceColor.value,
           autoFormatDescColor: autoFormatDescColor.value,
@@ -859,54 +747,7 @@ function uploadImageIfNeeded() {
   });
 }
 
-function uploadQrIfNeeded() {
-  if (!uploadedQrDataUrl) return Promise.resolve();
-
-  const blob = dataURLtoBlob(uploadedQrDataUrl);
-  const form = new FormData();
-  const name = uploadedQrFileName || 'qr.png';
-  form.append('media', blob, name);
-
-  console.log('[QR Upload] Attempting upload:', name, blob);
-
-  const urlParams = new URLSearchParams(window.location.search);
-  const token = urlParams.get('token');
-
-  return fetch('../api/upload/media', {
-    method: 'POST',
-    headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-    body: form
-  })
-  .then(r => r.text().then(text => {
-    let data = null;
-    try { data = text ? JSON.parse(text) : null; } catch (e) { /* ignore */ }
-    if (!r.ok) {
-      const errMsg = data && (data.error || data.detail)
-        ? (data.error + (data.detail ? (': ' + data.detail) : ''))
-        : (text || r.statusText);
-      return Promise.reject(errMsg);
-    }
-    return data;
-  }))
-  .then(data => {
-    const uploadData = data && data.data ? data.data : data;
-    if (uploadData && uploadData.filename) {
-      console.log('[QR Upload] Upload successful, filename:', uploadData.filename);
-      return uploadData;
-    }
-    const err = data && (data.error || data.detail)
-      ? (data.error + (data.detail ? (': ' + data.detail) : ''))
-      : 'QR upload failed (no filename returned)';
-    return Promise.reject(err);
-  })
-  .catch(err => {
-    console.error('[QR Upload] Upload error:', err);
-    status.textContent = 'QR upload error: ' + (err && err.message ? err.message : err);
-    return Promise.reject(err);
-  });
-}
-
-    function deleteBackgroundImage(filename) {
+function deleteBackgroundImage(filename) {
       if (!confirm(`Delete background image "${filename}"? This cannot be undone.`)) {
         return;
       }
