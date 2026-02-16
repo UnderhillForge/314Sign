@@ -557,6 +557,12 @@
             console.log('[Config] Header font defaulted to body font:', cfg.font);
           }
           
+          // Set the content font
+          if (cfg.font) {
+            contentFontSelect.value = cfg.font;
+            console.log('[Config] Content font from config:', cfg.font);
+          }
+          
           // Load header text
           if (cfg.headerText) {
             headerTextInput.value = cfg.headerText;
