@@ -16,7 +16,9 @@
   "autoFormatItemColor": "w",
   "autoFormatPriceColor": "y",
   "autoFormatDescColor": "lg",
-  "menuFonts": {},
+  "menuFonts": {
+    "dinner": "Permanent Marker, cursive"
+  },
   "masterCode": "DMCIIQ",
   "displayOrientation": 2
 }

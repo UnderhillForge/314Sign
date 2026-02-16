@@ -19,10 +19,11 @@ const upload = multer({
   dest: '/tmp/',
   limits: { fileSize: 500 * 1024 * 1024 }, // 500MB max
   fileFilter: (req, file, cb) => {
-    if (file.originalname.endsWith('.tar.gz') || file.originalname.endsWith('.tgz')) {
+    const filename = file.originalname.toLowerCase();
+    if (filename.endsWith('.tar.gz') || filename.endsWith('.tgz') || filename.endsWith('.gz')) {
       cb(null, true);
     } else {
-      cb(new Error('Only .tar.gz or .tgz files are allowed'));
+      cb(new Error('Only .tar.gz, .tgz, or .gz files are allowed'));
     }
   }
 });

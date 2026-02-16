@@ -384,8 +384,8 @@
           <!-- Restore dialog (hidden by default) -->
           <div id="restoreDialog" style="display:none; margin-top:1rem; padding:1rem; background:#3a3a3a; border-radius:8px;">
             <h3 style="margin-bottom:0.75rem; color:#4a9eff;">Restore from Backup Archive</h3>
-            <p style="margin-bottom:1rem; font-size:0.85rem; color:#bbb;">Upload a .tar.gz backup file to restore all data. This will replace current configuration, databases, and files.</p>
-            <input type="file" id="restoreFile" accept=".tar.gz,.tgz" style="margin-bottom:0.75rem; display:block; width:100%; padding:0.5rem; background:#1a1a1a; border:1px solid #555; border-radius:4px; color:#e0e0e0;" />
+            <p style="margin-bottom:1rem; font-size:0.85rem; color:#bbb;">Upload a backup archive (.tar.gz, .tgz, or .gz file) to restore all data. This will replace current configuration, databases, and files.</p>
+            <input type="file" id="restoreFile" accept="application/gzip,application/x-gzip,application/x-tar,application/x-compressed-tar,.tar.gz,.tgz,.gz" style="margin-bottom:0.75rem; display:block; width:100%; padding:0.5rem; background:#1a1a1a; border:1px solid #555; border-radius:4px; color:#e0e0e0;" />
             <div style="display:flex; gap:0.5rem;">
               <button class="btn" onclick="performRestore()">✓ Restore</button>
               <button class="btn" style="background:#666;" onclick="hideRestoreDialog()">✗ Cancel</button>
@@ -724,6 +724,14 @@
       }
 
       const file = fileInput.files[0];
+      
+      // Validate filename (accept .tar.gz, .tgz, or .gz extensions)
+      const filename = file.name.toLowerCase();
+      if (!filename.endsWith('.tar.gz') && !filename.endsWith('.tgz') && !filename.endsWith('.gz')) {
+        if (!confirm(`Warning: Selected file "${file.name}" doesn't appear to be a .tar.gz archive.\\n\\nContinue anyway?`)) {
+          return;
+        }
+      }
       
       if (!confirm(`WARNING: This will restore from ${file.name} and replace ALL current data.\\n\\nThis action cannot be undone. Continue?`)) {
         return;
